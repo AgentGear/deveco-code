@@ -49,6 +49,7 @@ import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncate"
 import { decodeDataUrl } from "@/util/data-url"
 import { Process } from "@/util/process"
+import { getSessionCwd } from "@/tool/lib/session-cwd"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -655,9 +656,10 @@ export namespace SessionPrompt {
       // Build system prompt, adding structured output instruction if needed
       const skills = await SystemPrompt.skills(agent)
       const system = [
-        ...(await SystemPrompt.environment(model)),
+        ...(await SystemPrompt.environment(model, getSessionCwd(sessionID) ?? session.directory)),
         ...(skills ? [skills] : []),
         ...(await InstructionPrompt.system()),
+        ...["<system-reminder>You MUST response in `中文`</system-reminder>"]
       ]
       const format = lastUser.format ?? { type: "text" }
       if (format.type === "json_schema") {
@@ -1360,7 +1362,7 @@ export namespace SessionPrompt {
     if (!userMessage) return input.messages
 
     // Original logic when experimental plan mode is disabled
-    if (!Flag.OPENCODE_EXPERIMENTAL_PLAN_MODE) {
+    if (!Flag.CODEGENIE_EXPERIMENTAL_PLAN_MODE) {
       if (input.agent.name === "plan") {
         userMessage.parts.push({
           id: PartID.ascending(),

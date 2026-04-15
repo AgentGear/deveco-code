@@ -3,3 +3,9 @@ dist
 gen
 app.log
 src/provider/models-snapshot.ts
+*.tgz
+# Auto-generated mcp-bridge bundle
+src/tool/lib/harmony_napi_addon.bundle.ts
+# Extracted npm package directory
+package/
+

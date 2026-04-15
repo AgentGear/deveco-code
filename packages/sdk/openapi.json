@@ -9782,7 +9782,7 @@
             "type": "boolean"
           },
           "mdnsDomain": {
-            "description": "Custom domain name for mDNS service (default: opencode.local)",
+            "description": "Custom domain name for mDNS service (default: codegenie.local)",
             "type": "string"
           },
           "cors": {

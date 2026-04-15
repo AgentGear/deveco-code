@@ -1,4 +1,4 @@
-import { PlanExitTool } from "./plan"
+import { PlanExitTool, PlanWriteTool, PlanEnterTool } from "./plan"
 import { QuestionTool } from "./question"
 import { BashTool } from "./bash"
 import { EditTool } from "./edit"
@@ -12,6 +12,9 @@ import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
+import { HdcLogTool } from "./hdc_log"
+import { JscrashReportTool } from "./jscrash_report"
+import { SwitchCwdTool } from "./switch-cwd"
 import type { Agent } from "../agent/agent"
 import { Tool } from "./tool"
 import { Config } from "../config/config"
@@ -111,7 +114,7 @@ export namespace ToolRegistry {
 
       async function all(custom: Tool.Info[]): Promise<Tool.Info[]> {
         const cfg = await Config.get()
-        const question = ["app", "cli", "desktop"].includes(Flag.OPENCODE_CLIENT) || Flag.OPENCODE_ENABLE_QUESTION_TOOL
+        const question = ["app", "cli", "desktop"].includes(Flag.CODEGENIE_CLIENT) || Flag.CODEGENIE_ENABLE_QUESTION_TOOL
 
         return [
           InvalidTool,
@@ -129,9 +132,13 @@ export namespace ToolRegistry {
           CodeSearchTool,
           SkillTool,
           ApplyPatchTool,
-          ...(Flag.OPENCODE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
+          // HarmonyOS tools
+          HdcLogTool,
+          JscrashReportTool,
+          SwitchCwdTool,
+          ...(Flag.CODEGENIE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
           ...(cfg.experimental?.batch_tool === true ? [BatchTool] : []),
-          ...(Flag.OPENCODE_EXPERIMENTAL_PLAN_MODE && Flag.OPENCODE_CLIENT === "cli" ? [PlanExitTool] : []),
+          ...(Flag.CODEGENIE_CLIENT === "cli" ? [PlanExitTool, PlanWriteTool, PlanEnterTool] : []),
           ...custom,
         ]
       }
@@ -164,7 +171,7 @@ export namespace ToolRegistry {
               .filter((tool) => {
                 // Enable websearch/codesearch for zen users OR via enable flag
                 if (tool.id === "codesearch" || tool.id === "websearch") {
-                  return model.providerID === ProviderID.opencode || Flag.OPENCODE_ENABLE_EXA
+                  return model.providerID === ProviderID.opencode || Flag.CODEGENIE_ENABLE_EXA
                 }
 
                 // use apply tool in same format as codex

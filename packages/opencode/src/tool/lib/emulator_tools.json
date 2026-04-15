@@ -1,0 +1,197 @@
+[
+  {
+    "name": "check_ets_files",
+    "description": "对传入的ets文件进行静态语法检查(ArkTS-Check)并实时返回诊断信息。",
+    "inputSchema": {
+      "properties": {
+        "files": {
+          "description": "待检查的 ETS 文件路径列表，格式为 [\"file1.ets\",\"file2.ets\",...]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "files"
+      ],
+      "title": "CheckEtsFilesRequest",
+      "type": "object"
+    }
+  },
+  {
+    "name": "build_project",
+    "description": "执行编译构建导出构建产物。支持构建整个 APP 或特定模块（HAP/HSP/HAR）。通过选择不同的构建意图（BuildIntent）来自动配置底层的编译参数。当需要重新构建或清理项目缓存时请将 clean 参数设为 true，这将在构建前执行清理（clean）。",
+    "inputSchema": {
+      "$defs": {
+        "BuildIntent": {
+          "oneOf": [
+            {
+              "const": "LogVerification",
+              "description": "看详细日志确认功能：保留详细运行日志和变量名，支持断点调试（包体积较大）",
+              "type": "string"
+            },
+            {
+              "const": "UIDebug",
+              "description": "查看界面调试功能：支持获取界面元素和代码位置的对应关系（包体积最大）",
+              "type": "string"
+            },
+            {
+              "const": "PerformanceProfile",
+              "description": "性能分析调试：开启代码优化，保留调试钩子，可用于性能调优",
+              "type": "string"
+            },
+            {
+              "const": "Release",
+              "description": "单纯发布：极致压缩，完全混淆优化代码，不支持断点调试（包体积最小）",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "properties": {
+        "build_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BuildIntent"
+            },
+            {
+              "const": null,
+              "nullable": true
+            }
+          ],
+          "description": "构建意图：根据你需要进行的测试/发布场景选择。缺省默认为 LogVerification"
+        },
+        "clean": {
+          "description": "是否在构建前执行 clean 清理构建产物（类似 cargo clean或者mvn clean）。如果为 true，则会先执行清理然后再进行构建。",
+          "nullable": true,
+          "type": "boolean"
+        },
+        "log_path": {
+          "description": "构建日志保存路径：若指定，则将所有的构建日志保存到该路径下。日志文件使用后记得清理",
+          "nullable": true,
+          "type": "string"
+        },
+        "module": {
+          "description": "指定的模块及 Target（如 'entry@default'，或省略 @target 构建该模块所有 target）。如果不传，则视为构建整个 APP。",
+          "nullable": true,
+          "type": "string"
+        },
+        "product": {
+          "description": "指定的 Product 名称（仅在构建整个 APP 时有效）",
+          "nullable": true,
+          "type": "string"
+        }
+      },
+      "title": "BuildProjectRequest",
+      "type": "object"
+    }
+  },
+  {
+    "name": "start_app",
+    "description": "在模拟器/真机上运行应用（不主动构建）。设备列表包含已连接的真机、模拟器以及已安装但未运行的模拟器。选择未运行的模拟器时会自动启动。",
+    "inputSchema": {
+      "properties": {
+        "ability": {
+          "description": "要启动的 Ability 名称（如 'EntryAbility'）。如果不指定，默认使用 'EntryAbility'。",
+          "nullable": true,
+          "type": "string"
+        },
+        "hvd": {
+          "description": "目标设备的名称或 ID（支持真机或模拟器）。如果不提供，系统将列出所有可用设备供选择。",
+          "nullable": true,
+          "type": "string"
+        },
+        "module": {
+          "description": "要启动的模块名称（如 'entry'）。如果不指定，默认使用 'entry'。",
+          "nullable": true,
+          "type": "string"
+        },
+        "target": {
+          "description": "构建目标（如 'default'）。如果不指定，默认使用 'default'。",
+          "nullable": true,
+          "type": "string"
+        }
+      },
+      "title": "StartAppRequest",
+      "type": "object"
+    }
+  },
+  {
+    "name": "verify_ui",
+    "description": "在提供自然语言描述的功能步骤之后，本工具可以在HarmonyOS设备上运行应用，执行UI操作，验证功能是否可以正确完成。\n注意：目前仅支持点击、滑动和按键操作；目前基于截图进行判断，无法判断动画等动态内容。\n返回的successPart、failPart字段描述了本次验证过程的主要步骤，id字段是本次校验的唯一标识符，可用于后续的日志查询。\n使用场景：\n1. 开发时验证：通过自然语言描述测试用例，自动执行UI操作，验证应用功能。\n2. 获取运行时日志：通过自然语言描述操作，在执行UI操作的同时，收集设备日志，帮助定位问题。",
+    "inputSchema": {
+      "properties": {
+        "bundleName": {
+          "description": "待测试的应用包名，不填写时自动从项目中获取",
+          "nullable": true,
+          "type": "string"
+        },
+        "freshStart": {
+          "default": false,
+          "description": "是否在测试前重新启动应用",
+          "type": "boolean"
+        },
+        "testPlan": {
+          "description": "自然语言描述的测试用例计划，包括每步的步骤以及预期结果",
+          "type": "string"
+        }
+      },
+      "required": [
+        "testPlan"
+      ],
+      "title": "VerifyUIRequest",
+      "type": "object"
+    }
+  },
+  {
+    "name": "save_ui_screenshot",
+    "description": "根据校验ID保存某次校验的每一步截图，返回截图文件名列表",
+    "inputSchema": {
+      "properties": {
+        "dirname": {
+          "description": "截图保存目录，必须为绝对路径",
+          "type": "string"
+        },
+        "id": {
+          "description": "verify_ui 工具返回的校验任务 ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "dirname"
+      ],
+      "title": "SaveScreenshotRequest",
+      "type": "object"
+    }
+  },
+  {
+    "name": "get_ui_verification_log",
+    "description": "根据校验ID获取对应的设备运行日志",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "description": "校验ID",
+          "type": "string"
+        },
+        "maxLogSize": {
+          "description": "可选的日志总字符数限制：默认为5000字符；传-1代表不限制字符数",
+          "format": "int32",
+          "nullable": true,
+          "type": "integer"
+        },
+        "searchKeywords": {
+          "description": "可选的日志搜索关键词。若需要获取完整日志内容，请传空字符串。",
+          "nullable": true,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "GetLogRequest",
+      "type": "object"
+    }
+  }
+]

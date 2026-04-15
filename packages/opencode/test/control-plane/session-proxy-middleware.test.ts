@@ -17,13 +17,13 @@ afterEach(async () => {
   await resetDatabase()
 })
 
-const original = Flag.OPENCODE_EXPERIMENTAL_WORKSPACES
+const original = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
 // @ts-expect-error don't do this normally, but it works
-Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = true
+Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
 
 afterEach(() => {
   // @ts-expect-error don't do this normally, but it works
-  Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = original
+  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = original
 })
 
 type State = {

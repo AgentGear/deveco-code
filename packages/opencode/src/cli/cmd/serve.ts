@@ -9,14 +9,14 @@ import { Installation } from "../../installation"
 export const ServeCommand = cmd({
   command: "serve",
   builder: (yargs) => withNetworkOptions(yargs),
-  describe: "starts a headless opencode server",
+  describe: "starts a headless codegenie server",
   handler: async (args) => {
-    if (!Flag.OPENCODE_SERVER_PASSWORD) {
-      console.log("Warning: OPENCODE_SERVER_PASSWORD is not set; server is unsecured.")
+    if (!Flag.CODEGENIE_SERVER_PASSWORD) {
+      console.log("Warning: CODEGENIE_SERVER_PASSWORD is not set; server is unsecured.")
     }
     const opts = await resolveNetworkOptions(args)
     const server = Server.listen(opts)
-    console.log(`opencode server listening on http://${server.hostname}:${server.port}`)
+    console.log(`codegenie server listening on http://${server.hostname}:${server.port}`)
 
     await new Promise(() => {})
     await server.stop()

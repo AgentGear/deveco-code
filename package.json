@@ -87,6 +87,8 @@
     "@opencode-ai/plugin": "workspace:*",
     "@opencode-ai/script": "workspace:*",
     "@opencode-ai/sdk": "workspace:*",
+    "ajv": "8.18.0",
+    "openai": "6.33.0",
     "typescript": "catalog:"
   },
   "repository": {

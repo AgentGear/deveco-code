@@ -1,5 +1,6 @@
 import z from "zod"
 import path from "path"
+import fs from "fs/promises"
 import { Tool } from "./tool"
 import { Question } from "../question"
 import { Session } from "../session"
@@ -8,6 +9,8 @@ import { Provider } from "../provider/provider"
 import { Instance } from "../project/instance"
 import { type SessionID, MessageID, PartID } from "../session/schema"
 import EXIT_DESCRIPTION from "./plan-exit.txt"
+import WRITE_DESCRIPTION from "./plan-write.txt"
+import ENTER_DESCRIPTION from "./plan-enter.txt"
 
 async function getLastModel(sessionID: SessionID) {
   for await (const item of MessageV2.stream(sessionID)) {
@@ -71,7 +74,25 @@ export const PlanExitTool = Tool.define("plan_exit", {
   },
 })
 
-/*
+export const PlanWriteTool = Tool.define("plan_write", {
+  description: WRITE_DESCRIPTION,
+  parameters: z.object({
+    content: z.string().describe("The full plan file content, including YAML frontmatter and markdown body."),
+  }),
+  async execute(params, ctx) {
+    const session = await Session.get(ctx.sessionID)
+    const planPath = Session.plan(session)
+    await fs.mkdir(path.dirname(planPath), { recursive: true })
+    await fs.writeFile(planPath, params.content, "utf-8")
+    const displayPath = path.relative(Instance.worktree, planPath)
+    return {
+      title: "Plan Written",
+      output: `Plan written to ${displayPath}`,
+      metadata: { path: planPath },
+    }
+  },
+})
+
 export const PlanEnterTool = Tool.define("plan_enter", {
   description: ENTER_DESCRIPTION,
   parameters: z.object({}),
@@ -128,4 +149,3 @@ export const PlanEnterTool = Tool.define("plan_enter", {
     }
   },
 })
-*/

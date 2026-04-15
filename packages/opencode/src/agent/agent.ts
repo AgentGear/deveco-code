@@ -10,6 +10,9 @@ import { Auth } from "../auth"
 import { ProviderTransform } from "../provider/transform"
 
 import PROMPT_GENERATE from "./generate.txt"
+import PROMPT_BUILD from "./prompt/build.txt"
+import PROMPT_DEBUG from "./prompt/debug.txt"
+import PROMPT_PLAN from "./prompt/plan.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
@@ -61,7 +64,6 @@ export namespace Agent {
         "*": "ask",
         ...Object.fromEntries(whitelistedDirs.map((dir) => [dir, "allow"])),
       },
-      question: "deny",
       plan_enter: "deny",
       plan_exit: "deny",
       // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
@@ -77,83 +79,60 @@ export namespace Agent {
     const result: Record<string, Info> = {
       build: {
         name: "build",
-        description: "The default agent. Executes tools based on configured permissions.",
+        description: "ArkTS build-focused primary agent.",
         options: {},
         permission: Permission.merge(
           defaults,
           Permission.fromConfig({
-            question: "allow",
-            plan_enter: "allow",
+            plan_enter: "deny",
+            plan_write: "deny",
           }),
           user,
         ),
         mode: "primary",
-        native: true,
+        prompt: PROMPT_BUILD,
       },
-      plan: {
-        name: "plan",
-        description: "Plan mode. Disallows all edit tools.",
+      debug: {
+        name: "debug",
+        description: "ArkTS runtime-evidence debug agent (without phone automation)",
         options: {},
         permission: Permission.merge(
           defaults,
           Permission.fromConfig({
-            question: "allow",
-            plan_exit: "allow",
-            external_directory: {
-              [path.join(Global.Path.data, "plans", "*")]: "allow",
-            },
-            edit: {
-              "*": "deny",
-              [path.join(".opencode", "plans", "*.md")]: "allow",
-              [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
-            },
+            plan_enter: "deny",
+            plan_exit: "deny",
           }),
           user,
         ),
         mode: "primary",
-        native: true,
+        prompt: PROMPT_DEBUG,
       },
-      general: {
-        name: "general",
-        description: `General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel.`,
-        permission: Permission.merge(
-          defaults,
-          Permission.fromConfig({
-            todoread: "deny",
-            todowrite: "deny",
-          }),
-          user,
-        ),
-        options: {},
-        mode: "subagent",
-        native: true,
-      },
-      explore: {
-        name: "explore",
-        permission: Permission.merge(
-          defaults,
-          Permission.fromConfig({
-            "*": "deny",
-            grep: "allow",
-            glob: "allow",
-            list: "allow",
-            bash: "allow",
-            webfetch: "allow",
-            websearch: "allow",
-            codesearch: "allow",
-            read: "allow",
-            external_directory: {
-              "*": "ask",
-              ...Object.fromEntries(whitelistedDirs.map((dir) => [dir, "allow"])),
-            },
-          }),
-          user,
-        ),
-        description: `Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.`,
-        prompt: PROMPT_EXPLORE,
-        options: {},
-        mode: "subagent",
-        native: true,
+      explore: { 
+        name: "explore", 
+        permission: Permission.merge( 
+          defaults, 
+          Permission.fromConfig({ 
+            "*": "deny", 
+            grep: "allow", 
+            glob: "allow", 
+            list: "allow", 
+            bash: "allow", 
+            webfetch: "allow", 
+            websearch: "allow", 
+            codesearch: "allow", 
+            read: "allow", 
+            external_directory: { 
+              "*": "ask", 
+              ...Object.fromEntries(whitelistedDirs.map((dir) => [dir, "allow"])), 
+            }, 
+          }), 
+          user, 
+        ), 
+        description: `Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. "src/components/**/*.tsx"), search code for keywords (eg. "API endpoints"), or answer questions about the codebase (eg. "how do API endpoints work?"). When calling this agent, specify the desired thoroughness level: "quick" for basic searches, "medium" for moderate exploration, or "very thorough" for comprehensive analysis across multiple locations and naming conventions.`, 
+        prompt: PROMPT_EXPLORE, 
+        options: {}, 
+        mode: "subagent", 
+        native: true, 
       },
       compaction: {
         name: "compaction",

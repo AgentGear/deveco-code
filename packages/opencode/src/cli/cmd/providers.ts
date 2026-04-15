@@ -169,6 +169,11 @@ async function handlePluginAuth(plugin: { auth: PluginAuth }, provider: string, 
   return false
 }
 
+// Custom display config for plugin providers
+const PLUGIN_PROVIDER_CONFIG: Record<string, { name: string; type?: string }> = {
+  codegenie: { name: "CodeGenie OAuth", type: "OAuth" },
+}
+
 export function resolvePluginProviders(input: {
   hooks: Hooks[]
   existingProviders: Record<string, unknown>
@@ -189,7 +194,7 @@ export function resolvePluginProviders(input: {
     if (input.enabled && !input.enabled.has(id)) continue
     result.push({
       id,
-      name: input.providerNames[id] ?? id,
+      name: PLUGIN_PROVIDER_CONFIG[id]?.name ?? input.providerNames[id] ?? id,
     })
   }
 
@@ -219,8 +224,9 @@ export const ProvidersListCommand = cmd({
     const database = await ModelsDev.get()
 
     for (const [providerID, result] of results) {
-      const name = database[providerID]?.name || providerID
-      prompts.log.info(`${name} ${UI.Style.TEXT_DIM}${result.type}`)
+      const name = database[providerID]?.name || PLUGIN_PROVIDER_CONFIG[providerID]?.name || providerID
+      const typeDisplay = PLUGIN_PROVIDER_CONFIG[providerID]?.type ?? result.type
+      prompts.log.info(`${name} ${UI.Style.TEXT_DIM}${typeDisplay}`)
     }
 
     prompts.outro(`${results.length} credentials`)
@@ -257,7 +263,7 @@ export const ProvidersLoginCommand = cmd({
   builder: (yargs) =>
     yargs
       .positional("url", {
-        describe: "opencode auth provider",
+        describe: "codegenie auth provider",
         type: "string",
       })
       .option("provider", {
@@ -321,6 +327,7 @@ export const ProvidersLoginCommand = cmd({
         })
 
         const priority: Record<string, number> = {
+          codegenie: -1,
           opencode: 0,
           openai: 1,
           "github-copilot": 2,
@@ -336,29 +343,35 @@ export const ProvidersLoginCommand = cmd({
           enabled,
           providerNames: Object.fromEntries(Object.entries(config.provider ?? {}).map(([id, p]) => [id, p.name])),
         })
-        const options = [
-          ...pipe(
-            providers,
-            values(),
-            sortBy(
-              (x) => priority[x.id] ?? 99,
-              (x) => x.name ?? x.id,
-            ),
-            map((x) => ({
-              label: x.name,
-              value: x.id,
-              hint: {
-                opencode: "recommended",
-                openai: "ChatGPT Plus/Pro or API key",
-              }[x.id],
-            })),
-          ),
+        // Merge all providers and sort together so plugin providers participate in priority sorting
+        const allProviders = [
+          ...values(providers).map((x) => ({
+            id: x.id,
+            name: x.name,
+            isPlugin: false,
+          })),
           ...pluginProviders.map((x) => ({
-            label: x.name,
-            value: x.id,
-            hint: "plugin",
+            id: x.id,
+            name: x.name,
+            isPlugin: true,
           })),
         ]
+
+        const options = pipe(
+          allProviders,
+          sortBy(
+            (x) => priority[x.id] ?? (x.isPlugin ? 50 : 99),
+            (x) => x.name ?? x.id,
+          ),
+          map((x) => ({
+            label: x.name,
+            value: x.id,
+            hint: {
+              openai: "ChatGPT Plus/Pro or API key",
+              codegenie: "recommended",
+            }[x.id] ?? (x.isPlugin ? "plugin" : undefined),
+          })),
+        )
 
         let provider: string
         if (args.provider) {
@@ -408,7 +421,7 @@ export const ProvidersLoginCommand = cmd({
           }
 
           prompts.log.warn(
-            `This only stores a credential for ${provider} - you will need configure it in opencode.json, check the docs for examples.`,
+            `This only stores a credential for ${provider} - you will need configure it in codegenie.json, check the docs for examples.`,
           )
         }
 
@@ -417,7 +430,7 @@ export const ProvidersLoginCommand = cmd({
             "Amazon Bedrock authentication priority:\n" +
               "  1. Bearer token (AWS_BEARER_TOKEN_BEDROCK or /connect)\n" +
               "  2. AWS credential chain (profile, access keys, IAM roles, EKS IRSA)\n\n" +
-              "Configure via opencode.json options (profile, region, endpoint) or\n" +
+              "Configure via codegenie.json options (profile, region, endpoint) or\n" +
               "AWS environment variables (AWS_PROFILE, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_WEB_IDENTITY_TOKEN_FILE).",
           )
         }
@@ -467,7 +480,7 @@ export const ProvidersLogoutCommand = cmd({
     const providerID = await prompts.select({
       message: "Select provider",
       options: credentials.map(([key, value]) => ({
-        label: (database[key]?.name || key) + UI.Style.TEXT_DIM + " (" + value.type + ")",
+        label: (database[key]?.name || PLUGIN_PROVIDER_CONFIG[key]?.name || key) + UI.Style.TEXT_DIM + " (" + (PLUGIN_PROVIDER_CONFIG[key]?.type ?? value.type) + ")",
         value: key,
       })),
     })

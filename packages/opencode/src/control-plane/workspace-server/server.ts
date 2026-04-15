@@ -21,8 +21,8 @@ export namespace WorkspaceServer {
 
     return new Hono()
       .use(async (c, next) => {
-        const rawWorkspaceID = c.req.query("workspace") || c.req.header("x-opencode-workspace")
-        const raw = c.req.query("directory") || c.req.header("x-opencode-directory")
+        const rawWorkspaceID = c.req.query("workspace") || c.req.header("x-codegenie-workspace")
+        const raw = c.req.query("directory") || c.req.header("x-codegenie-directory")
         if (rawWorkspaceID == null) {
           throw new Error("workspaceID parameter is required")
         }

@@ -11,6 +11,9 @@ import { Session } from "../session"
 import { NamedError } from "@opencode-ai/util/error"
 import { CopilotAuthPlugin } from "./copilot"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "opencode-gitlab-auth"
+import { CodegenieAuthPlugin } from "./codegenie"
+import HarmonyNapiDynamicToolsPlugin from "./harmony-napi-dynamic-tools"
+import AnalyticsPlugin from "./analytics/analytics-plugin"
 import { Effect, Layer, ServiceMap } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { makeRunPromise } from "@/effect/run-service"
@@ -44,7 +47,7 @@ export namespace Plugin {
   export class Service extends ServiceMap.Service<Service, Interface>()("@opencode/Plugin") {}
 
   // Built-in plugins that are directly imported (not installed from npm)
-  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, GitlabAuthPlugin]
+  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, GitlabAuthPlugin, CodegenieAuthPlugin, HarmonyNapiDynamicToolsPlugin, AnalyticsPlugin]
 
   // Old npm package names for plugins that are now built-in — skip if users still have them in config
   const DEPRECATED_PLUGIN_PACKAGES = ["opencode-openai-codex-auth", "opencode-copilot-auth"]
@@ -60,9 +63,9 @@ export namespace Plugin {
             const client = createOpencodeClient({
               baseUrl: "http://localhost:4096",
               directory: ctx.directory,
-              headers: Flag.OPENCODE_SERVER_PASSWORD
+              headers: Flag.CODEGENIE_SERVER_PASSWORD
                 ? {
-                    Authorization: `Basic ${Buffer.from(`${Flag.OPENCODE_SERVER_USERNAME ?? "opencode"}:${Flag.OPENCODE_SERVER_PASSWORD}`).toString("base64")}`,
+                    Authorization: `Basic ${Buffer.from(`${Flag.CODEGENIE_SERVER_USERNAME ?? "codegenie"}:${Flag.CODEGENIE_SERVER_PASSWORD}`).toString("base64")}`,
                   }
                 : undefined,
               fetch: async (...args) => Server.Default().fetch(...args),

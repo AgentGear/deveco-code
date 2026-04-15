@@ -19,7 +19,6 @@ import { Instance } from "@/project/instance"
 import type { Agent } from "@/agent/agent"
 import type { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
-import { SystemPrompt } from "./system"
 import { Flag } from "@/flag/flag"
 import { Permission } from "@/permission"
 import { Auth } from "@/auth"
@@ -71,7 +70,7 @@ export namespace LLM {
     system.push(
       [
         // use agent prompt otherwise provider prompt
-        ...(input.agent.prompt ? [input.agent.prompt] : SystemPrompt.provider(input.model)),
+        ...[input.agent.prompt],
         // any custom prompt passed into this call
         ...input.system,
         // any custom prompt from last user message
@@ -251,10 +250,10 @@ export namespace LLM {
       abortSignal: input.abort,
       headers: {
         ...(input.model.providerID.startsWith("opencode") && {
-          "x-opencode-project": Instance.project.id,
-          "x-opencode-session": input.sessionID,
-          "x-opencode-request": input.user.id,
-          "x-opencode-client": Flag.OPENCODE_CLIENT,
+          "x-codegenie-project": Instance.project.id,
+          "x-codegenie-session": input.sessionID,
+          "x-codegenie-request": input.user.id,
+          "x-codegenie-client": Flag.CODEGENIE_CLIENT,
         }),
         ...input.model.headers,
         ...headers,

@@ -18,6 +18,7 @@ import { iife } from "@/util/iife"
 import { Global } from "../global"
 import path from "path"
 import { Filesystem } from "../util/filesystem"
+import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS } from "../plugin/codegenie"
 
 // Direct imports for bundled providers
 import { createAmazonBedrock, type AmazonBedrockProviderSettings } from "@ai-sdk/amazon-bedrock"
@@ -322,7 +323,7 @@ export namespace Provider {
           }
 
           // Region resolution precedence (highest to lowest):
-          // 1. options.region from opencode.json provider config
+          // 1. options.region from codegenie.json provider config
           // 2. defaultRegion from AWS_REGION environment variable
           // 3. Default "us-east-1" (baked into defaultRegion)
           const region = options?.region ?? defaultRegion
@@ -406,7 +407,7 @@ export namespace Provider {
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "opencode",
+            "X-Title": "codegenie",
           },
         },
       }
@@ -417,7 +418,7 @@ export namespace Provider {
         options: {
           headers: {
             "http-referer": "https://opencode.ai/",
-            "x-title": "opencode",
+            "x-title": "codegenie",
           },
         },
       }
@@ -516,7 +517,7 @@ export namespace Provider {
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "opencode",
+            "X-Title": "codegenie",
           },
         },
       }
@@ -535,7 +536,7 @@ export namespace Provider {
       const providerConfig = config.provider?.["gitlab"]
 
       const aiGatewayHeaders = {
-        "User-Agent": `opencode/${Installation.VERSION} gitlab-ai-provider/${GITLAB_PROVIDER_VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
+        "User-Agent": `codegenie/${Installation.VERSION} gitlab-ai-provider/${GITLAB_PROVIDER_VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
         "anthropic-beta": "context-1m-2025-08-07",
         ...(providerConfig?.options?.aiGatewayHeaders || {}),
       }
@@ -732,7 +733,7 @@ export namespace Provider {
         autoload: false,
         options: {
           headers: {
-            "X-Cerebras-3rd-Party-Integration": "opencode",
+            "X-Cerebras-3rd-Party-Integration": "codegenie",
           },
         },
       }
@@ -743,10 +744,51 @@ export namespace Provider {
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "opencode",
+            "X-Title": "codegenie",
           },
         },
       }
+    },
+    codegenie: async () => {
+      const auth = await Auth.get("codegenie")
+      if (!auth) return { autoload: false }
+
+      if (auth.type === "oauth") {
+        if (auth.expires && Date.now() >= auth.expires) {
+          log.info("codegenie token expired, attempting refresh")
+          const newTokens = await codegenieAuth.refreshToken()
+          if (newTokens) {
+            log.info("codegenie token refresh successful")
+            await Auth.set("codegenie", {
+              type: "oauth",
+              access: newTokens.accessToken,
+              refresh: newTokens.refreshToken,
+              expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
+            })
+            return {
+              autoload: true,
+              options: {
+                apiKey: newTokens.accessToken,
+              },
+            }
+          }
+
+          // 刷新失败，需要用户重新登录
+          log.warn("codegenie token refresh failed, user needs to re-login")
+          return { autoload: false }
+        }
+
+        // token 未过期，直接使用
+        return {
+          autoload: true,
+          options: {
+            apiKey: auth.access,
+          },
+        }
+      }
+
+      // wellknown 类型或其他情况
+      return { autoload: false }
     },
   }
 
@@ -946,6 +988,13 @@ export namespace Provider {
 
     const configProviders = Object.entries(config.provider ?? {})
 
+    // === CodeGenie: inject provider config if authenticated ===
+    const codegenieAuth = await Auth.get("codegenie")
+    if (codegenieAuth) {
+      const { CODEGENIE_PROVIDER_CONFIG } = await import("@/plugin/codegenie-models")
+      configProviders.push(["codegenie", CODEGENIE_PROVIDER_CONFIG])
+    }
+
     function mergeProvider(providerID: ProviderID, provider: Partial<Info>) {
       const existing = providers[providerID]
       if (existing) {
@@ -1064,6 +1113,11 @@ export namespace Provider {
           source: "api",
           key: provider.key,
         })
+      } else if (provider.type === "oauth") {
+        mergeProvider(providerID, {
+          source: "api",
+          key: provider.access,
+        })
       }
     }
 
@@ -1129,7 +1183,7 @@ export namespace Provider {
           (providerID === ProviderID.openrouter && modelID === "openai/gpt-5-chat")
         )
           delete provider.models[modelID]
-        if (model.status === "alpha" && !Flag.OPENCODE_ENABLE_EXPERIMENTAL_MODELS) delete provider.models[modelID]
+        if (model.status === "alpha" && !Flag.CODEGENIE_ENABLE_EXPERIMENTAL_MODELS) delete provider.models[modelID]
         if (model.status === "deprecated") delete provider.models[modelID]
         if (
           (configProvider?.blacklist && configProvider.blacklist.includes(modelID)) ||
@@ -1403,6 +1457,9 @@ export namespace Provider {
       ]
       if (providerID.startsWith("opencode")) {
         priority = ["gpt-5-nano"]
+      }
+      if (providerID.startsWith("codegenie")) {
+        priority = ["deepseek-v3.2"]
       }
       if (providerID.startsWith("github-copilot")) {
         // prioritize free models for github copilot

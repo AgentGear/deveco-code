@@ -5,8 +5,8 @@ import { Instance } from "../../src/project/instance"
 /** ConfigProvider that enables the experimental file watcher. */
 export const watcherConfigLayer = ConfigProvider.layer(
   ConfigProvider.fromUnknown({
-    OPENCODE_EXPERIMENTAL_FILEWATCHER: "true",
-    OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: "false",
+    CODEGENIE_EXPERIMENTAL_FILEWATCHER: "true",
+    CODEGENIE_EXPERIMENTAL_DISABLE_FILEWATCHER: "false",
   }),
 )
 

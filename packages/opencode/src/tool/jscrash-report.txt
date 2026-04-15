@@ -1,0 +1,16 @@
+Summarize ArkTS or JavaScript runtime crash logs into error type, top stack, suspected file, and next actions.
+
+Use this tool before fixing jscrash or runtime failures on HarmonyOS.
+
+This tool can analyze:
+- Crash logs provided directly via the crash_log parameter
+- Device hilog collected automatically via hdc
+
+Call this tool:
+- When a JS/ArkTS crash is reported on a HarmonyOS device
+- To identify the root cause and suspected file from crash stack traces
+- Before attempting to fix runtime errors
+
+Do NOT call this tool:
+- For compile-time errors (use compilation tools instead)
+- For non-crash log analysis

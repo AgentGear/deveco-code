@@ -61,7 +61,7 @@ export namespace ShareNext {
     return { headers, api: consoleApi, baseUrl: active.url }
   }
 
-  const disabled = process.env["OPENCODE_DISABLE_SHARE"] === "true" || process.env["OPENCODE_DISABLE_SHARE"] === "1"
+  const disabled = process.env["CODEGENIE_DISABLE_SHARE"] === "true" || process.env["CODEGENIE_DISABLE_SHARE"] === "1"
 
   export async function init() {
     if (disabled) return

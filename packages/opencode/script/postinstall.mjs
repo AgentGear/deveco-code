@@ -49,8 +49,8 @@ function detectPlatformAndArch() {
 
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const packageName = `opencode-${platform}-${arch}`
-  const binaryName = platform === "windows" ? "opencode.exe" : "opencode"
+  const packageName = `codegenie-${platform}-${arch}`
+  const binaryName = platform === "windows" ? "codegenie.exe" : "codegenie"
 
   try {
     // Use require.resolve to find the package
@@ -89,7 +89,7 @@ function symlinkBinary(sourcePath, binaryName) {
   const { targetPath } = prepareBinDirectory(binaryName)
 
   fs.symlinkSync(sourcePath, targetPath)
-  console.log(`opencode binary symlinked: ${targetPath} -> ${sourcePath}`)
+  console.log(`codegenie binary symlinked: ${targetPath} -> ${sourcePath}`)
 
   // Verify the file exists after operation
   if (!fs.existsSync(targetPath)) {
@@ -109,7 +109,8 @@ async function main() {
     // On non-Windows platforms, just verify the binary package exists
     // Don't replace the wrapper script - it handles binary execution
     const { binaryPath } = findBinary()
-    const target = path.join(__dirname, "bin", ".opencode")
+    const binDir = path.dirname(binaryPath)
+    const target = path.join(__dirname, "bin", ".codegenie")
     if (fs.existsSync(target)) fs.unlinkSync(target)
     try {
       fs.linkSync(binaryPath, target)
@@ -117,8 +118,30 @@ async function main() {
       fs.copyFileSync(binaryPath, target)
     }
     fs.chmodSync(target, 0o755)
+
+    // Copy vendor directory from platform package to main package
+    // so runtime can find vendor/ripgrep/rg and vendor/mcp-bridge-native/
+    const platformPkgDir = path.dirname(binDir)
+    const vendorSrc = path.join(platformPkgDir, "vendor")
+    const vendorDst = path.join(__dirname, "vendor")
+    if (fs.existsSync(vendorSrc)) {
+      function copyDir(src, dst) {
+        if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true })
+        for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+          const srcPath = path.join(src, entry.name)
+          const dstPath = path.join(dst, entry.name)
+          if (entry.isDirectory()) {
+            copyDir(srcPath, dstPath)
+          } else {
+            fs.copyFileSync(srcPath, dstPath)
+          }
+        }
+      }
+      copyDir(vendorSrc, vendorDst)
+      console.log(`vendor directory copied: ${vendorDst}`)
+    }
   } catch (error) {
-    console.error("Failed to setup opencode binary:", error.message)
+    console.error("Failed to setup codegenie binary:", error.message)
     process.exit(1)
   }
 }

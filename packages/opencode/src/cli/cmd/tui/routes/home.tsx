@@ -1,7 +1,6 @@
 import { Prompt, type PromptRef } from "@tui/component/prompt"
-import { createEffect, createMemo, Match, on, onMount, Show, Switch } from "solid-js"
+import { createEffect, createMemo, createSignal, Match, on, onMount, Show, Switch } from "solid-js"
 import { useTheme } from "@tui/context/theme"
-import { useKeybind } from "@tui/context/keybind"
 import { Logo } from "../component/logo"
 import { Tips } from "../component/tips"
 import { Locale } from "@/util/locale"
@@ -15,6 +14,8 @@ import { Installation } from "@/installation"
 import { useKV } from "../context/kv"
 import { useCommandDialog } from "../component/dialog-command"
 import { useLocal } from "../context/local"
+import { CodeGenieOnboarding } from "../component/codegenie-onboarding"
+import { Auth } from "@/auth"
 
 // TODO: what is the best way to do this?
 let once = false
@@ -26,6 +27,37 @@ export function Home() {
   const route = useRouteData("home")
   const promptRef = usePromptRef()
   const command = useCommandDialog()
+
+  // CodeGenie onboarding state - null = checking, false = show onboarding, true = ready
+  const [codegenieReady, setCodegenieReady] = createSignal<boolean | null>(null)
+  let codegenieChecked = false
+
+  // Check if CodeGenie onboarding should be shown - wait for sync to complete
+  createEffect(
+    on(
+      () => sync.status,
+      (status) => {
+        if (status !== "complete") return
+        // Only check once
+        if (codegenieChecked) return
+        codegenieChecked = true
+
+        ;(async () => {
+          try {
+            const credentials = await Auth.all()
+            if (Object.keys(credentials).length > 0) {
+              setCodegenieReady(true)
+            } else {
+              setCodegenieReady(false)
+            }
+          } catch {
+            setCodegenieReady(false)
+          }
+        })()
+      },
+    ),
+  )
+
   const mcp = createMemo(() => Object.keys(sync.data.mcp).length > 0)
   const mcpError = createMemo(() => {
     return Object.values(sync.data.mcp).some((x) => x.status === "failed")
@@ -77,60 +109,68 @@ export function Home() {
 
   let prompt: PromptRef
   const args = useArgs()
-  const local = useLocal()
-  onMount(() => {
-    if (once) return
-    if (route.initialPrompt) {
-      prompt.set(route.initialPrompt)
-      once = true
-    } else if (args.prompt) {
-      prompt.set({ input: args.prompt, parts: [] })
-      once = true
-    }
-  })
+  const local = useLocal() 
+  onMount(() => { 
+    if (once) return 
+    if (route.initialPrompt) { 
+      prompt.set(route.initialPrompt) 
+      once = true 
+    } else if (args.prompt) { 
+      prompt.set({ input: args.prompt, parts: [] }) 
+      once = true 
+    } 
+  }) 
 
-  // Wait for sync and model store to be ready before auto-submitting --prompt
-  createEffect(
-    on(
-      () => sync.ready && local.model.ready,
-      (ready) => {
-        if (!ready) return
-        if (!args.prompt) return
-        if (prompt.current?.input !== args.prompt) return
-        prompt.submit()
-      },
-    ),
+  // Wait for sync and model store to be ready before auto-submitting --prompt 
+  createEffect( 
+    on( 
+      () => sync.ready && local.model.ready, 
+      (ready) => { 
+        if (!ready) return 
+        if (!args.prompt) return 
+        if (prompt.current?.input !== args.prompt) return 
+        prompt.submit() 
+      }, 
+    ), 
   )
   const directory = useDirectory()
 
-  const keybind = useKeybind()
-
   return (
     <>
-      <box flexGrow={1} alignItems="center" paddingLeft={2} paddingRight={2}>
-        <box flexGrow={1} minHeight={0} />
-        <box height={4} minHeight={0} flexShrink={1} />
-        <box flexShrink={0}>
-          <Logo />
-        </box>
-        <box height={1} minHeight={0} flexShrink={1} />
-        <box width="100%" maxWidth={75} zIndex={1000} paddingTop={1} flexShrink={0}>
-          <Prompt
-            ref={(r) => {
-              prompt = r
-              promptRef.set(r)
-            }}
-            hint={Hint}
-            workspaceID={route.workspaceID}
-          />
-        </box>
-        <box height={4} minHeight={0} width="100%" maxWidth={75} alignItems="center" paddingTop={3} flexShrink={1}>
-          <Show when={showTips()}>
-            <Tips />
+      <box flexGrow={1} paddingLeft={2} paddingRight={2} flexDirection="column" alignItems="center">
+        <box flexGrow={1} minHeight={0} flexShrink={1} />
+        <Show when={codegenieReady()}>
+          <box flexDirection="row" gap={4} alignItems="flex-start" flexShrink={0}>
+            <box flexShrink={0}>
+              <Logo column="left" />
+            </box>
+            <box flexDirection="column" flexGrow={1} minWidth={0}>
+              <box flexShrink={0}>
+                <Logo column="right" />
+              </box>
+              <box width="100%" maxWidth={75} zIndex={1000} paddingTop={1} flexShrink={0}>
+                <Prompt
+                  ref={(r) => {
+                    prompt = r
+                    promptRef.set(r)
+                  }}
+                  hint={Hint}
+                  workspaceID={route.workspaceID}
+                />
+              </box>
+                <box flexGrow={1} minHeight={0} width="100%" maxWidth={75} alignItems="flex-start" paddingTop={2} flexShrink={1}>
+                <Show when={showTips()}>
+                  <Tips />
+                </Show>
+              </box>
+            </box>
+          </box>
+        </Show>
+        <Show when={codegenieReady() === false}>
+       <CodeGenieOnboarding onComplete={() => setCodegenieReady(true)} />
           </Show>
-        </box>
-        <box flexGrow={1} minHeight={0} />
-        <Toast />
+          <box flexGrow={1} minHeight={0} flexShrink={1} />
+          <Toast />
       </box>
       <box paddingTop={1} paddingBottom={1} paddingLeft={2} paddingRight={2} flexDirection="row" flexShrink={0} gap={2}>
         <text fg={theme.textMuted}>{directory()}</text>

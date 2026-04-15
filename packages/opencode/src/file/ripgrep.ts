@@ -1,17 +1,14 @@
 // Ripgrep utility functions
 import path from "path"
+import { fileURLToPath } from "url"
 import { Global } from "../global"
 import fs from "fs/promises"
 import z from "zod"
 import { NamedError } from "@opencode-ai/util/error"
-import { lazy } from "../util/lazy"
 
 import { Filesystem } from "../util/filesystem"
 import { Process } from "../util/process"
 import { which } from "../util/which"
-import { text } from "node:stream/consumers"
-
-import { ZipReader, BlobReader, BlobWriter } from "@zip.js/zip.js"
 import { Log } from "@/util/log"
 
 export namespace Ripgrep {
@@ -92,124 +89,48 @@ export namespace Ripgrep {
   export type Begin = z.infer<typeof Begin>
   export type End = z.infer<typeof End>
   export type Summary = z.infer<typeof Summary>
-  const PLATFORM = {
-    "arm64-darwin": { platform: "aarch64-apple-darwin", extension: "tar.gz" },
-    "arm64-linux": {
-      platform: "aarch64-unknown-linux-gnu",
-      extension: "tar.gz",
-    },
-    "x64-darwin": { platform: "x86_64-apple-darwin", extension: "tar.gz" },
-    "x64-linux": { platform: "x86_64-unknown-linux-musl", extension: "tar.gz" },
-    "arm64-win32": { platform: "aarch64-pc-windows-msvc", extension: "zip" },
-    "x64-win32": { platform: "x86_64-pc-windows-msvc", extension: "zip" },
-  } as const
 
-  export const ExtractionFailedError = NamedError.create(
-    "RipgrepExtractionFailedError",
-    z.object({
-      filepath: z.string(),
-      stderr: z.string(),
-    }),
-  )
-
-  export const UnsupportedPlatformError = NamedError.create(
-    "RipgrepUnsupportedPlatformError",
-    z.object({
-      platform: z.string(),
-    }),
-  )
-
-  export const DownloadFailedError = NamedError.create(
-    "RipgrepDownloadFailedError",
-    z.object({
-      url: z.string(),
-      status: z.number(),
-    }),
-  )
-
-  const state = lazy(async () => {
+  const state = (async () => {
+    // 1. Check system PATH for rg
     const system = which("rg")
     if (system) {
       const stat = await fs.stat(system).catch(() => undefined)
       if (stat?.isFile()) return { filepath: system }
       log.warn("bun.which returned invalid rg path", { filepath: system })
     }
-    const filepath = path.join(Global.Path.bin, "rg" + (process.platform === "win32" ? ".exe" : ""))
 
-    if (!(await Filesystem.exists(filepath))) {
-      const platformKey = `${process.arch}-${process.platform}` as keyof typeof PLATFORM
-      const config = PLATFORM[platformKey]
-      if (!config) throw new UnsupportedPlatformError({ platform: platformKey })
+    // 2. Check vendor directory relative to binary (production / npm mode)
+    //    Layout: <package>/bin/codegenie, <package>/vendor/ripgrep/rg
+    const binaryName = process.platform === "win32" ? "rg.exe" : "rg"
+    const execDir = path.dirname(process.execPath)
+    const vendorRg = path.join(execDir, "..", "vendor", "ripgrep", binaryName)
+    if (await Filesystem.exists(vendorRg)) return { filepath: vendorRg }
 
-      const version = "14.1.1"
-      const filename = `ripgrep-${version}-${config.platform}.${config.extension}`
-      const url = `https://github.com/BurntSushi/ripgrep/releases/download/${version}/${filename}`
+    // 3. Check next to the compiled binary (legacy / standalone mode)
+    const execRg = path.join(execDir, binaryName)
+    if (await Filesystem.exists(execRg)) return { filepath: execRg }
 
-      const response = await fetch(url)
-      if (!response.ok) throw new DownloadFailedError({ url, status: response.status })
+    // 4. Fallback to cache directory
+    const cacheRg = path.join(Global.Path.bin, binaryName)
+    if (await Filesystem.exists(cacheRg)) return { filepath: cacheRg }
 
-      const arrayBuffer = await response.arrayBuffer()
-      const archivePath = path.join(Global.Path.bin, filename)
-      await Filesystem.write(archivePath, Buffer.from(arrayBuffer))
-      if (config.extension === "tar.gz") {
-        const args = ["tar", "-xzf", archivePath, "--strip-components=1"]
+    // 5. Dev mode: check .build-cache/rg/ relative to source
+    const devRg = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "..", "..",
+      ".build-cache", "ripgrep",
+      `${process.platform}-${process.arch}`,
+      binaryName,
+    )
+    if (await Filesystem.exists(devRg)) return { filepath: devRg }
 
-        if (platformKey.endsWith("-darwin")) args.push("--include=*/rg")
-        if (platformKey.endsWith("-linux")) args.push("--wildcards", "*/rg")
-
-        const proc = Process.spawn(args, {
-          cwd: Global.Path.bin,
-          stderr: "pipe",
-          stdout: "pipe",
-        })
-        const exit = await proc.exited
-        if (exit !== 0) {
-          const stderr = proc.stderr ? await text(proc.stderr) : ""
-          throw new ExtractionFailedError({
-            filepath,
-            stderr,
-          })
-        }
-      }
-      if (config.extension === "zip") {
-        const zipFileReader = new ZipReader(new BlobReader(new Blob([arrayBuffer])))
-        const entries = await zipFileReader.getEntries()
-        let rgEntry: any
-        for (const entry of entries) {
-          if (entry.filename.endsWith("rg.exe")) {
-            rgEntry = entry
-            break
-          }
-        }
-
-        if (!rgEntry) {
-          throw new ExtractionFailedError({
-            filepath: archivePath,
-            stderr: "rg.exe not found in zip archive",
-          })
-        }
-
-        const rgBlob = await rgEntry.getData(new BlobWriter())
-        if (!rgBlob) {
-          throw new ExtractionFailedError({
-            filepath: archivePath,
-            stderr: "Failed to extract rg.exe from zip archive",
-          })
-        }
-        await Filesystem.write(filepath, Buffer.from(await rgBlob.arrayBuffer()))
-        await zipFileReader.close()
-      }
-      await fs.unlink(archivePath)
-      if (!platformKey.endsWith("-win32")) await fs.chmod(filepath, 0o755)
-    }
-
-    return {
-      filepath,
-    }
-  })
+    throw new Error(
+      `ripgrep binary not found. Searched: system PATH, ${vendorRg}, ${execRg}, ${cacheRg}, ${devRg}`,
+    )
+  })()
 
   export async function filepath() {
-    const { filepath } = await state()
+    const { filepath } = await state
     return filepath
   }
 
@@ -292,7 +213,7 @@ export namespace Ripgrep {
 
     const root: Node = { name: "", children: new Map() }
     for (const file of files) {
-      if (file.includes(".opencode")) continue
+      if (file.includes(".codegenie")) continue
       const parts = file.split(path.sep)
       if (parts.length < 2) continue
       let node = root

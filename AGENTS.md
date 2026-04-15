@@ -1,3 +1,5 @@
+> **IMPORTANT: Read [ARCHITECTURE.md](./ARCHITECTURE.md) for extension principles and architecture guide before modifying any code.**
+
 - To regenerate the JavaScript SDK, run `./packages/sdk/js/script/build.ts`.
 - ALWAYS USE PARALLEL TOOLS WHEN APPLICABLE.
 - The default branch in this repo is `dev`.

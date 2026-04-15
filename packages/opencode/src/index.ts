@@ -34,6 +34,7 @@ import path from "path"
 import { Global } from "./global"
 import { JsonMigration } from "./storage/json-migration"
 import { Database } from "./storage/db"
+import { extend } from "./cli/cmd/codegenieUI/cli-extend"
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {
@@ -49,7 +50,7 @@ process.on("uncaughtException", (e) => {
 
 let cli = yargs(hideBin(process.argv))
   .parserConfiguration({ "populate--": true })
-  .scriptName("opencode")
+  .scriptName("codegenie")
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
@@ -76,15 +77,15 @@ let cli = yargs(hideBin(process.argv))
     })
 
     process.env.AGENT = "1"
-    process.env.OPENCODE = "1"
-    process.env.OPENCODE_PID = String(process.pid)
+    process.env.CODEGENIE = "1"
+    process.env.CODEGENIE_PID = String(process.pid)
 
-    Log.Default.info("opencode", {
+    Log.Default.info("codegenie", {
       version: Installation.VERSION,
       args: process.argv.slice(2),
     })
 
-    const marker = path.join(Global.Path.data, "opencode.db")
+    const marker = path.join(Global.Path.data, "codegenie.db")
     if (!(await Filesystem.exists(marker))) {
       const tty = process.stderr.isTTY
       process.stderr.write("Performing one time database migration, may take a few minutes..." + EOL)
@@ -122,6 +123,7 @@ let cli = yargs(hideBin(process.argv))
     }
   })
   .usage("\n" + UI.logo())
+  .wrap(null)
   .completion("completion", "generate shell completion script")
   .command(AcpCommand)
   .command(McpCommand)
@@ -136,7 +138,7 @@ let cli = yargs(hideBin(process.argv))
   .command(UpgradeCommand)
   .command(UninstallCommand)
   .command(ServeCommand)
-  .command(WebCommand)
+  // .command(WebCommand)
   .command(ModelsCommand)
   .command(StatsCommand)
   .command(ExportCommand)
@@ -149,6 +151,8 @@ let cli = yargs(hideBin(process.argv))
 if (Installation.isLocal()) {
   cli = cli.command(WorkspaceServeCommand)
 }
+
+cli = extend(cli)
 
 cli = cli
   .fail((msg, err) => {

@@ -15,7 +15,7 @@ process.chdir(dir)
 import { Script } from "@opencode-ai/script"
 import pkg from "../package.json"
 
-const modelsUrl = process.env.OPENCODE_MODELS_URL || "https://models.dev"
+const modelsUrl = process.env.CODEGENIE_MODELS_URL || "https://models.dev"
 // Fetch and generate models.dev snapshot
 const modelsData = process.env.MODELS_DEV_API_JSON
   ? await Bun.file(process.env.MODELS_DEV_API_JSON).text()
@@ -55,6 +55,37 @@ const migrations = await Promise.all(
   }),
 )
 console.log(`Loaded ${migrations.length} migrations`)
+
+// Helper function to walk directory recursively
+async function walk(directory: string): Promise<string[]> {
+  const results: string[] = []
+  for (const entry of await fs.promises.readdir(directory, { withFileTypes: true })) {
+    const fullPath = path.join(directory, entry.name)
+    if (entry.isDirectory()) {
+      results.push(...await walk(fullPath))
+    } else if (entry.isFile()) {
+      results.push(fullPath)
+    }
+  }
+  return results
+}
+
+// Load default skills from src/skill/defaults/
+const defaultSkillsDir = path.join(dir, "resources/skills")
+const defaultSkillsData: Record<string, Record<string, string>> = {}
+if (fs.existsSync(defaultSkillsDir)) {
+  for (const entry of await fs.promises.readdir(defaultSkillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const files: Record<string, string> = {}
+    const skillPath = path.join(defaultSkillsDir, entry.name)
+    for (const file of await walk(skillPath)) {
+      const rel = path.relative(skillPath, file)
+      files[rel] = await Bun.file(file).text()
+    }
+    defaultSkillsData[entry.name] = files
+  }
+}
+console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
 
 const singleFlag = process.argv.includes("--single")
 const baselineFlag = process.argv.includes("--baseline")
@@ -151,6 +182,82 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
+
+// Supported platforms for vendored binaries (ripgrep, mcp-bridge)
+const RG_VERSION = "14.1.1"
+const cacheDir = path.join(dir, ".build-cache")
+const rgCacheDir = path.join(cacheDir, "ripgrep")
+const mcpCacheDir = path.join(cacheDir, "mcp-bridge")
+
+const supportedPlatforms = new Set(["darwin-arm64", "darwin-x64", "win32-x64"])
+
+const rgArchiveMap: Record<string, { archive: string; binary: string }> = {
+  "darwin-arm64": { archive: `ripgrep-${RG_VERSION}-aarch64-apple-darwin.tar.gz`, binary: "rg" },
+  "darwin-x64":   { archive: `ripgrep-${RG_VERSION}-x86_64-apple-darwin.tar.gz`, binary: "rg" },
+  "win32-x64":    { archive: `ripgrep-${RG_VERSION}-x86_64-pc-windows-msvc.zip`, binary: "rg.exe" },
+}
+
+if (!skipInstall) {
+  const neededPlatforms = new Set(targets.map(t => `${t.os}-${t.arch}`))
+  const rgBase = process.env.RIPGREP_MIRROR_BASE || `https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}`
+
+  for (const platform of neededPlatforms) {
+    if (!supportedPlatforms.has(platform)) continue
+    const info = rgArchiveMap[platform]
+    if (!info) continue
+    const cachePath = path.join(rgCacheDir, platform, info.binary)
+    if (fs.existsSync(cachePath)) {
+      console.log(`  rg for ${platform} already cached`)
+      continue
+    }
+    const url = `${rgBase}/${info.archive}`
+    console.log(`  Downloading rg for ${platform}...`)
+    const cacheSubDir = path.join(rgCacheDir, platform)
+    await $`mkdir -p ${cacheSubDir}`
+    const archivePath = path.join(rgCacheDir, info.archive)
+    await $`curl -sSfL --http1.1 --retry 3 --retry-delay 5 -o ${archivePath} ${url}`
+    if (info.archive.endsWith(".tar.gz")) {
+      await $`tar -xzf ${archivePath} -C ${cacheSubDir} --strip-components=1`
+    } else {
+      await $`unzip -o -j ${archivePath} "*/${info.binary}" -d ${cacheSubDir}`
+    }
+    await $`rm -f ${archivePath}`
+    if (!platform.startsWith("win32")) {
+      await fs.promises.chmod(cachePath, 0o755)
+    }
+    console.log(`  Cached rg for ${platform}`)
+  }
+
+  for (const platform of neededPlatforms) {
+    if (!supportedPlatforms.has(platform)) continue
+    const os = platform.split("-")[0]
+    const arch = platform.split("-")[1]
+    const pkgName = `@deveco-codegenie/mcp-bridge-${os}-${arch}`
+    const cacheSubDir = path.join(mcpCacheDir, platform)
+    const cachedNode = path.join(cacheSubDir, "napi_bridge.node")
+    const cachedPkgJson = path.join(cacheSubDir, "package.json")
+    if (fs.existsSync(cachedNode) && fs.existsSync(cachedPkgJson)) {
+      console.log(`  mcp-bridge for ${platform} already cached`)
+      continue
+    }
+    try {
+      await $`mkdir -p ${cacheSubDir}`
+      await $`bun install --os="*" --cpu="*" ${pkgName}@${pkg.dependencies["@deveco-codegenie/mcp-bridge"]}`.quiet()
+      const nodeSrc = path.join(dir, "node_modules", pkgName, "napi_bridge.node")
+      const pkgJsonSrc = path.join(dir, "node_modules", pkgName, "package.json")
+      if (fs.existsSync(nodeSrc)) {
+        await fs.promises.copyFile(nodeSrc, cachedNode)
+        await fs.promises.copyFile(pkgJsonSrc, cachedPkgJson)
+        console.log(`  Cached mcp-bridge for ${platform}`)
+      } else {
+        console.log(`  Skipping mcp-bridge for ${platform} (no native module)`)
+      }
+    } catch {
+      console.log(`  Skipping mcp-bridge for ${platform} (install failed)`)
+    }
+  }
+}
+
 for (const item of targets) {
   const name = [
     pkg.name,
@@ -184,24 +291,55 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
-      outfile: `dist/${name}/bin/opencode`,
-      execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
+      outfile: `dist/${name}/bin/codegenie`,
+      execArgv: [`--user-agent=codegenie/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     entrypoints: ["./src/index.ts", parserWorker, workerPath],
     define: {
-      OPENCODE_VERSION: `'${Script.version}'`,
-      OPENCODE_MIGRATIONS: JSON.stringify(migrations),
+      CODEGENIE_VERSION: `'${Script.version}'`,
+      CODEGENIE_MIGRATIONS: JSON.stringify(migrations),
+      CODEGENIE_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
-      OPENCODE_WORKER_PATH: workerPath,
-      OPENCODE_CHANNEL: `'${Script.channel}'`,
-      OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
+      CODEGENIE_WORKER_PATH: workerPath,
+      CODEGENIE_CHANNEL: `'${Script.channel}'`,
+      CODEGENIE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
     },
   })
 
+  // Copy mcp-bridge-native from cache
+  const mcpKey = `${item.os}-${item.arch}`
+  const mcpCache = path.join(mcpCacheDir, mcpKey)
+  const cachedNode = path.join(mcpCache, "napi_bridge.node")
+  if (fs.existsSync(cachedNode)) {
+    const vendorDir = path.join(dir, "dist", name, "vendor", "mcp-bridge-native")
+    await fs.promises.mkdir(vendorDir, { recursive: true })
+    await fs.promises.copyFile(path.join(mcpCache, "package.json"), path.join(vendorDir, "package.json"))
+    await fs.promises.copyFile(cachedNode, path.join(vendorDir, "napi_bridge.node"))
+    console.log(`  Bundled mcp-bridge for ${mcpKey}`)
+  }
+
+  // Copy ripgrep from cache
+  const rgKey = `${item.os}-${item.arch}`
+  const rgInfo = rgArchiveMap[rgKey]
+  if (rgInfo) {
+    const cachePath = path.join(rgCacheDir, rgKey, rgInfo.binary)
+    if (fs.existsSync(cachePath)) {
+      const vendorDir = path.join(dir, "dist", name, "vendor", "ripgrep")
+      await fs.promises.mkdir(vendorDir, { recursive: true })
+      const rgBinaryName = item.os === "win32" ? "rg.exe" : "rg"
+      const rgDest = path.join(vendorDir, rgBinaryName)
+      await fs.promises.copyFile(cachePath, rgDest)
+      if (item.os !== "win32") {
+        await fs.promises.chmod(rgDest, 0o755)
+      }
+      console.log(`  Bundled ripgrep for ${rgKey}`)
+    }
+  }
+
   // Smoke test: only run if binary is for current platform
   if (item.os === process.platform && item.arch === process.arch && !item.abi) {
-    const binaryPath = `dist/${name}/bin/opencode`
+    const binaryPath = `dist/${name}/bin/codegenie`
     console.log(`Running smoke test: ${binaryPath} --version`)
     try {
       const versionOutput = await $`${binaryPath} --version`.text()
@@ -220,6 +358,13 @@ for (const item of targets) {
         version: Script.version,
         os: [item.os],
         cpu: [item.arch],
+        bin: {
+          codegenie: "./bin/codegenie",
+        },
+        files: [
+          "bin/**/*",
+          "vendor/**/*",
+        ],
       },
       null,
       2,
@@ -231,9 +376,9 @@ for (const item of targets) {
 if (Script.release) {
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
-      await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
+      await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}`)
     } else {
-      await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
+      await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}`)
     }
   }
   await $`gh release upload v${Script.version} ./dist/*.zip ./dist/*.tar.gz --clobber --repo ${process.env.GH_REPO}`

@@ -37,7 +37,7 @@ async function routeRequest(req: Request) {
 
 export const WorkspaceRouterMiddleware: MiddlewareHandler = async (c, next) => {
   // Only available in development for now
-  if (!Flag.OPENCODE_EXPERIMENTAL_WORKSPACES) {
+  if (!Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES) {
     return next()
   }
 
