@@ -1,0 +1,38 @@
+#!/bin/sh
+# ========================================
+# Specs 文档检查
+# ========================================
+# 根据 specs/constitution.md，所有源码修改必须更新 specs 目录下的文档
+# 可通过 SKIP_SPECS_CHECK=1 或 --no-verify 跳过
+
+check_specs() {
+  # 获取 staged 文件中代码和 specs 的修改
+  code_changed=$(git diff --cached --name-only -- ':!specs/*.md' ':!specs/**/*.md' ':!*.md' 2>/dev/null)
+  specs_changed=$(git diff --cached --name-only -- 'specs/*.md' 'specs/**/*.md' 2>/dev/null)
+
+  # 如果有代码修改但没有 specs 修改
+  if [ -n "$code_changed" ] && [ -z "$specs_changed" ]; then
+    echo ""
+    echo "⚠️  Specs documentation check failed!"
+    echo ""
+    echo "According to specs/constitution.md, all source code changes must include"
+    echo "corresponding documentation updates in the specs directory."
+    echo ""
+    echo "Staged code changes without docs:"
+    echo "$code_changed"
+    echo ""
+    echo "To skip this check:"
+    echo "  - Environment: SKIP_SPECS_CHECK=1 git commit"
+    echo "  - Flag: git commit --no-verify"
+    echo ""
+    return 1
+  fi
+
+  return 0
+}
+
+if [ "$SKIP_SPECS_CHECK" = "1" ]; then
+  echo "ℹ️  Skipping specs check (SKIP_SPECS_CHECK=1)"
+else
+  check_specs || exit 1
+fi

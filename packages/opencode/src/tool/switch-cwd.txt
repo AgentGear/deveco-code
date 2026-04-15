@@ -1,0 +1,8 @@
+Switch the session project context directory for Harmony project actions.
+
+Use this tool before running `build_project` or `start_app`.
+These tools only work correctly when the context directory is a valid project path.
+If the current context directory is already the ArkTS project root, do not switch again.
+When the `create-harmony-project` skill creates a full project under the current path,
+you must switch to that generated project directory before running `build_project` or `start_app`.
+Accepts absolute paths and relative paths (resolved from the current workspace directory).
