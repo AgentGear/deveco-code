@@ -1,0 +1,5 @@
+Create or overwrite the plan file for this session.
+
+Use this tool to write the full plan content (including YAML frontmatter).
+The plan is stored outside the project directory so it does not pollute the codebase.
+Each session has exactly one plan file managed by this tool.
