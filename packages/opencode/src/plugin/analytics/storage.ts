@@ -2,8 +2,8 @@ import fs from "fs/promises"
 import path from "path"
 import os from "os"
 import { randomUUID } from "crypto"
+import { Global } from "../../global"
 
-const ANALYTICS_DIR = ".codegenie"
 const ANALYTICS_FILE = "analytics.json"
 const UID_FILE = "uid"
 
@@ -14,7 +14,7 @@ interface AnalyticsStorage {
 }
 
 function getAnalyticsDir(): string {
-  return path.join(os.homedir(), ANALYTICS_DIR)
+  return path.join(Global.Path.data, "analytics")
 }
 
 function getAnalyticsFilePath(): string {

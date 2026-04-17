@@ -1,4 +1,18 @@
 #!/usr/bin/env bun
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import { $ } from "bun"
 import fs from "fs"
@@ -183,79 +197,16 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
 
-// Supported platforms for vendored binaries (ripgrep, mcp-bridge)
-const RG_VERSION = "14.1.1"
+// Vendored binaries cache (downloaded by postinstall.ts during bun install)
 const cacheDir = path.join(dir, ".build-cache")
 const rgCacheDir = path.join(cacheDir, "ripgrep")
 const mcpCacheDir = path.join(cacheDir, "mcp-bridge")
 
-const supportedPlatforms = new Set(["darwin-arm64", "darwin-x64", "win32-x64"])
-
+const RG_VERSION = "14.1.1"
 const rgArchiveMap: Record<string, { archive: string; binary: string }> = {
   "darwin-arm64": { archive: `ripgrep-${RG_VERSION}-aarch64-apple-darwin.tar.gz`, binary: "rg" },
   "darwin-x64":   { archive: `ripgrep-${RG_VERSION}-x86_64-apple-darwin.tar.gz`, binary: "rg" },
   "win32-x64":    { archive: `ripgrep-${RG_VERSION}-x86_64-pc-windows-msvc.zip`, binary: "rg.exe" },
-}
-
-if (!skipInstall) {
-  const neededPlatforms = new Set(targets.map(t => `${t.os}-${t.arch}`))
-  const rgBase = process.env.RIPGREP_MIRROR_BASE || `https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}`
-
-  for (const platform of neededPlatforms) {
-    if (!supportedPlatforms.has(platform)) continue
-    const info = rgArchiveMap[platform]
-    if (!info) continue
-    const cachePath = path.join(rgCacheDir, platform, info.binary)
-    if (fs.existsSync(cachePath)) {
-      console.log(`  rg for ${platform} already cached`)
-      continue
-    }
-    const url = `${rgBase}/${info.archive}`
-    console.log(`  Downloading rg for ${platform}...`)
-    const cacheSubDir = path.join(rgCacheDir, platform)
-    await $`mkdir -p ${cacheSubDir}`
-    const archivePath = path.join(rgCacheDir, info.archive)
-    await $`curl -sSfL --http1.1 --retry 3 --retry-delay 5 -o ${archivePath} ${url}`
-    if (info.archive.endsWith(".tar.gz")) {
-      await $`tar -xzf ${archivePath} -C ${cacheSubDir} --strip-components=1`
-    } else {
-      await $`unzip -o -j ${archivePath} "*/${info.binary}" -d ${cacheSubDir}`
-    }
-    await $`rm -f ${archivePath}`
-    if (!platform.startsWith("win32")) {
-      await fs.promises.chmod(cachePath, 0o755)
-    }
-    console.log(`  Cached rg for ${platform}`)
-  }
-
-  for (const platform of neededPlatforms) {
-    if (!supportedPlatforms.has(platform)) continue
-    const os = platform.split("-")[0]
-    const arch = platform.split("-")[1]
-    const pkgName = `@deveco-codegenie/mcp-bridge-${os}-${arch}`
-    const cacheSubDir = path.join(mcpCacheDir, platform)
-    const cachedNode = path.join(cacheSubDir, "napi_bridge.node")
-    const cachedPkgJson = path.join(cacheSubDir, "package.json")
-    if (fs.existsSync(cachedNode) && fs.existsSync(cachedPkgJson)) {
-      console.log(`  mcp-bridge for ${platform} already cached`)
-      continue
-    }
-    try {
-      await $`mkdir -p ${cacheSubDir}`
-      await $`bun install --os="*" --cpu="*" ${pkgName}@${pkg.dependencies["@deveco-codegenie/mcp-bridge"]}`.quiet()
-      const nodeSrc = path.join(dir, "node_modules", pkgName, "napi_bridge.node")
-      const pkgJsonSrc = path.join(dir, "node_modules", pkgName, "package.json")
-      if (fs.existsSync(nodeSrc)) {
-        await fs.promises.copyFile(nodeSrc, cachedNode)
-        await fs.promises.copyFile(pkgJsonSrc, cachedPkgJson)
-        console.log(`  Cached mcp-bridge for ${platform}`)
-      } else {
-        console.log(`  Skipping mcp-bridge for ${platform} (no native module)`)
-      }
-    } catch {
-      console.log(`  Skipping mcp-bridge for ${platform} (install failed)`)
-    }
-  }
 }
 
 for (const item of targets) {
