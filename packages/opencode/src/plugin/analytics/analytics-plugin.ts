@@ -5,9 +5,9 @@ import { getVersion } from "./storage"
 import { codegenieAuth } from "../codegenie"
 import fs from "fs/promises"
 import path from "path"
-import os from "os"
+import { Global } from "../../global"
 
-const ANALYTICS_DIR = path.join(os.homedir(), ".codegenie", "analytics")
+const ANALYTICS_DIR = path.join(Global.Path.data, "analytics", "log")
 const LOG_FILE = path.join(ANALYTICS_DIR, "analytics.log")
 
 const toolStartTimes = new Map<string, number>()
