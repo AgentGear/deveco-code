@@ -1,13 +1,13 @@
 import fs from "fs/promises"
 import path from "path"
-import os from "os"
 import type { AnalyticsEvent, AnalyticsConfig, HuaweiTracePayload } from "./types"
 import { DEFAULT_CONFIG } from "./types"
 import { appendPendingEvent, clearPendingEvents, getPendingEvents } from "./storage"
 import { Auth } from "../../auth"
 import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS } from "../codegenie"
+import { Global } from "../../global"
 
-const ANALYTICS_DIR = path.join(os.homedir(), ".codegenie", "analytics")
+const ANALYTICS_DIR = path.join(Global.Path.data, "analytics", "log")
 const LOG_FILE = path.join(ANALYTICS_DIR, "analytics.log")
 
 interface UploadResult {
