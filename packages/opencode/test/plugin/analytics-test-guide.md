@@ -95,6 +95,18 @@ bun run dev
   - `modifiedFileList`: 编辑的文件列表
   - `toolExecutions`: 工具调用记录
 
+## 数据存储路径
+
+打点数据统一存储在 XDG data 目录下：
+
+| 文件 | 路径 |
+|------|------|
+| 待上报事件 | `{xdgData}/codegenie/analytics/analytics.json` |
+| 设备唯一标识 | `{xdgData}/codegenie/analytics/uid` |
+| 调试日志 | `{xdgData}/codegenie/analytics/log/analytics.log` |
+
+其中 `xdgData` 由 `xdg-basedir` 解析，默认为 `~/.local/share`（macOS/Linux 一致），除非设置了 `XDG_DATA_HOME` 环境变量。
+
 ## 测试完毕后还原
 
 将上述两处修改恢复为正式代码，不要提交测试修改到代码仓库。

@@ -17,14 +17,12 @@ import solidPlugin from "@opentui/solid/bun-plugin"
 
 // Parse CLI arguments
 const singleFlag = process.argv.includes("--single")
-const baselineFlag = process.argv.includes("--baseline")
 const skipInstall = process.argv.includes("--skip-install")
 
 console.log("=== Pipeline Build ===")
 console.log(`Version:       ${Script.version}`)
 console.log(`Channel:       ${Script.channel}`)
 console.log(`Single:        ${singleFlag}`)
-console.log(`Baseline:      ${baselineFlag}`)
 console.log(`Skip install:  ${skipInstall}`)
 
 const modelsUrl = process.env.CODEGENIE_MODELS_URL || "https://models.dev"
@@ -105,39 +103,8 @@ console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
 const allTargets: {
   os: string
   arch: "arm64" | "x64"
-  abi?: "musl"
-  avx2?: false
 }[] = [
   {
-    os: "linux",
-    arch: "arm64",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-    avx2: false,
-  },
-  {
-    os: "linux",
-    arch: "arm64",
-    abi: "musl",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-    abi: "musl",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-    abi: "musl",
-    avx2: false,
-  },
-  {
     os: "darwin",
     arch: "arm64",
   },
@@ -146,41 +113,13 @@ const allTargets: {
     arch: "x64",
   },
   {
-    os: "darwin",
-    arch: "x64",
-    avx2: false,
-  },
-  {
-    os: "win32",
-    arch: "arm64",
-  },
-  {
     os: "win32",
     arch: "x64",
-  },
-  {
-    os: "win32",
-    arch: "x64",
-    avx2: false,
   },
 ]
 
 const targets = singleFlag
-  ? allTargets.filter((item) => {
-      if (item.os !== process.platform || item.arch !== process.arch) {
-        return false
-      }
-
-      if (item.avx2 === false) {
-        return baselineFlag
-      }
-
-      if (item.abi !== undefined) {
-        return false
-      }
-
-      return true
-    })
+  ? allTargets.filter((item) => item.os === process.platform && item.arch === process.arch)
   : allTargets
 
 // Install cross-platform dependencies and download vendored binaries
@@ -278,8 +217,6 @@ for (const item of targets) {
     pkg.name,
     item.os === "win32" ? "windows" : item.os,
     item.arch,
-    item.avx2 === false ? "baseline" : undefined,
-    item.abi === undefined ? undefined : item.abi,
   ]
     .filter(Boolean)
     .join("-")
@@ -316,7 +253,7 @@ for (const item of targets) {
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
       CODEGENIE_WORKER_PATH: workerPath,
       CODEGENIE_CHANNEL: `'${Script.channel}'`,
-      CODEGENIE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
+      CODEGENIE_LIBC: "",
     },
   })
 
@@ -351,7 +288,7 @@ for (const item of targets) {
   }
 
   // Smoke test: only run if binary is for current platform
-  if (item.os === process.platform && item.arch === process.arch && !item.abi) {
+  if (item.os === process.platform && item.arch === process.arch) {
     const binaryPath = `dist/${name}/bin/codegenie`
     console.log(`    Running smoke test: ${binaryPath} --version`)
     try {
