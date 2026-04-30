@@ -1,11 +1,47 @@
-name: Question
-description: Ask a question
-labels: ["question"]
+name: 问题咨询|Question
+description: 如果您对社区有疑问，欢迎反馈咨询。
+title: "[Question]: "
+labels: ["question", "triage"]
+type: "咨询"
 body:
-  - type: textarea
-    id: question
+  - type: markdown
     attributes:
-      label: Question
-      description: What's your question?
+      value: |
+        感谢提出问题，我们将安排人答复！
+  - type: textarea
+    id: question-description
+    attributes:
+      label: 问题描述
+      description: 请描述下您遇到的问题
+      placeholder: |
+        【背景】我正在尝试做 [...]。
+        【问题描述】我遇到了 [...]。
+        【尝试解决方法】我尝试了 [...]，但没有成功。
+        【相关代码/日志】如果有相关的代码片段或者日志信息，可以在这里提供。
     validations:
       required: true
+  - type: textarea
+    id: other-info
+    attributes:
+      label: 其他补充信息
+      description: 补充下您尝试解决的方法或者其他相关信息。
+      render: text
+      placeholder: |
+        1、如果您尝试过解决方法，可以在这里补充相关代码或者日志。
+        2、如果您有其他相关信息或想法，可以在这里补充说明。
+    validations:
+      required: false        
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前检查清单
+      description: 请在提交 Issue 前确认以下事项
+      options:
+        - label: 搜索现有 Issue，避免重复提交
+          required: true
+        - label: 使用正确的 Issue 模板
+          required: true
+        - label: 提供清晰的描述和必要的细节
+          required: true
+        - label: 检查标题是否清晰且包含类型前缀
+          required: true

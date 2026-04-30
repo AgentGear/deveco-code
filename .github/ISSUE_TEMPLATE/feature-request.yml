@@ -1,20 +1,57 @@
-name: 🚀 Feature Request
-description: Suggest an idea, feature, or enhancement
-labels: [discussion]
-title: "[FEATURE]:"
-
+name: 新需求|Feature
+description: 您需要反馈或实现一个新需求时，使用此模板。
+title: "[新需求]: "
+labels: ["feature", "triage"]
+type: "需求"
 body:
-  - type: checkboxes
-    id: verified
+  - type: markdown
     attributes:
-      label: Feature hasn't been suggested before.
-      options:
-        - label: I have verified this feature I'm about to request hasn't been suggested before.
-          required: true
-
+      value: |
+        感谢提出新需求。
   - type: textarea
+    id: feature-description
     attributes:
-      label: Describe the enhancement you want to request
-      description: What do you want to change or add? What are the benefits of implementing this? Try to be detailed so we can understand your request better :)
+      label: 新需求提供了什么功能？
+      description: 请描述下新需求的功能是什么，解决了什么问题？
     validations:
       required: true
+  - type: textarea
+    id: feature-solution
+    attributes:
+      label: 新需求建议方案。
+      description: 请描述下您对需求方案的想法。
+      placeholder: |
+        1、如果您有具体的设计方案或实现方案的想法，可以在这里描述。
+    validations:
+      required: false    
+  - type: textarea
+    id: feature-value
+    attributes:
+      label: 该需求带来的价值、应用场景？
+      description: 请描述下该需求的价值，应用场景等。
+    validations:
+      required: false
+  - type: textarea
+    id: other—info
+    attributes:
+      label: 其他补充信息
+      description: 补充下其他您认为需要提供的信息。
+      render: text
+      placeholder: |
+        1、如果您有其他相关信息或想法，可以在这里补充说明。
+    validations:
+      required: false
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前检查清单
+      description: 请在提交 Issue 前确认以下事项
+      options:
+        - label: 搜索现有 Issue，避免重复提交
+          required: true
+        - label: 使用正确的 Issue 模板
+          required: true
+        - label: 提供清晰的描述和必要的细节
+          required: true
+        - label: 检查标题是否清晰且包含类型前缀
+          required: true
