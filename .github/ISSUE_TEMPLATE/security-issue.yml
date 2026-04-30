@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        感谢对RN社区的支持与关注，欢迎反馈安全问题。
+        感谢对社区的支持与关注，欢迎反馈安全问题。
   - type: input
     attributes:
       label: 漏洞编号：
