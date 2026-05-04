@@ -2,7 +2,7 @@
   "name": "@opencode-ai/web",
   "type": "module",
   "license": "MIT",
-  "version": "1.14.20",
+  "version": "1.14.29",
   "scripts": {
     "dev": "astro dev",
     "dev:remote": "VITE_API_URL=https://api.opencode.ai astro dev",
@@ -36,7 +36,7 @@
     "vscode-languageserver-types": "3.17.5"
   },
   "devDependencies": {
-    "opencode": "workspace:*",
+    "codegenie": "workspace:*",
     "@types/node": "catalog:",
     "@astrojs/check": "0.9.6",
     "typescript": "catalog:"

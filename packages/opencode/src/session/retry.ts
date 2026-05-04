@@ -1,9 +1,13 @@
-import type { NamedError } from "@opencode-ai/shared/util/error"
+import type { NamedError } from "@opencode-ai/core/util/error"
 import { Cause, Clock, Duration, Effect, Schedule } from "effect"
 import { MessageV2 } from "./message-v2"
 import { iife } from "@/util/iife"
 
 export type Err = ReturnType<NamedError["toObject"]>
+
+// Queue polling constants
+export const QUEUE_DELAY_STEP = 2000 // 2 seconds base step
+export const QUEUE_DELAY_MAX = 10000 // 10 seconds max delay
 
 // This exported message is shared with the TUI upsell detector. Matching on a
 // literal error string kind of sucks, but it is the simplest for now.
@@ -116,6 +120,51 @@ export function policy(opts: {
         const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined)
         const now = yield* Clock.currentTimeMillis
         yield* opts.set({ attempt: meta.attempt, message, next: now + wait })
+        return [meta.attempt, Duration.millis(wait)] as [number, Duration.Duration]
+      })
+    }),
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Queue polling retry policy (fixed-step delays)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fixed-step delay for queue polling: 2→4→6→8→10→10→10... seconds
+ */
+export function queueDelay(attempt: number): number {
+  // min(2000 + 2000*(attempt-1), 10000) = min(2s + 2s*attempt, 10s)
+  return Math.min(QUEUE_DELAY_STEP + QUEUE_DELAY_STEP * (attempt - 1), QUEUE_DELAY_MAX)
+}
+
+/**
+ * Check if error is a queue error and return position
+ */
+export function queueable(error: Err): number | undefined {
+  if (MessageV2.QueueError.isInstance(error)) {
+    return error.data.position
+  }
+  return undefined
+}
+
+/**
+ * Queue retry policy with fixed-step delays
+ */
+export function queuePolicy(opts: {
+  parse: (error: unknown) => Err
+  set: (input: { attempt: number; position: number; message: string; next: number }) => Effect.Effect<void>
+}) {
+  return Schedule.fromStepWithMetadata(
+    Effect.succeed((meta: Schedule.InputMetadata<unknown>) => {
+      const error = opts.parse(meta.input)
+      const position = queueable(error)
+      if (position === undefined) return Cause.done(meta.attempt)
+      return Effect.gen(function* () {
+        const wait = queueDelay(meta.attempt)
+        const now = yield* Clock.currentTimeMillis
+        const message = MessageV2.QueueError.isInstance(error) ? error.data.message : "排队等待中..."
+        yield* opts.set({ attempt: meta.attempt, position, message, next: now + wait })
         return [meta.attempt, Duration.millis(wait)] as [number, Duration.Duration]
       })
     }),

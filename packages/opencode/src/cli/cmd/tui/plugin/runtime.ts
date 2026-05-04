@@ -13,7 +13,7 @@ import {
 import path from "path"
 import { fileURLToPath } from "url"
 import { TuiConfig } from "@/cli/cmd/tui/config/tui"
-import { Log } from "@/util"
+import * as Log from "@opencode-ai/core/util/log"
 import { errorData, errorMessage } from "@/util/error"
 import { isRecord } from "@/util/record"
 import { Instance } from "@/project/instance"
@@ -29,11 +29,11 @@ import { PluginLoader } from "@/plugin/loader"
 import { PluginMeta } from "@/plugin/meta"
 import { installPlugin as installModulePlugin, patchPluginConfig, readPluginManifest } from "@/plugin/install"
 import { hasTheme, upsertTheme } from "../context/theme"
-import { Global } from "@/global"
-import { Filesystem } from "@/util"
-import { Process } from "@/util"
-import { Flock } from "@opencode-ai/shared/util/flock"
-import { Flag } from "@/flag/flag"
+import { Global } from "@opencode-ai/core/global"
+import { Filesystem } from "@/util/filesystem"
+import { Process } from "@/util/process"
+import { Flock } from "@opencode-ai/core/util/flock"
+import { Flag } from "@opencode-ai/core/flag/flag"
 import { INTERNAL_TUI_PLUGINS, type InternalTuiPlugin } from "./internal"
 import { setupSlots, Slot as View } from "./slots"
 import type { HostPluginApi, HostSlots } from "./slots"
@@ -989,8 +989,8 @@ async function load(input: { api: Api; config: TuiConfig.Info }) {
     await Instance.provide({
       directory: cwd,
       fn: async () => {
-        const records = Flag.OPENCODE_PURE ? [] : (config.plugin_origins ?? [])
-        if (Flag.OPENCODE_PURE && config.plugin_origins?.length) {
+        const records = Flag.CODEGENIE_PURE ? [] : (config.plugin_origins ?? [])
+        if (Flag.CODEGENIE_PURE && config.plugin_origins?.length) {
           log.info("skipping external tui plugins in pure mode", { count: config.plugin_origins.length })
         }
 

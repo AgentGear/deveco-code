@@ -2,21 +2,21 @@ import { type SQLiteBunDatabase } from "drizzle-orm/bun-sqlite"
 import { migrate } from "drizzle-orm/bun-sqlite/migrator"
 import { type SQLiteTransaction } from "drizzle-orm/sqlite-core"
 export * from "drizzle-orm"
-import { LocalContext } from "../util"
+import { LocalContext } from "@/util/local-context"
 import { lazy } from "../util/lazy"
-import { Global } from "../global"
-import { Log } from "../util"
-import { NamedError } from "@opencode-ai/shared/util/error"
+import { Global } from "@opencode-ai/core/global"
+import * as Log from "@opencode-ai/core/util/log"
+import { NamedError } from "@opencode-ai/core/util/error"
 import z from "zod"
 import path from "path"
 import { readFileSync, readdirSync, existsSync } from "fs"
-import { Flag } from "../flag/flag"
-import { InstallationChannel } from "../installation/version"
-import { InstanceState } from "@/effect"
+import { Flag } from "@opencode-ai/core/flag/flag"
+import { InstallationChannel } from "@opencode-ai/core/installation/version"
+import { InstanceState } from "@/effect/instance-state"
 import { iife } from "@/util/iife"
 import { init } from "#db"
 
-declare const OPENCODE_MIGRATIONS: { sql: string; timestamp: number; name: string }[] | undefined
+declare const CODEGENIE_MIGRATIONS: { sql: string; timestamp: number; name: string }[] | undefined
 
 export const NotFoundError = NamedError.create(
   "NotFoundError",
@@ -28,16 +28,16 @@ export const NotFoundError = NamedError.create(
 const log = Log.create({ service: "db" })
 
 export function getChannelPath() {
-  if (["latest", "beta", "prod"].includes(InstallationChannel) || Flag.OPENCODE_DISABLE_CHANNEL_DB)
-    return path.join(Global.Path.data, "opencode.db")
+  if (["latest", "beta", "prod"].includes(InstallationChannel) || Flag.CODEGENIE_DISABLE_CHANNEL_DB)
+    return path.join(Global.Path.data, "codegenie.db")
   const safe = InstallationChannel.replace(/[^a-zA-Z0-9._-]/g, "-")
-  return path.join(Global.Path.data, `opencode-${safe}.db`)
+  return path.join(Global.Path.data, `codegenie-${safe}.db`)
 }
 
 export const Path = iife(() => {
-  if (Flag.OPENCODE_DB) {
-    if (Flag.OPENCODE_DB === ":memory:" || path.isAbsolute(Flag.OPENCODE_DB)) return Flag.OPENCODE_DB
-    return path.join(Global.Path.data, Flag.OPENCODE_DB)
+  if (Flag.CODEGENIE_DB) {
+    if (Flag.CODEGENIE_DB === ":memory:" || path.isAbsolute(Flag.CODEGENIE_DB)) return Flag.CODEGENIE_DB
+    return path.join(Global.Path.data, Flag.CODEGENIE_DB)
   }
   return getChannelPath()
 })
@@ -95,15 +95,15 @@ export const Client = lazy(() => {
 
   // Apply schema migrations
   const entries =
-    typeof OPENCODE_MIGRATIONS !== "undefined"
-      ? OPENCODE_MIGRATIONS
+    typeof CODEGENIE_MIGRATIONS !== "undefined"
+      ? CODEGENIE_MIGRATIONS
       : migrations(path.join(import.meta.dirname, "../../migration"))
   if (entries.length > 0) {
     log.info("applying migrations", {
       count: entries.length,
-      mode: typeof OPENCODE_MIGRATIONS !== "undefined" ? "bundled" : "dev",
+      mode: typeof CODEGENIE_MIGRATIONS !== "undefined" ? "bundled" : "dev",
     })
-    if (Flag.OPENCODE_SKIP_MIGRATIONS) {
+    if (Flag.CODEGENIE_SKIP_MIGRATIONS) {
       for (const item of entries) {
         item.sql = "select 1;"
       }
@@ -170,3 +170,5 @@ export function transaction<T>(
     throw err
   }
 }
+
+export * as Database from "./db"

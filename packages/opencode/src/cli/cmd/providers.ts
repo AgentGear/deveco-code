@@ -3,16 +3,16 @@ import { AppRuntime } from "../../effect/app-runtime"
 import { cmd } from "./cmd"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
-import { ModelsDev } from "../../provider"
+import { ModelsDev } from "@/provider/models"
 import { map, pipe, sortBy, values } from "remeda"
 import path from "path"
 import os from "os"
-import { Config } from "../../config"
-import { Global } from "../../global"
+import { Config } from "@/config/config"
+import { Global } from "@opencode-ai/core/global"
 import { Plugin } from "../../plugin"
 import { Instance } from "../../project/instance"
 import type { Hooks } from "@opencode-ai/plugin"
-import { Process } from "../../util"
+import { Process } from "@/util/process"
 import { text } from "node:stream/consumers"
 import { Effect } from "effect"
 
@@ -190,6 +190,10 @@ export function resolvePluginProviders(input: {
   enabled?: Set<string>
   providerNames: Record<string, string | undefined>
 }): Array<{ id: string; name: string }> {
+  const PLUGIN_PROVIDER_CONFIG: Record<string, { name: string; type?: string }> = {
+    codegenie: { name: "CodeGenie OAuth", type: "OAuth" },
+  }
+
   const seen = new Set<string>()
   const result: Array<{ id: string; name: string }> = []
 
@@ -203,7 +207,7 @@ export function resolvePluginProviders(input: {
     if (input.enabled && !input.enabled.has(id)) continue
     result.push({
       id,
-      name: input.providerNames[id] ?? id,
+      name: PLUGIN_PROVIDER_CONFIG[id]?.name ?? input.providerNames[id] ?? id,
     })
   }
 
@@ -276,7 +280,7 @@ export const ProvidersLoginCommand = cmd({
   builder: (yargs) =>
     yargs
       .positional("url", {
-        describe: "opencode auth provider",
+        describe: "codegenie auth provider",
         type: "string",
       })
       .option("provider", {
@@ -348,6 +352,7 @@ export const ProvidersLoginCommand = cmd({
         )
 
         const priority: Record<string, number> = {
+          codegenie: -1,
           opencode: 0,
           openai: 1,
           "github-copilot": 2,
@@ -356,6 +361,9 @@ export const ProvidersLoginCommand = cmd({
           openrouter: 5,
           vercel: 6,
         }
+        const PLUGIN_HINT: Record<string, string> = {
+          codegenie: "recommended",
+        }
         const pluginProviders = resolvePluginProviders({
           hooks,
           existingProviders: providers,
@@ -363,29 +371,30 @@ export const ProvidersLoginCommand = cmd({
           enabled,
           providerNames: Object.fromEntries(Object.entries(config.provider ?? {}).map(([id, p]) => [id, p.name])),
         })
-        const options = [
-          ...pipe(
-            providers,
-            values(),
-            sortBy(
-              (x) => priority[x.id] ?? 99,
-              (x) => x.name ?? x.id,
+        const options = sortBy(
+          [
+            ...pipe(
+              providers,
+              values(),
+              map((x) => ({
+                label: x.name,
+                value: x.id,
+                hint: {
+                    opencode: "recommended",
+                    openai: "ChatGPT Plus/Pro or API key",
+                    codegenie: "recommended",
+                  }[x.id],
+              })),
             ),
-            map((x) => ({
+            ...pluginProviders.map((x) => ({
               label: x.name,
               value: x.id,
-              hint: {
-                opencode: "recommended",
-                openai: "ChatGPT Plus/Pro or API key",
-              }[x.id],
+              hint: PLUGIN_HINT[x.id] ?? "plugin",
             })),
-          ),
-          ...pluginProviders.map((x) => ({
-            label: x.name,
-            value: x.id,
-            hint: "plugin",
-          })),
-        ]
+          ],
+          (x) => priority[x.value] ?? 99,
+          (x) => x.label ?? x.value,
+        )
 
         let provider: string
         if (args.provider) {
@@ -435,7 +444,7 @@ export const ProvidersLoginCommand = cmd({
           }
 
           prompts.log.warn(
-            `This only stores a credential for ${provider} - you will need configure it in opencode.json, check the docs for examples.`,
+            `This only stores a credential for ${provider} - you will need configure it in codegenie.json, check the docs for examples.`,
           )
         }
 
@@ -444,7 +453,7 @@ export const ProvidersLoginCommand = cmd({
             "Amazon Bedrock authentication priority:\n" +
               "  1. Bearer token (AWS_BEARER_TOKEN_BEDROCK or /connect)\n" +
               "  2. AWS credential chain (profile, access keys, IAM roles, EKS IRSA)\n\n" +
-              "Configure via opencode.json options (profile, region, endpoint) or\n" +
+              "Configure via codegenie.json options (profile, region, endpoint) or\n" +
               "AWS environment variables (AWS_PROFILE, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_WEB_IDENTITY_TOKEN_FILE).",
           )
         }

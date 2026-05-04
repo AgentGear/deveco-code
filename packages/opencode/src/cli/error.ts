@@ -1,4 +1,4 @@
-import { NamedError } from "@opencode-ai/shared/util/error"
+import { NamedError } from "@opencode-ai/core/util/error"
 import { errorFormat } from "@/util/error"
 
 interface ErrorLike {
@@ -17,7 +17,7 @@ function isTaggedError(error: unknown, tag: string): boolean {
 export function FormatError(input: unknown) {
   // MCPFailed: { name: string }
   if (NamedError.hasName(input, "MCPFailed")) {
-    return `MCP server "${(input as ErrorLike).data?.name}" failed. Note, opencode does not support MCP authentication yet.`
+    return `MCP server "${(input as ErrorLike).data?.name}" failed. Note, codegenie does not support MCP authentication yet.`
   }
 
   // AccountServiceError, AccountTransportError: TaggedErrorClass
@@ -32,8 +32,8 @@ export function FormatError(input: unknown) {
     return [
       `Model not found: ${data?.providerID}/${data?.modelID}`,
       ...(suggestions.length ? ["Did you mean: " + suggestions.join(", ")] : []),
-      `Try: \`opencode models\` to list available models`,
-      `Or check your config (opencode.json) provider/model names`,
+      `Try: \`codegenie models\` to list available models`,
+      `Or check your config (codegenie.json) provider/model names`,
     ].join("\n")
   }
 

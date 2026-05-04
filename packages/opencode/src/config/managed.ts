@@ -3,7 +3,8 @@ export * as ConfigManaged from "./managed"
 import { existsSync } from "fs"
 import os from "os"
 import path from "path"
-import { Log, Process } from "../util"
+import * as Log from "@opencode-ai/core/util/log"
+import { Process } from "@/util/process"
 import { warn } from "console"
 
 const log = Log.create({ service: "config" })
@@ -32,7 +33,7 @@ function systemManagedConfigDir(): string {
 }
 
 export function managedConfigDir() {
-  return process.env.OPENCODE_TEST_MANAGED_CONFIG_DIR || systemManagedConfigDir()
+  return process.env.CODEGENIE_TEST_MANAGED_CONFIG_DIR || systemManagedConfigDir()
 }
 
 export function parseManagedPlist(json: string): string {

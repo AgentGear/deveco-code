@@ -3,7 +3,7 @@ import fs from "fs/promises"
 import path from "path"
 import { tmpdir } from "../../fixture/fixture"
 import * as App from "../../../src/cli/cmd/tui/app"
-import { Rpc } from "../../../src/util"
+import { Rpc } from "@/util/rpc"
 import { UI } from "../../../src/cli/ui"
 import * as Timeout from "../../../src/util/timeout"
 import * as Network from "../../../src/cli/network"
@@ -51,7 +51,7 @@ describe("tui thread", () => {
     const { TuiThreadCommand } = await import("../../../src/cli/cmd/tui/thread")
     const args: Parameters<NonNullable<typeof TuiThreadCommand.handler>>[0] = {
       _: [],
-      $0: "opencode",
+      $0: "codegenie",
       project,
       prompt: "hi",
       model: undefined,
@@ -62,8 +62,8 @@ describe("tui thread", () => {
       port: 0,
       hostname: "127.0.0.1",
       mdns: false,
-      "mdns-domain": "opencode.local",
-      mdnsDomain: "opencode.local",
+      "mdns-domain": "codegenie.local",
+      mdnsDomain: "codegenie.local",
       cors: [],
     }
     return TuiThreadCommand.handler(args)

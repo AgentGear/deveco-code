@@ -1,6 +1,6 @@
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
 import { createMemo, Show } from "solid-js"
-import { Global } from "@/global"
+import { Global } from "@opencode-ai/core/global"
 
 const id = "internal:sidebar-footer"
 
@@ -64,9 +64,9 @@ function View(props: { api: TuiPluginApi }) {
         <span style={{ fg: theme().text }}>{path().name}</span>
       </text>
       <text fg={theme().textMuted}>
-        <span style={{ fg: theme().success }}>•</span> <b>Open</b>
+        <span style={{ fg: theme().success }}>•</span> <b>Code</b>
         <span style={{ fg: theme().text }}>
-          <b>Code</b>
+          <b>Genie</b>
         </span>{" "}
         <span>{props.api.app.version}</span>
       </text>

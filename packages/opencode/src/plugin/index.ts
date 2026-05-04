@@ -5,21 +5,24 @@ import type {
   PluginModule,
   WorkspaceAdaptor as PluginWorkspaceAdaptor,
 } from "@opencode-ai/plugin"
-import { Config } from "../config"
+import { Config } from "@/config/config"
 import { Bus } from "../bus"
-import { Log } from "../util"
+import * as Log from "@opencode-ai/core/util/log"
 import { createOpencodeClient } from "@opencode-ai/sdk"
-import { Flag } from "../flag/flag"
+import { Flag } from "@opencode-ai/core/flag/flag"
 import { CodexAuthPlugin } from "./codex"
-import { Session } from "../session"
-import { NamedError } from "@opencode-ai/shared/util/error"
+import { Session } from "@/session/session"
+import { NamedError } from "@opencode-ai/core/util/error"
 import { CopilotAuthPlugin } from "./github-copilot/copilot"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "opencode-gitlab-auth"
 import { PoeAuthPlugin } from "opencode-poe-auth"
 import { CloudflareAIGatewayAuthPlugin, CloudflareWorkersAuthPlugin } from "./cloudflare"
+import { CodegenieAuthPlugin } from "./codegenie"
+import AnalyticsPlugin from "./analytics/analytics-plugin"
+import HarmonyNapiDynamicToolsPlugin from "./harmony-napi-dynamic-tools"
 import { Effect, Layer, Context, Stream } from "effect"
-import { EffectBridge } from "@/effect"
-import { InstanceState } from "@/effect"
+import { EffectBridge } from "@/effect/bridge"
+import { InstanceState } from "@/effect/instance-state"
 import { errorMessage } from "@/util/error"
 import { PluginLoader } from "./loader"
 import { parsePluginSpecifier, readPluginId, readV1Plugin, resolvePluginId } from "./shared"
@@ -61,6 +64,9 @@ const INTERNAL_PLUGINS: PluginInstance[] = [
   PoeAuthPlugin,
   CloudflareWorkersAuthPlugin,
   CloudflareAIGatewayAuthPlugin,
+  CodegenieAuthPlugin,
+  AnalyticsPlugin,
+  HarmonyNapiDynamicToolsPlugin,
 ]
 
 function isServerPlugin(value: unknown): value is PluginInstance {
@@ -122,12 +128,12 @@ export const layer = Layer.effect(
         const client = createOpencodeClient({
           baseUrl: "http://localhost:4096",
           directory: ctx.directory,
-          headers: Flag.OPENCODE_SERVER_PASSWORD
+          headers: Flag.CODEGENIE_SERVER_PASSWORD
             ? {
-                Authorization: `Basic ${Buffer.from(`${Flag.OPENCODE_SERVER_USERNAME ?? "opencode"}:${Flag.OPENCODE_SERVER_PASSWORD}`).toString("base64")}`,
+                Authorization: `Basic ${Buffer.from(`${Flag.CODEGENIE_SERVER_USERNAME ?? "opencode"}:${Flag.CODEGENIE_SERVER_PASSWORD}`).toString("base64")}`,
               }
             : undefined,
-          fetch: async (...args) => (await Server.Default()).app.fetch(...args),
+          fetch: async (...args) => Server.Default().app.fetch(...args),
         })
         const cfg = yield* config.get()
         const input: PluginInput = {
@@ -158,8 +164,8 @@ export const layer = Layer.effect(
           if (init._tag === "Some") hooks.push(init.value)
         }
 
-        const plugins = Flag.OPENCODE_PURE ? [] : (cfg.plugin_origins ?? [])
-        if (Flag.OPENCODE_PURE && cfg.plugin_origins?.length) {
+        const plugins = Flag.CODEGENIE_PURE ? [] : (cfg.plugin_origins ?? [])
+        if (Flag.CODEGENIE_PURE && cfg.plugin_origins?.length) {
           log.info("skipping external plugins in pure mode", { count: cfg.plugin_origins.length })
         }
         if (plugins.length) yield* config.waitForDependencies()

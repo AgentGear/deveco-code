@@ -230,7 +230,7 @@ export const dict = {
   "common.default": "Default",
   "common.attachment": "attachment",
 
-  "prompt.placeholder.shell": "Enter shell command...",
+  "prompt.placeholder.shell": "Enter shell command... {{example}}",
   "prompt.placeholder.normal": 'Ask anything... "{{example}}"',
   "prompt.placeholder.simple": "Ask anything...",
   "prompt.placeholder.summarizeComments": "Summarize comments…",
@@ -676,7 +676,7 @@ export const dict = {
   "sidebar.workspaces.enable": "Enable workspaces",
   "sidebar.workspaces.disable": "Disable workspaces",
   "sidebar.gettingStarted.title": "Getting started",
-  "sidebar.gettingStarted.line1": "OpenCode includes free models so you can start immediately.",
+  "sidebar.gettingStarted.line1": "CodeGenie includes free models so you can start immediately.",
   "sidebar.gettingStarted.line2": "Connect any provider to use models, inc. Claude, GPT, Gemini etc.",
   "sidebar.project.recentSessions": "Recent sessions",
   "sidebar.project.viewAllSessions": "View all sessions",
@@ -728,6 +728,11 @@ export const dict = {
 
   "settings.general.row.language.title": "Language",
   "settings.general.row.language.description": "Change the display language for OpenCode",
+  "settings.general.row.shell.title": "Terminal Shell",
+  "settings.general.row.shell.description":
+    "Choose the shell used for your terminal. Compatible shells are also used for agent tool calls.",
+  "settings.general.row.shell.autoDefault": "Auto (Default)",
+  "settings.general.row.shell.terminalOnly": "terminal only",
   "settings.general.row.appearance.title": "Appearance",
   "settings.general.row.appearance.description": "Customise how OpenCode looks on your device",
   "settings.general.row.colorScheme.title": "Color scheme",

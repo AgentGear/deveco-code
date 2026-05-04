@@ -2,13 +2,13 @@ import os from "os"
 import path from "path"
 import { Effect, Layer, Context } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http"
-import { Config } from "@/config"
-import { InstanceState } from "@/effect"
-import { Flag } from "@/flag/flag"
-import { AppFileSystem } from "@opencode-ai/shared/filesystem"
+import { Config } from "@/config/config"
+import { InstanceState } from "@/effect/instance-state"
+import { Flag } from "@opencode-ai/core/flag/flag"
+import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { withTransientReadRetry } from "@/util/effect-http-client"
-import { Global } from "../global"
-import { Log } from "../util"
+import { Global } from "@opencode-ai/core/global"
+import * as Log from "@opencode-ai/core/util/log"
 import type { MessageV2 } from "./message-v2"
 import type { MessageID } from "./schema"
 
@@ -16,17 +16,17 @@ const log = Log.create({ service: "instruction" })
 
 const FILES = [
   "AGENTS.md",
-  ...(Flag.OPENCODE_DISABLE_CLAUDE_CODE_PROMPT ? [] : ["CLAUDE.md"]),
+  ...(Flag.CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT ? [] : ["CLAUDE.md"]),
   "CONTEXT.md", // deprecated
 ]
 
 function globalFiles() {
   const files = []
-  if (Flag.OPENCODE_CONFIG_DIR) {
-    files.push(path.join(Flag.OPENCODE_CONFIG_DIR, "AGENTS.md"))
+  if (Flag.CODEGENIE_CONFIG_DIR) {
+    files.push(path.join(Flag.CODEGENIE_CONFIG_DIR, "AGENTS.md"))
   }
   files.push(path.join(Global.Path.config, "AGENTS.md"))
-  if (!Flag.OPENCODE_DISABLE_CLAUDE_CODE_PROMPT) {
+  if (!Flag.CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT) {
     files.push(path.join(os.homedir(), ".claude", "CLAUDE.md"))
   }
   return files
@@ -82,19 +82,19 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
 
       const relative = Effect.fnUntraced(function* (instruction: string) {
         const ctx = yield* InstanceState.context
-        if (!Flag.OPENCODE_DISABLE_PROJECT_CONFIG) {
+        if (!Flag.CODEGENIE_DISABLE_PROJECT_CONFIG) {
           return yield* fs
             .globUp(instruction, ctx.directory, ctx.worktree)
             .pipe(Effect.catch(() => Effect.succeed([] as string[])))
         }
-        if (!Flag.OPENCODE_CONFIG_DIR) {
+        if (!Flag.CODEGENIE_CONFIG_DIR) {
           log.warn(
-            `Skipping relative instruction "${instruction}" - no OPENCODE_CONFIG_DIR set while project config is disabled`,
+            `Skipping relative instruction "${instruction}" - no CODEGENIE_CONFIG_DIR set while project config is disabled`,
           )
           return []
         }
         return yield* fs
-          .globUp(instruction, Flag.OPENCODE_CONFIG_DIR, Flag.OPENCODE_CONFIG_DIR)
+          .globUp(instruction, Flag.CODEGENIE_CONFIG_DIR, Flag.CODEGENIE_CONFIG_DIR)
           .pipe(Effect.catch(() => Effect.succeed([] as string[])))
       })
 
@@ -123,7 +123,7 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
         const paths = new Set<string>()
 
         // The first project-level match wins so we don't stack AGENTS.md/CLAUDE.md from every ancestor.
-        if (!Flag.OPENCODE_DISABLE_PROJECT_CONFIG) {
+        if (!Flag.CODEGENIE_DISABLE_PROJECT_CONFIG) {
           for (const file of FILES) {
             const matches = yield* fs.findUp(file, ctx.directory, ctx.worktree)
             if (matches.length > 0) {

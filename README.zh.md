@@ -1,140 +1,208 @@
 <p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
-    </picture>
+  <a href="https://www.npmjs.com/package/@codegenie-ai/codegenie-cli">
+    <img src="packages/console/app/src/asset/codegenie-logo.jpg" alt="CodeGenie logo" width="420">
   </a>
 </p>
-<p align="center">开源的 AI Coding Agent。</p>
+<p align="center">面向 HarmonyOS（鸿蒙）开发场景的 AI CLI 助手。</p>
 <p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/opencode-ai"><img alt="npm" src="https://img.shields.io/npm/v/opencode-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://www.npmjs.com/package/@codegenie-ai/codegenie-cli"><img alt="npm" src="https://img.shields.io/npm/v/%40codegenie-ai%2Fcodegenie-cli?style=flat-square" /></a>
+  <a href="https://developer.huawei.com/consumer/cn/deveco-studio/"><img alt="DevEco Studio" src="https://img.shields.io/badge/DevEco%20Studio-required-blue?style=flat-square" /></a>
+  <a href="https://opencode.ai"><img alt="Based on OpenCode" src="https://img.shields.io/badge/based%20on-OpenCode-black?style=flat-square" /></a>
 </p>
 
 <p align="center">
   <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
+  <a href="README.zh.md">简体中文</a>
 </p>
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
+[![CodeGenie Terminal UI](packages/web/src/assets/lander/codegenie-terminal-ui.jpg)](https://www.npmjs.com/package/@codegenie-ai/codegenie-cli)
 
 ---
+
+### 简介
+
+CodeGenie CLI 是一款面向 HarmonyOS（鸿蒙）开发场景的 AI CLI 助手，支持代码编写、编译构建、设备运行、文档查阅、运行时调试和 ArkTS 问题修复等能力。
+
+CodeGenie 基于开源项目 [OpenCode](https://opencode.ai) 扩展开发，保留了 OpenCode 的终端交互、配置体系、Provider / MCP / Skill / Plugin 等能力，并针对鸿蒙工程增加了 DevEco Studio、hvigorw、hdc、ArkTS 检查和设备调试相关集成。
 
 ### 安装
 
-```bash
-# 直接安装 (YOLO)
-curl -fsSL https://opencode.ai/install | bash
+#### 系统要求
 
-# 软件包管理器
-npm i -g opencode-ai@latest        # 也可使用 bun/pnpm/yarn
-scoop install opencode             # Windows
-choco install opencode             # Windows
-brew install anomalyco/tap/opencode # macOS 和 Linux（推荐，始终保持最新）
-brew install opencode              # macOS 和 Linux（官方 brew formula，更新频率较低）
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-bin               # Arch Linux (Latest from AUR)
-mise use -g opencode               # 任意系统
-nix run nixpkgs#opencode           # 或用 github:anomalyco/opencode 获取最新 dev 分支
+| 平台 | 支持情况 |
+| --- | --- |
+| Windows x64 | 支持 |
+| macOS Apple Silicon（M 系列芯片） | 支持 |
+| macOS Intel（x64） | 支持 |
+
+#### 安装前置依赖
+
+CodeGenie 通过 npm 分发，需要先安装 [Node.js LTS](https://nodejs.org)。安装完成后可在终端验证：
+
+```bash
+node -v
+npm -v
+```
+
+如需使用鸿蒙工程的编译、运行和调试能力，还需要安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)，并配置 `DEVECO_HOME` 环境变量指向 DevEco Studio 安装目录。
+
+#### 安装 / 更新 / 卸载
+
+```bash
+# 安装
+npm install -g @codegenie-ai/codegenie-cli --registry=https://registry.npmjs.org
+
+# 查看版本
+codegenie --version
+
+# 启动
+codegenie
+
+# 更新
+codegenie upgrade
+
+# 卸载运行时数据
+codegenie uninstall
+
+# 卸载 npm 全局包
+npm uninstall -g @codegenie-ai/codegenie-cli
 ```
 
 > [!TIP]
-> 安装前请先移除 0.1.x 之前的旧版本。
+> macOS 如果遇到全局安装权限问题，可以使用 `sudo -i npm install -g @codegenie-ai/codegenie-cli --registry=https://registry.npmjs.org`。
 
-### 桌面应用程序 (BETA)
+### 登录与模型
 
-OpenCode 也提供桌面版应用。可直接从 [发布页 (releases page)](https://github.com/anomalyco/opencode/releases) 或 [opencode.ai/download](https://opencode.ai/download) 下载。
-
-| 平台                  | 下载文件                              |
-| --------------------- | ------------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-darwin-aarch64.dmg` |
-| macOS (Intel)         | `opencode-desktop-darwin-x64.dmg`     |
-| Windows               | `opencode-desktop-windows-x64.exe`    |
-| Linux                 | `.deb`、`.rpm` 或 AppImage            |
+启动 `codegenie` 后可使用华为账号登录。登录后可使用 CodeGenie 提供的免费模型通道；不登录时也可以沿用 OpenCode 的 Provider 配置体系，自行配置模型。
 
 ```bash
-# macOS (Homebrew Cask)
-brew install --cask opencode-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/opencode-desktop
+# 退出登录
+codegenie auth logout
 ```
 
-#### 安装目录
+在 CodeGenie 中输入 `/models` 可进入模型配置界面。当前免费提供 `glm-5`、`deepseek-v3.2` 两款模型，单账号默认每分钟 50 次请求。也可以通过 `Ctrl+A` 进入 Provider 选择界面，配置智谱、阿里等 OpenAI-compatible 模型。
 
-安装脚本按照以下优先级决定安装路径：
+也可以通过 `codegenie.jsonc` 配置模型：
 
-1. `$OPENCODE_INSTALL_DIR` - 自定义安装目录
-2. `$XDG_BIN_DIR` - 符合 XDG 基础目录规范的路径
-3. `$HOME/bin` - 如果存在或可创建的用户二进制目录
-4. `$HOME/.opencode/bin` - 默认备用路径
-
-```bash
-# 示例
-OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "codegenie": {
+      "name": "CodeGenie",
+      "models": {
+        "glm-5": {
+          "tool_call": true,
+          "limit": {
+            "context": 200000,
+            "output": 8192
+          }
+        }
+      },
+      "options": {
+        "baseURL": "https://api.openbitfun.com/v1",
+        "apiKey": "{env:CODEGENIE_API_KEY}"
+      }
+    }
+  }
+}
 ```
+
+配置文件读取优先级：
+
+1. 项目目录下 `.codegenie/codegenie.jsonc`
+2. 项目目录下 `codegenie.jsonc`
+3. 用户目录下 `.config/codegenie/codegenie.jsonc`
 
 ### Agents
 
-OpenCode 内置两种 Agent，可用 `Tab` 键快速切换：
+CodeGenie 面向鸿蒙开发提供以下 Agent 模式：
 
-- **build** - 默认模式，具备完整权限，适合开发工作
-- **plan** - 只读模式，适合代码分析与探索
-  - 默认拒绝修改文件
-  - 运行 bash 命令前会询问
-  - 便于探索未知代码库或规划改动
+- **build** - 默认模式，适合工程生成、代码生成、配置修正、测试执行、推包运行和发布执行。
+- **plan** - 适合需求拆解、技术方案、发布规划、测试规划和文档生成。
 
 另外还包含一个 **general** 子 Agent，用于复杂搜索和多步任务，内部使用，也可在消息中输入 `@general` 调用。
 
-了解更多 [Agents](https://opencode.ai/docs/agents) 相关信息。
+### 鸿蒙场景能力
 
-### 文档
+CodeGenie 集成了常用鸿蒙开发工具能力：
 
-更多配置说明请查看我们的 [**官方文档**](https://opencode.ai/docs)。
+| 工具 | 说明 |
+| --- | --- |
+| `build_project` | 执行编译构建并导出构建产物 |
+| `start_app` | 在模拟器或真机上运行应用 |
+| `runtime-calibration` | UI 自动化测试，可通过设置启用 |
+| `runtime-calibration_getLog` | 获取设备运行日志，可通过设置启用 |
+| `execute_uitest` | UI 测试操作，包括点击、滑动、输入、按键、截图等 |
+| `hdc_log` | 收集或清理设备日志 |
+| `check_ets_files` | ArkTS 静态语法检查 |
 
-### 参与贡献
+常见场景包括：从 0 到 1 创建鸿蒙工程、增量开发页面、修复编译报错、真机调试，以及基于多模态模型的图生文界面生成。
 
-如有兴趣贡献代码，请在提交 PR 前阅读 [贡献指南 (Contributing Docs)](./CONTRIBUTING.md)。
+### 扩展能力
 
-### 基于 OpenCode 进行开发
+CodeGenie 兼容 OpenCode 的 Skill、MCP 和 Plugin 扩展方式。
 
-如果你在项目名中使用了 “opencode”（如 “opencode-dashboard” 或 “opencode-mobile”），请在 README 里注明该项目不是 OpenCode 团队官方开发，且不存在隶属关系。
+#### Skills
+
+```bash
+# 安装社区 Skill
+npx skills add vercel-labs/agent-skills
+```
+
+也可以把 Skill 放到 `~/.config/codegenie/skills`，重启 CodeGenie 后加载。
+
+#### MCP
+
+可在 `~/.config/codegenie/codegenie.jsonc` 中配置 MCP：
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@playwright/mcp@latest"],
+      "enabled": true
+    }
+  }
+}
+```
+
+#### Plugins
+
+```bash
+npm install -g oh-my-opencode
+```
+
+然后在 `codegenie.jsonc` 中配置插件入口：
+
+```jsonc
+{
+  "plugin": [
+    "file:///C:/Users/tylor/AppData/Roaming/npm/node_modules/oh-my-opencode/dist/index.js"
+  ]
+}
+```
+
+### 从 OpenCode 迁移
+
+如果需要从 OpenCode 迁移到 CodeGenie，请将配置文件迁移到 CodeGenie 目录。主配置文件可参考：
+
+```powershell
+# Windows PowerShell
+Copy-Item -Force "{源路径}\opencode.jsonc" "~\.config\codegenie\codegenie.jsonc"
+```
+
+```bash
+# macOS
+cp {源路径}/opencode.jsonc ~/.config/codegenie/codegenie.jsonc
+```
+
+Skills、Agents、Plugins 也可以迁移到 `~/.config/codegenie` 下的对应目录；MCP 配置项可迁移到 `codegenie.jsonc` 中。
 
 ### 常见问题 (FAQ)
 
-#### 这和 Claude Code 有什么不同？
+#### 这和 OpenCode 有什么关系？
 
-功能上很相似，关键差异：
-
-- 100% 开源。
-- 不绑定特定提供商。推荐使用 [OpenCode Zen](https://opencode.ai/zen) 的模型，但也可搭配 Claude、OpenAI、Google 甚至本地模型。模型迭代会缩小差异、降低成本，因此保持 provider-agnostic 很重要。
-- 内置 LSP 支持。
-- 聚焦终端界面 (TUI)。OpenCode 由 Neovim 爱好者和 [terminal.shop](https://terminal.shop) 的创建者打造，会持续探索终端的极限。
-- 客户端/服务器架构。可在本机运行，同时用移动设备远程驱动。TUI 只是众多潜在客户端之一。
-
----
-
-**加入我们的社区** [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=738j8655-cd59-4633-a30a-1124e0096789&qr_code=true) | [X.com](https://x.com/opencode)
+CodeGenie 基于 OpenCode 扩展开发，保留其终端 UI、Provider、MCP、Skill、Plugin 和配置体系，并额外针对 HarmonyOS 开发链路加入编译构建、设备运行、日志采集、ArkTS 检查和运行时调试等能力。

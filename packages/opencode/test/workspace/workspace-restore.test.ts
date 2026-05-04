@@ -6,32 +6,34 @@ import { registerAdaptor } from "../../src/control-plane/adaptors"
 import type { WorkspaceAdaptor } from "../../src/control-plane/types"
 import { Workspace } from "../../src/control-plane/workspace"
 import { AppRuntime } from "../../src/effect/app-runtime"
-import { Flag } from "../../src/flag/flag"
+import { Flag } from "@opencode-ai/core/flag/flag"
 import { ModelID, ProviderID } from "../../src/provider/schema"
 import { Instance } from "../../src/project/instance"
-import { Session as SessionNs } from "../../src/session"
+import { Session as SessionNs } from "@/session/session"
 import { MessageV2 } from "../../src/session/message-v2"
 import { MessageID, PartID, type SessionID } from "../../src/session/schema"
-import { Database, asc, eq } from "../../src/storage"
+import { Database } from "@/storage/db"
+import { asc } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { SyncEvent } from "../../src/sync"
 import { EventTable } from "../../src/sync/event.sql"
-import { Log } from "../../src/util"
+import * as Log from "@opencode-ai/core/util/log"
 import { resetDatabase } from "../fixture/db"
 import { tmpdir } from "../fixture/fixture"
 
 void Log.init({ print: false })
 
-const original = Flag.OPENCODE_EXPERIMENTAL_WORKSPACES
+const original = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
 
 beforeEach(() => {
   Database.close()
-  Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = true
+  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
 })
 
 afterEach(async () => {
   mock.restore()
   await Instance.disposeAll()
-  Flag.OPENCODE_EXPERIMENTAL_WORKSPACES = original
+  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = original
   await resetDatabase()
 })
 

@@ -1,4 +1,4 @@
-import { Cause, Effect, Layer, Context } from "effect"
+import { Cause, Effect, Layer, Context, Schema } from "effect"
 // @ts-ignore
 import { createWrapper } from "@parcel/watcher/wrapper"
 import type ParcelWatcher from "@parcel/watcher"
@@ -7,17 +7,17 @@ import path from "path"
 import z from "zod"
 import { Bus } from "@/bus"
 import { BusEvent } from "@/bus/bus-event"
-import { InstanceState } from "@/effect"
-import { Flag } from "@/flag/flag"
+import { InstanceState } from "@/effect/instance-state"
+import { Flag } from "@opencode-ai/core/flag/flag"
 import { Git } from "@/git"
 import { Instance } from "@/project/instance"
 import { lazy } from "@/util/lazy"
-import { Config } from "../config"
+import { Config } from "@/config/config"
 import { FileIgnore } from "./ignore"
 import { Protected } from "./protected"
-import { Log } from "../util"
+import * as Log from "@opencode-ai/core/util/log"
 
-declare const OPENCODE_LIBC: string | undefined
+declare const CODEGENIE_LIBC: string | undefined
 
 const log = Log.create({ service: "file.watcher" })
 const SUBSCRIBE_TIMEOUT_MS = 10_000
@@ -25,9 +25,9 @@ const SUBSCRIBE_TIMEOUT_MS = 10_000
 export const Event = {
   Updated: BusEvent.define(
     "file.watcher.updated",
-    z.object({
-      file: z.string(),
-      event: z.union([z.literal("add"), z.literal("change"), z.literal("unlink")]),
+    Schema.Struct({
+      file: Schema.String,
+      event: Schema.Literals(["add", "change", "unlink"]),
     }),
   ),
 }
@@ -35,7 +35,7 @@ export const Event = {
 const watcher = lazy((): typeof import("@parcel/watcher") | undefined => {
   try {
     const binding = require(
-      `@parcel/watcher-${process.platform}-${process.arch}${process.platform === "linux" ? `-${OPENCODE_LIBC || "glibc"}` : ""}`,
+      `@parcel/watcher-${process.platform}-${process.arch}${process.platform === "linux" ? `-${CODEGENIE_LIBC || "glibc"}` : ""}`,
     )
     return createWrapper(binding) as typeof import("@parcel/watcher")
   } catch (error) {
@@ -74,7 +74,7 @@ export const layer = Layer.effect(
     const state = yield* InstanceState.make(
       Effect.fn("FileWatcher.state")(
         function* () {
-          if (yield* Flag.OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER) return
+          if (yield* Flag.CODEGENIE_EXPERIMENTAL_DISABLE_FILEWATCHER) return
 
           log.info("init", { directory: Instance.directory })
 
@@ -121,7 +121,7 @@ export const layer = Layer.effect(
           const cfg = yield* config.get()
           const cfgIgnores = cfg.watcher?.ignore ?? []
 
-          if (yield* Flag.OPENCODE_EXPERIMENTAL_FILEWATCHER) {
+          if (yield* Flag.CODEGENIE_EXPERIMENTAL_FILEWATCHER) {
             yield* subscribe(Instance.directory, [
               ...FileIgnore.PATTERNS,
               ...cfgIgnores,

@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import type { UpgradeWebSocket } from "hono/ws"
-import { Log } from "@/util"
+import * as Log from "@opencode-ai/core/util/log"
 import * as Fence from "./fence"
 import type { WorkspaceID } from "@/control-plane/schema"
 import { Workspace } from "@/control-plane/workspace"
@@ -24,8 +24,8 @@ function headers(req: Request, extra?: HeadersInit) {
   const out = new Headers(req.headers)
   for (const key of hop) out.delete(key)
   out.delete("accept-encoding")
-  out.delete("x-opencode-directory")
-  out.delete("x-opencode-workspace")
+  out.delete("x-codegenie-directory")
+  out.delete("x-codegenie-workspace")
   if (!extra) return out
   for (const [key, value] of new Headers(extra).entries()) {
     out.set(key, value)
@@ -60,7 +60,7 @@ const app = (upgrade: UpgradeWebSocket) =>
   new Hono().get(
     "/__workspace_ws",
     upgrade((c) => {
-      const url = c.req.header("x-opencode-proxy-url")
+      const url = c.req.header("x-codegenie-proxy-url")
       const queue: Msg[] = []
       let remote: WebSocket | undefined
       return {
@@ -101,7 +101,7 @@ const app = (upgrade: UpgradeWebSocket) =>
     }),
   )
 
-const log = Log.Default.clone().tag("service", "server-proxy")
+const log = Log.create({ service: "server-proxy" })
 
 export async function http(url: string | URL, extra: HeadersInit | undefined, req: Request, workspaceID: WorkspaceID) {
   if (!Workspace.isSyncing(workspaceID)) {
@@ -150,7 +150,7 @@ export function websocket(
   proxy.pathname = "/__workspace_ws"
   proxy.search = ""
   const next = new Headers(req.headers)
-  next.set("x-opencode-proxy-url", socket(target))
+  next.set("x-codegenie-proxy-url", socket(target))
   for (const [key, value] of new Headers(extra).entries()) {
     next.set(key, value)
   }

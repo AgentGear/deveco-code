@@ -2,7 +2,7 @@ import { Cause, Deferred, Effect, Layer, Context, Scope } from "effect"
 import * as Stream from "effect/Stream"
 import { Agent } from "@/agent/agent"
 import { Bus } from "@/bus"
-import { Config } from "@/config"
+import { Config } from "@/config/config"
 import { Permission } from "@/permission"
 import { Plugin } from "@/plugin"
 import { Snapshot } from "@/snapshot"
@@ -12,13 +12,14 @@ import { MessageV2 } from "./message-v2"
 import { isOverflow } from "./overflow"
 import { PartID } from "./schema"
 import type { SessionID } from "./schema"
-import { SessionRetry } from "./retry"
+import { SessionRetry, queueable, queuePolicy } from "./retry"
 import { SessionStatus } from "./status"
 import { SessionSummary } from "./summary"
-import type { Provider } from "@/provider"
+import { ExitQueue } from "./exit-queue"
+import type { Provider } from "@/provider/provider"
 import { Question } from "@/question"
 import { errorMessage } from "@/util/error"
-import { Log } from "@/util"
+import * as Log from "@opencode-ai/core/util/log"
 import { isRecord } from "@/util/record"
 
 const DOOM_LOOP_THRESHOLD = 3
@@ -71,6 +72,8 @@ interface ProcessorContext extends Input {
   needsCompaction: boolean
   currentText: MessageV2.TextPart | undefined
   reasoningMap: Record<string, MessageV2.ReasoningPart>
+  queueActive: boolean
+  queuePartID: PartID | undefined
 }
 
 type StreamEvent = Event
@@ -90,6 +93,7 @@ export const layer: Layer.Layer<
   | Plugin.Service
   | SessionSummary.Service
   | SessionStatus.Service
+  | ExitQueue.Service
 > = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -104,6 +108,7 @@ export const layer: Layer.Layer<
     const summary = yield* SessionSummary.Service
     const scope = yield* Scope.Scope
     const status = yield* SessionStatus.Service
+    const exitQueue = yield* ExitQueue.Service
 
     const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -121,6 +126,8 @@ export const layer: Layer.Layer<
         needsCompaction: false,
         currentText: undefined,
         reasoningMap: {},
+        queueActive: false,
+        queuePartID: undefined,
       }
       let aborted = false
       const slog = log.clone().tag("session.id", input.sessionID).tag("messageID", input.assistantMessage.id)
@@ -556,6 +563,23 @@ export const layer: Layer.Layer<
             Effect.onInterrupt(() =>
               Effect.gen(function* () {
                 aborted = true
+                
+                // NEW: If in queue state, call exit queue API and remove QueuePart
+                if (ctx.queueActive && ctx.model?.id) {
+                  yield* exitQueue.exit(ctx.sessionID, ctx.model.id)
+                    .pipe(Effect.forkIn(scope), Effect.ignore)
+                  
+                  if (ctx.queuePartID) {
+                    yield* session.removePart({
+                      sessionID: ctx.sessionID,
+                      messageID: ctx.assistantMessage.id,
+                      partID: ctx.queuePartID,
+                    })
+                    ctx.queuePartID = undefined
+                  }
+                  ctx.queueActive = false
+                }
+                
                 if (!ctx.assistantMessage.error) {
                   yield* halt(new DOMException("Aborted", "AbortError"))
                 }
@@ -577,8 +601,63 @@ export const layer: Layer.Layer<
                   }),
               }),
             ),
+            // NEW: Queue retry policy (handles QueueError)
+            Effect.retry(
+              queuePolicy({
+                parse,
+                set: (info) =>
+                  Effect.gen(function* () {
+                    // Create or update QueuePart
+                    if (!ctx.queuePartID) {
+                      const part = yield* session.updatePart({
+                        id: PartID.ascending(),
+                        messageID: ctx.assistantMessage.id,
+                        sessionID: ctx.sessionID,
+                        type: "queue",
+                        position: info.position,
+                        message: info.message,
+                        time: { start: Date.now() },
+                      })
+                      ctx.queuePartID = part.id
+                      ctx.queueActive = true
+                    } else {
+                      yield* session.updatePart({
+                        id: ctx.queuePartID,
+                        messageID: ctx.assistantMessage.id,
+                        sessionID: ctx.sessionID,
+                        type: "queue",
+                        position: info.position,
+                        message: info.message,
+                        time: { start: Date.now() },
+                      })
+                    }
+                    
+                    yield* status.set(ctx.sessionID, {
+                      type: "queue",
+                      attempt: info.attempt,
+                      position: info.position,
+                      message: info.message,
+                      next: info.next,
+                    })
+                  }),
+              }),
+            ),
             Effect.catch(halt),
-            Effect.ensuring(cleanup()),
+            Effect.ensuring(
+              Effect.gen(function* () {
+                // NEW: Remove QueuePart on success
+                if (ctx.queuePartID) {
+                  yield* session.removePart({
+                    sessionID: ctx.sessionID,
+                    messageID: ctx.assistantMessage.id,
+                    partID: ctx.queuePartID,
+                  })
+                  ctx.queuePartID = undefined
+                  ctx.queueActive = false
+                }
+                yield* cleanup()
+              }),
+            ),
           )
 
           if (ctx.needsCompaction) return "compact"
@@ -611,6 +690,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Plugin.defaultLayer),
     Layer.provide(SessionSummary.defaultLayer),
     Layer.provide(SessionStatus.defaultLayer),
+    Layer.provide(ExitQueue.defaultLayer),
     Layer.provide(Bus.layer),
     Layer.provide(Config.defaultLayer),
   ),

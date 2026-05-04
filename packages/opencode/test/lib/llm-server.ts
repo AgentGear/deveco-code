@@ -3,6 +3,7 @@ import * as Http from "node:http"
 import { Deferred, Effect, Layer, Context, Stream } from "effect"
 import * as HttpServer from "effect/unstable/http/HttpServer"
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
+import { ServeError } from "effect/unstable/http/HttpServerError"
 
 export type Usage = { input: number; output: number }
 
@@ -627,7 +628,7 @@ namespace TestLLMServer {
 }
 
 export class TestLLMServer extends Context.Service<TestLLMServer, TestLLMServer.Service>()("@test/LLMServer") {
-  static readonly layer = Layer.effect(
+  static readonly layer: Layer.Layer<TestLLMServer, ServeError> = Layer.effect(
     TestLLMServer,
     Effect.gen(function* () {
       const server = yield* HttpServer.HttpServer
@@ -767,5 +768,5 @@ export class TestLLMServer extends Context.Service<TestLLMServer, TestLLMServer.
         misses: Effect.sync(() => [...misses]),
       })
     }),
-  ).pipe(Layer.provide(HttpRouter.layer), Layer.provide(NodeHttpServer.layer(() => Http.createServer(), { port: 0 })))
+  ).pipe(Layer.provideMerge(HttpRouter.layer), Layer.provideMerge(NodeHttpServer.layer(() => Http.createServer(), { port: 0 })))
 }

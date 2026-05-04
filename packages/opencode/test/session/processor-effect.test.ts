@@ -5,12 +5,12 @@ import path from "path"
 import type { Agent } from "../../src/agent/agent"
 import { Agent as AgentSvc } from "../../src/agent/agent"
 import { Bus } from "../../src/bus"
-import { Config } from "../../src/config"
+import { Config } from "@/config/config"
 import { Permission } from "../../src/permission"
 import { Plugin } from "../../src/plugin"
-import { Provider } from "../../src/provider"
+import { Provider } from "@/provider/provider"
 import { ModelID, ProviderID } from "../../src/provider/schema"
-import { Session } from "../../src/session"
+import { Session } from "@/session/session"
 import { LLM } from "../../src/session/llm"
 import { MessageV2 } from "../../src/session/message-v2"
 import { SessionProcessor } from "../../src/session/processor"
@@ -18,11 +18,12 @@ import { MessageID, PartID, SessionID } from "../../src/session/schema"
 import { SessionStatus } from "../../src/session/status"
 import { SessionSummary } from "../../src/session/summary"
 import { Snapshot } from "../../src/snapshot"
-import { Log } from "../../src/util"
-import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
+import { ExitQueue } from "../../src/session/exit-queue"
+import * as Log from "@opencode-ai/core/util/log"
+import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { provideTmpdirServer } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
-import { raw, reply, TestLLMServer } from "../lib/llm-server"
+import { raw, reply, TestLLMServer, httpError } from "../lib/llm-server"
 
 void Log.init({ print: false })
 
@@ -164,6 +165,7 @@ const deps = Layer.mergeAll(
   Config.defaultLayer,
   LLM.defaultLayer,
   Provider.defaultLayer,
+  ExitQueue.defaultLayer,
   status,
 ).pipe(Layer.provideMerge(infra))
 const env = Layer.mergeAll(
@@ -836,6 +838,74 @@ it.live("session.processor effect tests mark interruptions aborted without manua
           expect(stored.info.error?.name).toBe("MessageAbortedError")
         }
         expect(state).toMatchObject({ type: "idle" })
+      }),
+    { git: true, config: (url) => providerCfg(url) },
+  ),
+)
+
+// ---------------------------------------------------------------------------
+// Queue polling tests
+// ---------------------------------------------------------------------------
+
+it.live("session.processor handles queue error and retries", () =>
+  provideTmpdirServer(
+    ({ dir, llm }) =>
+      Effect.gen(function* () {
+        const { processors, session, provider } = yield* boot()
+
+        // Queue error response (406 + WaitingInLine)
+        const queueErrorBody = {
+          error: {
+            code: "406",
+            type: "WaitingInLine",
+            message: "当前模型访问量较高，您目前排在第5位，请耐心等待。",
+          },
+        }
+
+        // First: queue error
+        yield* llm.error(406, queueErrorBody)
+
+        // Second: success after retry
+        yield* llm.text("hello")
+
+        const chat = yield* session.create({})
+        const parent = yield* user(chat.id, "hi")
+        const msg = yield* assistant(chat.id, parent.id, path.resolve(dir))
+        const mdl = yield* provider.getModel(ref.providerID, ref.modelID)
+        const handle = yield* processors.create({
+          assistantMessage: msg,
+          sessionID: chat.id,
+          model: mdl,
+        })
+
+        const input = {
+          user: {
+            id: parent.id,
+            sessionID: chat.id,
+            role: "user",
+            time: parent.time,
+            agent: parent.agent,
+            model: { providerID: ref.providerID, modelID: ref.modelID },
+          } satisfies MessageV2.User,
+          sessionID: chat.id,
+          model: mdl,
+          agent: agent(),
+          system: [],
+          messages: [{ role: "user", content: "hi" }],
+          tools: {},
+        } satisfies LLM.StreamInput
+
+        const value = yield* handle.process(input)
+        const parts = MessageV2.parts(msg.id)
+        const calls = yield* llm.calls
+
+        // Should have retried after queue error
+        expect(calls).toBe(2)
+        // Should have text part from successful response
+        expect(parts.some((part) => part.type === "text" && part.text === "hello")).toBe(true)
+        // Should NOT have queue part after success
+        expect(parts.some((part) => part.type === "queue")).toBe(false)
+        expect(value).toBe("continue")
       }),
     { git: true, config: (url) => providerCfg(url) },
   ),

@@ -5,13 +5,13 @@ import { Effect, Layer, ManagedRuntime } from "effect"
 import { EditTool } from "../../src/tool/edit"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
-import { LSP } from "../../src/lsp"
-import { AppFileSystem } from "@opencode-ai/shared/filesystem"
+import { LSP } from "@/lsp/lsp"
+import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { Format } from "../../src/format"
 import { Agent } from "../../src/agent/agent"
 import { Bus } from "../../src/bus"
 import { BusEvent } from "../../src/bus/bus-event"
-import { Truncate } from "../../src/tool"
+import { Truncate } from "@/tool/truncate"
 import { SessionID, MessageID } from "../../src/session/schema"
 
 const ctx = {
@@ -92,6 +92,37 @@ describe("tool.edit", () => {
 
           const content = await fs.readFile(filepath, "utf-8")
           expect(content).toBe("new content")
+        },
+      })
+    })
+
+    test("preserves BOM when oldString is empty on existing files", async () => {
+      await using tmp = await tmpdir()
+      const filepath = path.join(tmp.path, "existing.cs")
+      const bom = String.fromCharCode(0xfeff)
+      await fs.writeFile(filepath, `${bom}using System;\n`, "utf-8")
+
+      await Instance.provide({
+        directory: tmp.path,
+        fn: async () => {
+          const edit = await resolve()
+          const result = await Effect.runPromise(
+            edit.execute(
+              {
+                filePath: filepath,
+                oldString: "",
+                newString: "using Up;\n",
+              },
+              ctx,
+            ),
+          )
+
+          expect(result.metadata.diff).toContain("-using System;")
+          expect(result.metadata.diff).toContain("+using Up;")
+
+          const content = await fs.readFile(filepath, "utf-8")
+          expect(content.charCodeAt(0)).toBe(0xfeff)
+          expect(content.slice(1)).toBe("using Up;\n")
         },
       })
     })
@@ -179,6 +210,38 @@ describe("tool.edit", () => {
 
           const content = await fs.readFile(filepath, "utf-8")
           expect(content).toBe("new content here")
+        },
+      })
+    })
+
+    test("replaces the first visible line in BOM files", async () => {
+      await using tmp = await tmpdir()
+      const filepath = path.join(tmp.path, "existing.cs")
+      const bom = String.fromCharCode(0xfeff)
+      await fs.writeFile(filepath, `${bom}using System;\nclass Test {}\n`, "utf-8")
+
+      await Instance.provide({
+        directory: tmp.path,
+        fn: async () => {
+          const edit = await resolve()
+          const result = await Effect.runPromise(
+            edit.execute(
+              {
+                filePath: filepath,
+                oldString: "using System;",
+                newString: "using Up;",
+              },
+              ctx,
+            ),
+          )
+
+          expect(result.metadata.diff).toContain("-using System;")
+          expect(result.metadata.diff).toContain("+using Up;")
+          expect(result.metadata.diff).not.toContain(bom)
+
+          const content = await fs.readFile(filepath, "utf-8")
+          expect(content.charCodeAt(0)).toBe(0xfeff)
+          expect(content.slice(1)).toBe("using Up;\nclass Test {}\n")
         },
       })
     })

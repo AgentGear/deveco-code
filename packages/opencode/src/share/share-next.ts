@@ -3,19 +3,20 @@ import { Effect, Exit, Layer, Option, Schema, Scope, Context, Stream } from "eff
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { Account } from "@/account/account"
 import { Bus } from "@/bus"
-import { InstanceState } from "@/effect"
-import { Provider } from "@/provider"
+import { InstanceState } from "@/effect/instance-state"
+import { Provider } from "@/provider/provider"
 import { ModelID, ProviderID } from "@/provider/schema"
-import { Session } from "@/session"
+import { Session } from "@/session/session"
 import { MessageV2 } from "@/session/message-v2"
 import type { SessionID } from "@/session/schema"
-import { Database, eq } from "@/storage"
-import { Config } from "@/config"
-import { Log } from "@/util"
+import { Database } from "@/storage/db"
+import { eq } from "drizzle-orm"
+import { Config } from "@/config/config"
+import * as Log from "@opencode-ai/core/util/log"
 import { SessionShareTable } from "./share.sql"
 
 const log = Log.create({ service: "share-next" })
-const disabled = process.env["OPENCODE_DISABLE_SHARE"] === "true" || process.env["OPENCODE_DISABLE_SHARE"] === "1"
+const disabled = process.env["CODEGENIE_DISABLE_SHARE"] === "true" || process.env["CODEGENIE_DISABLE_SHARE"] === "1"
 
 export type Api = {
   create: string
@@ -181,7 +182,7 @@ export const layer = Layer.effect(
 
         yield* watch(Session.Event.Updated, (evt) =>
           Effect.gen(function* () {
-            const info = yield* session.get(evt.properties.sessionID)
+            const info = evt.properties.info
             yield* sync(info.id, [{ type: "session", data: info }])
           }),
         )
@@ -371,3 +372,5 @@ export const defaultLayer = layer.pipe(
   Layer.provide(Provider.defaultLayer),
   Layer.provide(Session.defaultLayer),
 )
+
+export * as ShareNext from "./share-next"

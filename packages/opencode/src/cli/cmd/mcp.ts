@@ -7,15 +7,15 @@ import { UI } from "../ui"
 import { MCP } from "../../mcp"
 import { McpAuth } from "../../mcp/auth"
 import { McpOAuthProvider } from "../../mcp/oauth-provider"
-import { Config } from "../../config"
+import { Config } from "@/config/config"
 import { ConfigMCP } from "../../config/mcp"
 import { Instance } from "../../project/instance"
 import { Installation } from "../../installation"
-import { InstallationVersion } from "../../installation/version"
+import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import path from "path"
-import { Global } from "../../global"
+import { Global } from "@opencode-ai/core/global"
 import { modify, applyEdits } from "jsonc-parser"
-import { Filesystem } from "../../util"
+import { Filesystem } from "@/util/filesystem"
 import { Bus } from "../../bus"
 import { AppRuntime } from "../../effect/app-runtime"
 import { Effect } from "effect"
@@ -125,7 +125,7 @@ export const McpListCommand = cmd({
 
         if (servers.length === 0) {
           prompts.log.warn("No MCP servers configured")
-          prompts.outro("Add servers with: opencode mcp add")
+          prompts.outro("Add servers with: codegenie mcp add")
           return
         }
 
@@ -198,7 +198,7 @@ export const McpAuthCommand = cmd({
 
         if (servers.length === 0) {
           prompts.log.warn("No OAuth-capable MCP servers configured")
-          prompts.log.info("Remote MCP servers support OAuth by default. Add a remote server in opencode.json:")
+          prompts.log.info("Remote MCP servers support OAuth by default. Add a remote server in codegenie.json:")
           prompts.log.info(`
   "mcp": {
     "my-server": {
@@ -410,11 +410,11 @@ export const McpLogoutCommand = cmd({
 })
 
 async function resolveConfigPath(baseDir: string, global = false) {
-  // Check for existing config files (prefer .jsonc over .json, check .opencode/ subdirectory too)
-  const candidates = [path.join(baseDir, "opencode.json"), path.join(baseDir, "opencode.jsonc")]
+  // Check for existing config files (prefer .jsonc over .json, check .codegenie/ subdirectory too)
+  const candidates = [path.join(baseDir, "codegenie.json"), path.join(baseDir, "codegenie.jsonc")]
 
   if (!global) {
-    candidates.push(path.join(baseDir, ".opencode", "opencode.json"), path.join(baseDir, ".opencode", "opencode.jsonc"))
+    candidates.push(path.join(baseDir, ".codegenie", "codegenie.json"), path.join(baseDir, ".codegenie", "codegenie.jsonc"))
   }
 
   for (const candidate of candidates) {
@@ -423,7 +423,7 @@ async function resolveConfigPath(baseDir: string, global = false) {
     }
   }
 
-  // Default to opencode.json if none exist
+  // Default to codegenie.json if none exist
   return candidates[0]
 }
 
@@ -510,7 +510,7 @@ export const McpAddCommand = cmd({
         if (type === "local") {
           const command = await prompts.text({
             message: "Enter command to run",
-            placeholder: "e.g., opencode x @modelcontextprotocol/server-filesystem",
+            placeholder: "e.g., codegenie x @modelcontextprotocol/server-filesystem",
             validate: (x) => (x && x.length > 0 ? undefined : "Required"),
           })
           if (prompts.isCancel(command)) throw new UI.CancelledError()
@@ -699,7 +699,7 @@ export const McpDebugCommand = cmd({
               params: {
                 protocolVersion: "2024-11-05",
                 capabilities: {},
-                clientInfo: { name: "opencode-debug", version: InstallationVersion },
+                clientInfo: { name: "codegenie-debug", version: InstallationVersion },
               },
               id: 1,
             }),
@@ -747,7 +747,7 @@ export const McpDebugCommand = cmd({
 
             try {
               const client = new Client({
-                name: "opencode-debug",
+                name: "codegenie-debug",
                 version: InstallationVersion,
               })
               await client.connect(transport)
