@@ -78,7 +78,6 @@ async function downloadRipgrep(platform: string) {
 
   const cachePath = path.join(rgCacheDir, platform, info.binary)
   if (fs.existsSync(cachePath) && fs.statSync(cachePath).size > 0) {
-    console.log(`  rg for ${platform} already cached`)
     return
   }
 

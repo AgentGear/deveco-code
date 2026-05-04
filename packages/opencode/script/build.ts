@@ -247,7 +247,11 @@ for (const item of targets) {
   const mcpKey = `${item.os}-${item.arch}`
   const mcpCache = path.join(mcpCacheDir, mcpKey)
   const cachedNode = path.join(mcpCache, "napi_bridge.node")
-  if (fs.existsSync(cachedNode)) {
+  if (!fs.existsSync(cachedNode)) {
+    console.error(`  ERROR: mcp-bridge cache not found for ${mcpKey}. Run "bun install" first to download vendored binaries.`)
+    process.exit(1)
+  }
+  {
     const vendorDir = path.join(dir, "dist", name, "vendor", "mcp-bridge-native")
     await fs.promises.mkdir(vendorDir, { recursive: true })
     await fs.promises.copyFile(path.join(mcpCache, "package.json"), path.join(vendorDir, "package.json"))
@@ -260,17 +264,19 @@ for (const item of targets) {
   const rgInfo = rgArchiveMap[rgKey]
   if (rgInfo) {
     const cachePath = path.join(rgCacheDir, rgKey, rgInfo.binary)
-    if (fs.existsSync(cachePath)) {
-      const vendorDir = path.join(dir, "dist", name, "vendor", "ripgrep")
-      await fs.promises.mkdir(vendorDir, { recursive: true })
-      const rgBinaryName = item.os === "win32" ? "rg.exe" : "rg"
-      const rgDest = path.join(vendorDir, rgBinaryName)
-      await fs.promises.copyFile(cachePath, rgDest)
-      if (item.os !== "win32") {
-        await fs.promises.chmod(rgDest, 0o755)
-      }
-      console.log(`  Bundled ripgrep for ${rgKey}`)
+    if (!fs.existsSync(cachePath)) {
+      console.error(`  ERROR: ripgrep cache not found for ${rgKey}. Run "bun install" first to download vendored binaries.`)
+      process.exit(1)
     }
+    const vendorDir = path.join(dir, "dist", name, "vendor", "ripgrep")
+    await fs.promises.mkdir(vendorDir, { recursive: true })
+    const rgBinaryName = item.os === "win32" ? "rg.exe" : "rg"
+    const rgDest = path.join(vendorDir, rgBinaryName)
+    await fs.promises.copyFile(cachePath, rgDest)
+    if (item.os !== "win32") {
+      await fs.promises.chmod(rgDest, 0o755)
+    }
+    console.log(`  Bundled ripgrep for ${rgKey}`)
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`
