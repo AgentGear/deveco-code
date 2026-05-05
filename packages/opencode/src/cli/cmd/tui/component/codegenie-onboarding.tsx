@@ -78,6 +78,11 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
     try {
       const result = await codegenieAuth.login()
       if (!result.success) {
+        if (result.cancelled) {
+          setStep("entry")
+          setAuthBusy(false)
+          return
+        }
         setAuthMessage(result.error ?? "Login failed")
         setAuthBusy(false)
         return

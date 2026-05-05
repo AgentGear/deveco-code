@@ -48,8 +48,16 @@ interface UserInfo {
 
 interface LoginResult {
   success: boolean
+  cancelled?: boolean
   userInfo?: UserInfo
   error?: string
+}
+
+class LoginCancelledError extends Error {
+  constructor(message: string = "Login cancelled by user") {
+    super(message)
+    this.name = "LoginCancelledError"
+  }
 }
 
 interface TokenCheckResponse {
@@ -390,14 +398,21 @@ class LocalAuthServer {
       const siteId = params.get("siteId")
       const quit = params.get("quit")
 
-      if (code !== this.clientSecret) {
-        res.writeHead(400)
-        res.end("Bad Request")
+      if (quit === "true" || quit === "access_denied") {
+        this.rejectCallback?.(
+          new LoginCancelledError(
+            quit === "access_denied" ? "Access denied by user" : "Login cancelled by user",
+          ),
+        )
+        res.writeHead(302, {
+          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
+        })
+        res.end()
         return
       }
 
-      if (quit === "true" || quit === "access_denied") {
-        this.rejectCallback?.(new Error("User quit the login process"))
+      if (code !== this.clientSecret) {
+        this.rejectCallback?.(new LoginCancelledError("Login cancelled or invalid callback"))
         res.writeHead(302, {
           Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
         })
@@ -406,8 +421,11 @@ class LocalAuthServer {
       }
 
       if (!tempToken || !siteId) {
-        res.writeHead(400)
-        res.end("Bad Request")
+        this.rejectCallback?.(new Error("Login cancelled by user"))
+        res.writeHead(302, {
+          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
+        })
+        res.end()
         return
       }
 
@@ -469,6 +487,13 @@ class LoginService {
         userInfo,
       }
     } catch (err) {
+      if (err instanceof LoginCancelledError) {
+        return {
+          success: false,
+          cancelled: true,
+          error: err.message,
+        }
+      }
       return {
         success: false,
         error: err instanceof Error ? err.message : "Unknown error",
@@ -935,6 +960,11 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
                   const result = await codegenieAuth.login()
 
                   if (!result.success) {
+                    if (result.cancelled) {
+                      spinner.stop("Login cancelled")
+                      prompts.log.warn("You cancelled the login. You can try again anytime.")
+                      return { type: "failed" as const }
+                    }
                     spinner.stop("Login failed")
                     prompts.log.error(result.error || "Login failed")
                     return { type: "failed" as const }
