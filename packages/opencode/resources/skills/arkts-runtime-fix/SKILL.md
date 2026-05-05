@@ -7,10 +7,9 @@ description: Triage and fix ArkTS or JavaScript runtime crashes. MUST load this 
 
 Use this skill to diagnose and fix ArkTS or JavaScript runtime crashes with minimal edits.
 
-Prefer the built-in `jscrash_report` tool first when the user already provided a crash log, or when recent device hilog is enough to establish a crash anchor.
-This skill also includes private Bun scripts under `skills/arkts-runtime-fix/scripts/` for more targeted parsing and faultlogger workflows when `jscrash_report` is not enough.
+Use this skill's private Node scripts under `skills/arkts-runtime-fix/scripts/` to parse crash evidence, inspect recent faultlogger entries, or collect hilog when no better evidence is available.
 
-If `bun` is unavailable, stop and explain that the private scripts cannot run.
+If `node` is unavailable, stop and explain that the private scripts cannot run.
 
 ## When To Load
 
@@ -42,29 +41,12 @@ Do not over-collect logs. If the user already gave enough crash evidence, parse 
 
 ## Tool And Script Contract
 
-### Preferred built-in tool
-
-Use `jscrash_report` first in the common cases below:
-
-- the user pasted raw crash text
-- the user only needs a quick suspected file / top stack summary
-- recent device hilog is enough and faultlogger inspection is not necessary yet
-
-Typical calls:
-
-```text
-jscrash_report(crash_log="<raw crash text>", bundle_name="<bundleName>")
-jscrash_report(device_id="<deviceId>", bundle_name="<bundleName>")
-```
-
-If the built-in tool returns a weak anchor or you need faultlogger-specific evidence, fall back to the private scripts below.
-
-### Private Bun scripts
+### Private Node scripts
 
 Run the private scripts through Shell like this:
 
 ```bash
-bun "{SKILL_DIR}/scripts/<script>.ts" ...
+node "{SKILL_DIR}/scripts/<script>.mjs" ...
 ```
 
 `{SKILL_DIR}` is the absolute path of this skill directory at runtime.
@@ -75,49 +57,53 @@ Scripts print stable `key: value` text to stdout. A non-zero exit code means the
 
 ### Case A: The user already provided raw crash text
 
-Prefer `jscrash_report` first. If you still need the private parser output contract, run:
-
 ```bash
-bun "{SKILL_DIR}/scripts/parse-jscrash-log.ts" --log-text "{crashLog}" --bundle-name "{bundleName}" --include-text
+node "{SKILL_DIR}/scripts/jscrash-report.mjs" --log-text "{crashLog}" --bundle-name "{bundleName}" --include-text
 ```
 
 ### Case B: The user provided `@file` or a local log path
 
-If `jscrash_report` cannot consume the file path directly, use the private parser:
-
 ```bash
-bun "{SKILL_DIR}/scripts/parse-jscrash-log.ts" --log-file "{logFilePath}" --bundle-name "{bundleName}" --include-text
+node "{SKILL_DIR}/scripts/parse-jscrash-log.mjs" --log-file "{logFilePath}" --bundle-name "{bundleName}" --include-text
 ```
 
 ### Case C: The user only described symptoms and did not provide logs
 
 Log collection is optional here. Use it when you still need a concrete runtime anchor.
 
-Prefer `jscrash_report(device_id=..., bundle_name=...)` first if a recent hilog snapshot is likely enough.
+Before collecting device evidence, resolve the target device:
 
-Prefer recent faultlogger evidence first:
+- If the user provided a `deviceId`, use it for every device-side command.
+- If no `deviceId` is provided, call `hdc_log(action="list_devices")` first.
+- If exactly one device is connected, use that device.
+- If multiple devices are connected, ask the user which device to inspect. Do not probe faultlogger, fetch faultlog, or collect hilog until the user selects a device.
+- If no devices are connected, report that device-side evidence cannot be collected and ask for a connected device or a local crash log.
+
+Always inspect recent faultlogger evidence first:
 
 ```bash
-bun "{SKILL_DIR}/scripts/probe-faultlogger.ts" --bundle-name "{bundleName}" --device-id "{deviceId}" --max-age-minutes "30" --limit "10"
+node "{SKILL_DIR}/scripts/probe-faultlogger.mjs" --bundle-name "{bundleName}" --device-id "{deviceId}" --max-age-minutes "30" --limit "10"
 ```
 
 If `status: found`, fetch and parse the latest faultlog:
 
 ```bash
-bun "{SKILL_DIR}/scripts/fetch-faultlog.ts" --faultlog-name "{latestFaultlog}" --device-id "{deviceId}" --output-dir "{tempDir}"
-bun "{SKILL_DIR}/scripts/parse-jscrash-log.ts" --log-file "{localFaultlogPath}" --bundle-name "{bundleName}" --source file --include-text
+node "{SKILL_DIR}/scripts/fetch-faultlog.mjs" --faultlog-name "{latestFaultlog}" --device-id "{deviceId}" --output-dir "{tempDir}"
+node "{SKILL_DIR}/scripts/parse-jscrash-log.mjs" --log-file "{localFaultlogPath}" --bundle-name "{bundleName}" --source file --include-text
 ```
 
-If faultlogger is unavailable, empty, or still not enough, you may fall back to hilog:
+If `status: not_found`, do not broad-read the project or guess from symptoms alone. Ask the user to reproduce the crash on the selected device, then probe faultlogger again immediately.
+
+If faultlogger is unavailable, the reproduced crash still does not create a matching faultlog, or the parsed faultlog is still not enough, fall back to hilog:
 
 ```bash
-bun "{SKILL_DIR}/scripts/collect-hilog.ts" --device-id "{deviceId}" --lines "4000" --output-dir "{tempDir}"
-bun "{SKILL_DIR}/scripts/parse-jscrash-log.ts" --log-file "{hilogPathFromCollect}" --bundle-name "{bundleName}" --source hilog --include-text
+node "{SKILL_DIR}/scripts/collect-hilog.mjs" --device-id "{deviceId}" --lines "4000" --output-dir "{tempDir}"
+node "{SKILL_DIR}/scripts/parse-jscrash-log.mjs" --log-file "{hilogPathFromCollect}" --bundle-name "{bundleName}" --source hilog --include-text
 ```
 
 ## Output Contract
 
-The leading `key: value` block from `parse-jscrash-log.ts` includes:
+The leading `key: value` block from `jscrash-report.mjs` and `parse-jscrash-log.mjs` includes:
 
 - `status`: `detected` | `no_crash_signature` | `parse_failed`
 - `source`: `file` | `text` | `hilog` and similar sources
@@ -152,7 +138,7 @@ If `status: no_crash_signature`, explain that the evidence is weak and ask for a
 ## Conversational Shape
 
 1. Say what evidence you already have.
-2. If logs are missing, say whether you are using `jscrash_report`, faultlogger, or hilog to get a better anchor.
+2. If logs are missing, say whether you are using faultlogger or hilog to get a better anchor.
 3. Once you have an anchor, switch into focused code reading and minimal fixing.
 
 ## Constraints

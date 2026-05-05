@@ -93,4 +93,3 @@ if (err.code === 1300001) {
 
 ### Related Files
 - [Code Example](../assets/WindowTypeError.ets)
-- [System Capabilities Migration Guide](../../deprecated_api_solutions/reference/system_migration.md)

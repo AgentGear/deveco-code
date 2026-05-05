@@ -13,13 +13,11 @@
  * limitations under the License.
  */
 
-import z from "zod"
-import * as fs from "fs/promises"
+import { Effect, Schema } from "effect"
 import path from "path"
-import { Tool } from "./tool"
+import * as Tool from "./tool"
 import { Instance } from "../project/instance"
 import { assertExternalDirectory } from "./external-directory"
-import { ensureInitialized } from "./lib/harmony_napi"
 import { setSessionCwd } from "./lib/session-cwd"
 import DESCRIPTION from "./switch-cwd.txt"
 
@@ -36,7 +34,8 @@ function resolveTarget(projectPath: string) {
 
 /** Stage app root, or project root with hvigor OHPM metadata (not a submodule folder). */
 async function isHarmonyApplicationRoot(dir: string) {
-  const isFile = async (p: string) => (await fs.stat(p).catch(() => undefined))?.isFile() === true
+  const { stat } = await import("fs/promises")
+  const isFile = async (p: string) => (await stat(p).catch(() => undefined))?.isFile() === true
   if (await isFile(path.join(dir, "AppScope", "app.json5"))) return true
   if (!(await isFile(path.join(dir, "build-profile.json5")))) return false
   if (await isFile(path.join(dir, "oh-package.json5"))) return true
@@ -44,40 +43,44 @@ async function isHarmonyApplicationRoot(dir: string) {
   return false
 }
 
-export const SwitchCwdTool = Tool.define("switch_cwd", async () => {
+const Parameters = Schema.Struct({
+  project_path: Schema.String.annotate({
+    description: "Target project directory path. Relative path is resolved from the current workspace directory.",
+  }),
+})
+
+export const SwitchCwdTool = Tool.define("switch_cwd", Effect.gen(function* () {
   return {
     description: DESCRIPTION,
-    parameters: z.object({
-      project_path: z
-        .string()
-        .describe("Target project directory path. Relative path is resolved from the current workspace directory."),
-    }),
-    async execute(args, ctx) {
-      const target = resolveTarget(args.project_path)
-      const stat = await fs.stat(target).catch(() => undefined)
-      if (!stat?.isDirectory()) {
-        throw new Error(`Not a directory or not found: ${target}`)
-      }
+    parameters: Parameters,
+    execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
+      Effect.gen(function* () {
+        const target = resolveTarget(args.project_path)
+        const stat = yield* Effect.tryPromise(() => import("fs/promises").then((fs) => fs.stat(target)))
+        if (!stat?.isDirectory()) {
+          throw new Error(`Not a directory or not found: ${target}`)
+        }
 
-      await assertExternalDirectory(ctx, target, { kind: "directory" })
-      setSessionCwd(ctx.sessionID, target)
+        yield* Effect.tryPromise(() => assertExternalDirectory(ctx, target, { kind: "directory" }))
+        setSessionCwd(ctx.sessionID, target)
 
-      if (!(await isHarmonyApplicationRoot(target))) {
+        const isHarmony = yield* Effect.tryPromise(() => isHarmonyApplicationRoot(target))
+        if (!isHarmony) {
+          return {
+            title: "Switch project context",
+            output: `Session directory updated to ${target}.\n
+            It's not a HarmonyOS application project root.
+            It's directory without AppScope/app.json5, or build-profile.json5 with oh-package.json5 (or oh-package.json).\n
+            You can create a new HarmonyOS project.`,
+            metadata: {},
+          }
+        }
+
         return {
           title: "Switch project context",
-          output: `Session directory updated to ${target}.\n
-          It's not a HarmonyOS application project root.
-          It's directory without AppScope/app.json5, or build-profile.json5 with oh-package.json5 (or oh-package.json).\n
-          You can creaete a new HarmonyOS project.` ,
+          output: `Session directory updated to ${target}.`,
           metadata: {},
         }
-      }
-
-      return {
-        title: "Switch project context",
-        output: `Session directory updated to ${target}.`,
-        metadata: {},
-      }
-    },
+      }).pipe(Effect.orDie),
   }
-})
+}))

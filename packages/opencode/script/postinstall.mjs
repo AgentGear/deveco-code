@@ -49,7 +49,7 @@ function detectPlatformAndArch() {
 
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const packageName = `codegenie-${platform}-${arch}`
+  const packageName = `@codegenie-ai/codegenie-${platform}-${arch}`
   const binaryName = platform === "windows" ? "codegenie.exe" : "codegenie"
 
   try {
@@ -62,38 +62,9 @@ function findBinary() {
       throw new Error(`Binary not found at ${binaryPath}`)
     }
 
-    return { binaryPath, binaryName }
+    return { binaryPath, binaryName, packageDir }
   } catch (error) {
-    throw new Error(`Could not find package ${packageName}: ${error.message}`)
-  }
-}
-
-function prepareBinDirectory(binaryName) {
-  const binDir = path.join(__dirname, "bin")
-  const targetPath = path.join(binDir, binaryName)
-
-  // Ensure bin directory exists
-  if (!fs.existsSync(binDir)) {
-    fs.mkdirSync(binDir, { recursive: true })
-  }
-
-  // Remove existing binary/symlink if it exists
-  if (fs.existsSync(targetPath)) {
-    fs.unlinkSync(targetPath)
-  }
-
-  return { binDir, targetPath }
-}
-
-function symlinkBinary(sourcePath, binaryName) {
-  const { targetPath } = prepareBinDirectory(binaryName)
-
-  fs.symlinkSync(sourcePath, targetPath)
-  console.log(`codegenie binary symlinked: ${targetPath} -> ${sourcePath}`)
-
-  // Verify the file exists after operation
-  if (!fs.existsSync(targetPath)) {
-    throw new Error(`Failed to symlink binary to ${targetPath}`)
+    throw new Error(`Could not find package ${packageName}: ${error.message}`, { cause: error })
   }
 }
 
@@ -106,10 +77,8 @@ async function main() {
       return
     }
 
-    // On non-Windows platforms, just verify the binary package exists
-    // Don't replace the wrapper script - it handles binary execution
-    const { binaryPath } = findBinary()
-    const binDir = path.dirname(binaryPath)
+    // On non-Windows platforms, hardlink binary to bin/.codegenie
+    const { binaryPath, packageDir } = findBinary()
     const target = path.join(__dirname, "bin", ".codegenie")
     if (fs.existsSync(target)) fs.unlinkSync(target)
     try {
@@ -120,9 +89,7 @@ async function main() {
     fs.chmodSync(target, 0o755)
 
     // Copy vendor directory from platform package to main package
-    // so runtime can find vendor/ripgrep/rg and vendor/mcp-bridge-native/
-    const platformPkgDir = path.dirname(binDir)
-    const vendorSrc = path.join(platformPkgDir, "vendor")
+    const vendorSrc = path.join(packageDir, "vendor")
     const vendorDst = path.join(__dirname, "vendor")
     if (fs.existsSync(vendorSrc)) {
       function copyDir(src, dst) {
@@ -147,7 +114,7 @@ async function main() {
 }
 
 try {
-  main()
+  void main()
 } catch (error) {
   console.error("Postinstall script error:", error.message)
   process.exit(0)

@@ -1,7 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@tsconfig/bun/tsconfig.json",
-  "exclude": ["node_modules", "**/oh_modules/**"],
   "compilerOptions": {
     "jsx": "preserve",
     "jsxImportSource": "@opentui/solid",
@@ -11,7 +10,8 @@
     "customConditions": ["browser"],
     "paths": {
       "@/*": ["./src/*"],
-      "@tui/*": ["./src/cli/cmd/tui/*"]
+      "@tui/*": ["./src/cli/cmd/tui/*"],
+      "@test/*": ["./test/*"]
     },
     "plugins": [
       {
@@ -20,5 +20,6 @@
         "namespaceImportPackages": ["effect", "@effect/*"]
       }
     ]
-  }
+  },
+  "exclude": ["node_modules", "**/oh_modules/**", "resources/"]
 }

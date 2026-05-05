@@ -10,35 +10,29 @@ export class SessionCollector {
 
   async init(): Promise<void> {
     this.version = await getVersion()
-    // 检查登录状态
     this.loggedIn = await codegenieAuth.isLoggedIn()
   }
 
-  /**
-   * 更新登录状态
-   */
   setLoggedIn(loggedIn: boolean): void {
     this.loggedIn = loggedIn
-    // 如果登出，清除当前会话数据
     if (!loggedIn) {
       this.context = null
     }
   }
 
-  /**
-   * 检查是否应该收集数据（仅登录状态下收集）
-   */
   shouldCollect(): boolean {
     return this.loggedIn
   }
 
-  startSession(sessionID: string, modelId: string, query: string): void {
+  startSession(sessionID: string, modelId: string, query: string, agentName: string, messageID: string): void {
     if (!this.loggedIn) {
       return
     }
     this.context = {
       sessionID,
+      messageID,
       modelId,
+      agentName,
       query,
       startTime: Date.now(),
       firstResponseTime: null,
@@ -150,7 +144,7 @@ export class SessionCollector {
     if (!this.context) return null
 
     const uid = await getOrCreateUid()
-    const userid = getUserid()
+    const userid = await getUserid()
     const osname = getOsName()
     const osversion = getOsVersion()
 
@@ -177,6 +171,8 @@ export class SessionCollector {
       uid,
       userid,
       sessionid: this.context.sessionID,
+      messageID: this.context.messageID,
+      agentName: this.context.agentName,
       query: this.context.query,
       answer: this.context.answer,
       inputTokenCount: this.context.inputTokens,

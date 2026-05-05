@@ -93,4 +93,3 @@ AppStorage.has(key: string): boolean
 
 ### Related Files
 - [Code Example](../assets/AppStorageError.ets)
-- [State Management Guide](../../deprecated_api_solutions/reference/state_migration.md)

@@ -62,6 +62,7 @@ delete process.env["AWS_PROFILE"]
 delete process.env["AWS_REGION"]
 delete process.env["AWS_BEARER_TOKEN_BEDROCK"]
 delete process.env["OPENROUTER_API_KEY"]
+delete process.env["LLM_GATEWAY_API_KEY"]
 delete process.env["GROQ_API_KEY"]
 delete process.env["MISTRAL_API_KEY"]
 delete process.env["PERPLEXITY_API_KEY"]
@@ -74,11 +75,17 @@ delete process.env["SAMBANOVA_API_KEY"]
 delete process.env["CODEGENIE_SERVER_PASSWORD"]
 delete process.env["CODEGENIE_SERVER_USERNAME"]
 
-// Now safe to import from src/
-const { Log } = await import("../src/util/log")
+// Use in-memory sqlite
+process.env["OPENCODE_DB"] = ":memory:"
 
-Log.init({
+// Now safe to import from src/
+const Log = await import("@opencode-ai/core/util/log")
+const { initProjectors } = await import("../src/server/projectors")
+
+void Log.init({
   print: false,
   dev: true,
   level: "DEBUG",
 })
+
+initProjectors()

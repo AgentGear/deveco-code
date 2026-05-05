@@ -1,6 +1,6 @@
 import z from "zod"
 import { EOL } from "os"
-import { NamedError } from "@opencode-ai/util/error"
+import { NamedError } from "@opencode-ai/core/util/error"
 import { logo as glyphs, marks } from "./logo"
 
 type LogoGlyphs = typeof glyphs & {

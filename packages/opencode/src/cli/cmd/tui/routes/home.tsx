@@ -2,27 +2,24 @@ import { Prompt, type PromptRef } from "@tui/component/prompt"
 import { createEffect, createMemo, createSignal, Match, on, onMount, Show, Switch } from "solid-js"
 import { useTheme } from "@tui/context/theme"
 import { Logo } from "../component/logo"
-import { Tips } from "../component/tips"
-import { Locale } from "@/util/locale"
+import { pluralize } from "@/util/locale"
 import { useSync } from "../context/sync"
 import { Toast } from "../ui/toast"
 import { useArgs } from "../context/args"
 import { useDirectory } from "../context/directory"
 import { useRouteData } from "@tui/context/route"
 import { usePromptRef } from "../context/prompt"
-import { Installation } from "@/installation"
-import { useKV } from "../context/kv"
+import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { useCommandDialog } from "../component/dialog-command"
 import { useLocal } from "../context/local"
 import { CodeGenieOnboarding } from "../component/codegenie-onboarding"
-import { Auth } from "@/auth"
+import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
 
 // TODO: what is the best way to do this?
 let once = false
 
 export function Home() {
   const sync = useSync()
-  const kv = useKV()
   const { theme } = useTheme()
   const route = useRouteData("home")
   const promptRef = usePromptRef()
@@ -42,18 +39,15 @@ export function Home() {
         if (codegenieChecked) return
         codegenieChecked = true
 
-        ;(async () => {
-          try {
-            const credentials = await Auth.all()
-            if (Object.keys(credentials).length > 0) {
-              setCodegenieReady(true)
-            } else {
-              setCodegenieReady(false)
-            }
-          } catch {
-            setCodegenieReady(false)
-          }
-        })()
+        // Check if user has any credentials via sync provider data
+        const hasCredentials = sync.data.provider.some(
+          (x) => x.id !== "opencode" || Object.values(x.models).some((y) => y.cost?.input !== 0),
+        )
+        if (!hasCredentials) {
+          setCodegenieReady(false)
+        } else {
+          setCodegenieReady(true)
+        }
       },
     ),
   )
@@ -67,26 +61,7 @@ export function Home() {
     return Object.values(sync.data.mcp).filter((x) => x.status === "connected").length
   })
 
-  const isFirstTimeUser = createMemo(() => sync.data.session.length === 0)
-  const tipsHidden = createMemo(() => kv.get("tips_hidden", false))
-  const showTips = createMemo(() => {
-    // Don't show tips for first-time users
-    if (isFirstTimeUser()) return false
-    return !tipsHidden()
-  })
-
-  command.register(() => [
-    {
-      title: tipsHidden() ? "Show tips" : "Hide tips",
-      value: "tips.toggle",
-      keybind: "tips_toggle",
-      category: "System",
-      onSelect: (dialog) => {
-        kv.set("tips_hidden", !tipsHidden())
-        dialog.clear()
-      },
-    },
-  ])
+  command.register(() => [])
 
   const Hint = (
     <Show when={connectedMcpCount() > 0}>
@@ -99,7 +74,7 @@ export function Home() {
             </Match>
             <Match when={true}>
               <span style={{ fg: theme.success }}>•</span>{" "}
-              {Locale.pluralize(connectedMcpCount(), "{} mcp server", "{} mcp servers")}
+              {pluralize(connectedMcpCount(), "{} mcp server", "{} mcp servers")}
             </Match>
           </Switch>
         </text>
@@ -107,31 +82,33 @@ export function Home() {
     </Show>
   )
 
-  let prompt: PromptRef
+  let prompt: PromptRef | undefined
   const args = useArgs()
-  const local = useLocal() 
-  onMount(() => { 
-    if (once) return 
-    if (route.initialPrompt) { 
-      prompt.set(route.initialPrompt) 
-      once = true 
-    } else if (args.prompt) { 
-      prompt.set({ input: args.prompt, parts: [] }) 
-      once = true 
-    } 
-  }) 
+  const local = useLocal()
+  onMount(() => {
+    if (once) return
+    if (!prompt) return
+    if (route.prompt) {
+      prompt.set(route.prompt)
+      once = true
+    } else if (args.prompt) {
+      prompt.set({ input: args.prompt, parts: [] })
+      once = true
+    }
+  })
 
-  // Wait for sync and model store to be ready before auto-submitting --prompt 
-  createEffect( 
-    on( 
-      () => sync.ready && local.model.ready, 
-      (ready) => { 
-        if (!ready) return 
-        if (!args.prompt) return 
-        if (prompt.current?.input !== args.prompt) return 
-        prompt.submit() 
-      }, 
-    ), 
+  // Wait for sync and model store to be ready before auto-submitting --prompt
+  createEffect(
+    on(
+      () => sync.ready && local.model.ready && prompt,
+      (ready) => {
+        if (!ready) return
+        if (!args.prompt) return
+        if (!prompt) return
+        if (prompt.current?.input !== args.prompt) return
+        prompt.submit()
+      },
+    ),
   )
   const directory = useDirectory()
 
@@ -142,35 +119,38 @@ export function Home() {
         <Show when={codegenieReady()}>
           <box flexDirection="row" gap={4} alignItems="flex-start" flexShrink={0}>
             <box flexShrink={0}>
-              <Logo column="left" />
+              <TuiPluginRuntime.Slot name="home_logo" mode="replace">
+                <Logo column="left" />
+              </TuiPluginRuntime.Slot>
             </box>
             <box flexDirection="column" flexGrow={1} minWidth={0}>
               <box flexShrink={0}>
-                <Logo column="right" />
+                <TuiPluginRuntime.Slot name="home_logo_right" mode="replace">
+                  <Logo column="right" />
+                </TuiPluginRuntime.Slot>
               </box>
               <box width="100%" maxWidth={75} zIndex={1000} paddingTop={1} flexShrink={0}>
-                <Prompt
-                  ref={(r) => {
-                    prompt = r
-                    promptRef.set(r)
-                  }}
-                  hint={Hint}
-                  workspaceID={route.workspaceID}
-                />
+                <TuiPluginRuntime.Slot name="home_prompt" mode="replace">
+                  <Prompt
+                    ref={(r) => {
+                      if (r) {
+                        prompt = r
+                        promptRef.set(r)
+                      }
+                    }}
+                    hint={Hint}
+                  />
+                </TuiPluginRuntime.Slot>
               </box>
-                <box flexGrow={1} minHeight={0} width="100%" maxWidth={75} alignItems="flex-start" paddingTop={2} flexShrink={1}>
-                <Show when={showTips()}>
-                  <Tips />
-                </Show>
-              </box>
+              <TuiPluginRuntime.Slot name="home_bottom" />
             </box>
           </box>
         </Show>
         <Show when={codegenieReady() === false}>
-       <CodeGenieOnboarding onComplete={() => setCodegenieReady(true)} />
-          </Show>
-          <box flexGrow={1} minHeight={0} flexShrink={1} />
-          <Toast />
+          <CodeGenieOnboarding onComplete={() => setCodegenieReady(true)} />
+        </Show>
+        <box flexGrow={1} minHeight={0} flexShrink={1} />
+        <Toast />
       </box>
       <box paddingTop={1} paddingBottom={1} paddingLeft={2} paddingRight={2} flexDirection="row" flexShrink={0} gap={2}>
         <text fg={theme.textMuted}>{directory()}</text>
@@ -192,7 +172,7 @@ export function Home() {
         </box>
         <box flexGrow={1} />
         <box flexShrink={0}>
-          <text fg={theme.textMuted}>{Installation.VERSION}</text>
+          <text fg={theme.textMuted}>{InstallationVersion}</text>
         </box>
       </box>
     </>

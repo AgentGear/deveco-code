@@ -9,8 +9,7 @@ import { useSDK } from "../context/sdk"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { DialogPrompt } from "@tui/ui/dialog-prompt"
 import { Link } from "../ui/link"
-import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/codegenie"
-import { Auth } from "@/auth"
+import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from "@/plugin/codegenie"
 import { Logo } from "./logo"
 
 type OnboardingStep = "entry" | "auth" | "providers"
@@ -85,7 +84,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
       }
       const access = result.userInfo?.accessToken || ""
       const refresh = result.userInfo?.refreshToken || ""
-      await Auth.set("codegenie", {
+      await saveAuthToDisk("codegenie", {
         type: "oauth",
         access,
         refresh,

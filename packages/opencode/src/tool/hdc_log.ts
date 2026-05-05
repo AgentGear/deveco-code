@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-import z from "zod"
-import { Tool } from "./tool"
+import { Effect, Schema } from "effect"
+import * as Tool from "./tool"
 import { findDevEcoHome, hdcPath } from "./lib/env"
 import DESCRIPTION from "./hdc-log.txt"
 
@@ -50,91 +50,100 @@ interface HdcLogMetadata {
   lineCount?: number
 }
 
-export const HdcLogTool = Tool.define("hdc_log", async () => {
+const Parameters = Schema.Struct({
+  action: Schema.Literals(["collect", "clear", "list_devices"])
+    .annotate({ description: "Action to perform" }),
+  device_id: Schema.optional(Schema.String)
+    .annotate({ description: "Optional hdc target id" }),
+  log_prefix: Schema.String
+    .pipe(Schema.optional, Schema.withDecodingDefault(Effect.succeed("[VCODER_DEBUG]")))
+    .annotate({ description: "Log prefix to filter" }),
+  lines: Schema.Int
+    .check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(5000))
+    .pipe(Schema.optional, Schema.withDecodingDefault(Effect.succeed(2000)))
+    .annotate({ description: "Number of log lines to collect" }),
+})
+
+export const HdcLogTool = Tool.define("hdc_log", Effect.gen(function* () {
   return {
     description: DESCRIPTION,
-    parameters: z.object({
-      action: z.enum(["collect", "clear", "list_devices"]).describe("Action to perform"),
-      device_id: z.string().optional().describe("Optional hdc target id"),
-      log_prefix: z.string().default("[VCODER_DEBUG]").describe("Log prefix to filter"),
-      lines: z.number().int().min(1).max(5000).default(2000).describe("Number of log lines to collect"),
-    }),
-    async execute(args, _ctx): Promise<{
-      title: string
-      output: string
-      metadata: HdcLogMetadata
-    }> {
-      const home = await findDevEcoHome()
-      if (!home) {
-        throw new Error("DevEco Studio path not found. Set DEVECO_HOME and retry.")
-      }
-      const hdc = hdcPath(home)
-      if (!(await Bun.file(hdc).exists())) {
-        throw new Error(`hdc not found: ${hdc}`)
-      }
-
-      if (args.action === "list_devices") {
-        const out = await run([hdc, "list", "targets"])
-        if (out.exitCode !== 0) {
-          throw new Error(`hdc list targets failed (code=${out.exitCode}): ${out.stderr || out.stdout}`)
+    parameters: Parameters,
+    execute: (args: Schema.Schema.Type<typeof Parameters>, _ctx: Tool.Context<HdcLogMetadata>) =>
+      Effect.gen(function* () {
+        const home = yield* Effect.tryPromise(() => findDevEcoHome())
+        if (!home) {
+          throw new Error("DevEco Studio path not found. Set DEVECO_HOME and retry.")
         }
-        const devices = out.stdout
-          .split(/\r?\n/)
-          .map((item) => item.trim())
-          .filter((item) => item && !item.includes("[Empty]"))
-        if (!devices.length) {
+        const hdc = hdcPath(home)
+        const hdcExists = yield* Effect.tryPromise(() => Bun.file(hdc).exists())
+        if (!hdcExists) {
+          throw new Error(`hdc not found: ${hdc}`)
+        }
+
+        if (args.action === "list_devices") {
+          const out = yield* Effect.tryPromise(() => run([hdc, "list", "targets"]))
+          if (out.exitCode !== 0) {
+            throw new Error(`hdc list targets failed (code=${out.exitCode}): ${out.stderr || out.stdout}`)
+          }
+          const devices = out.stdout
+            .split(/\r?\n/)
+            .map((item) => item.trim())
+            .filter((item) => item && !item.includes("[Empty]"))
+          if (!devices.length) {
+            return {
+              title: "No Devices",
+              output: "No connected devices detected.",
+              metadata: { deviceCount: 0, lineCount: undefined } as HdcLogMetadata,
+            }
+          }
           return {
-            title: "No Devices",
-            output: "No connected devices detected.",
-            metadata: { deviceCount: 0, lineCount: undefined },
+            title: "Connected Devices",
+            output: ["Connected devices:", ...devices.map((item, i) => `${i + 1}. ${item}`)].join("\n"),
+            metadata: { deviceCount: devices.length, lineCount: undefined } as HdcLogMetadata,
+          }
+        }
+
+        if (args.action === "clear") {
+          const out = yield* Effect.tryPromise(() => run([hdc, ...target(args.device_id), "shell", "hilog", "-r"]))
+          if (out.exitCode !== 0) {
+            throw new Error(`hdc hilog -r failed (code=${out.exitCode}): ${out.stderr || out.stdout}`)
+          }
+          return {
+            title: "Log Buffer Cleared",
+            output: ["Device log buffer cleared.", `device: ${args.device_id || "default"}`].join("\n"),
+            metadata: { deviceCount: undefined, lineCount: undefined } as HdcLogMetadata,
+          }
+        }
+
+        const out = yield* Effect.tryPromise(() => run([hdc, ...target(args.device_id), "shell", "hilog", "-x"]))
+        if (out.exitCode !== 0) {
+          throw new Error(`hdc hilog -x failed (code=${out.exitCode}): ${out.stderr || out.stdout}`)
+        }
+        const logs = pick(out.stdout, args.log_prefix ?? "", args.lines ?? 2000)
+        if (!logs.length) {
+          return {
+            title: "No Matching Logs",
+            output: [
+              "No matching logs found.",
+              `device: ${args.device_id || "default"}`,
+              `prefix: ${args.log_prefix}`,
+            ].join("\n"),
+            metadata: { deviceCount: undefined, lineCount: 0 } as HdcLogMetadata,
           }
         }
         return {
-          title: "Connected Devices",
-          output: ["Connected devices:", ...devices.map((item, i) => `${i + 1}. ${item}`)].join("\n"),
-          metadata: { deviceCount: devices.length, lineCount: undefined },
-        }
-      }
-      if (args.action === "clear") {
-        const out = await run([hdc, ...target(args.device_id), "shell", "hilog", "-r"])
-        if (out.exitCode !== 0) {
-          throw new Error(`hdc hilog -r failed (code=${out.exitCode}): ${out.stderr || out.stdout}`)
-        }
-        return {
-          title: "Log Buffer Cleared",
-          output: ["Device log buffer cleared.", `device: ${args.device_id || "default"}`].join("\n"),
-          metadata: { deviceCount: undefined, lineCount: undefined },
-        }
-      }
-      const out = await run([hdc, ...target(args.device_id), "shell", "hilog", "-x"])
-      if (out.exitCode !== 0) {
-        throw new Error(`hdc hilog -x failed (code=${out.exitCode}): ${out.stderr || out.stdout}`)
-      }
-      const logs = pick(out.stdout, args.log_prefix, args.lines)
-      if (!logs.length) {
-        return {
-          title: "No Matching Logs",
+          title: "Log Collection Successful",
           output: [
-            "No matching logs found.",
+            "Log collection successful.",
             `device: ${args.device_id || "default"}`,
             `prefix: ${args.log_prefix}`,
+            `count: ${logs.length}`,
+            "",
+            "--- Log Content ---",
+            ...logs,
           ].join("\n"),
-          metadata: { deviceCount: undefined, lineCount: 0 },
+          metadata: { deviceCount: undefined, lineCount: logs.length } as HdcLogMetadata,
         }
-      }
-      return {
-        title: "Log Collection Successful",
-        output: [
-          "Log collection successful.",
-          `device: ${args.device_id || "default"}`,
-          `prefix: ${args.log_prefix}`,
-          `count: ${logs.length}`,
-          "",
-          "--- Log Content ---",
-          ...logs,
-        ].join("\n"),
-        metadata: { deviceCount: undefined, lineCount: logs.length },
-      }
-    },
+      }).pipe(Effect.orDie),
   }
-})
+}))

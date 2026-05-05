@@ -122,4 +122,3 @@ For more detailed code examples, see:
 ### Related Files
 - [Code Example](../assets/StorageLinkDefaultError.ets)
 - [AppStorage Type Errors](./appstorage_errors.md)
-- [State Management Guide](../../deprecated_api_solutions/reference/state_migration.md)

@@ -29,6 +29,8 @@ export interface AnalyticsEvent {
   uid: string
   userid: string
   sessionid: string
+  messageID: string
+  agentName: string
   query: string
   answer: string
   inputTokenCount: number
@@ -51,7 +53,9 @@ export interface FileDiffInfo {
 
 export interface SessionContext {
   sessionID: string
+  messageID: string
   modelId: string
+  agentName: string
   query: string
   startTime: number
   firstResponseTime: number | null
@@ -84,16 +88,15 @@ export const DEFAULT_CONFIG: AnalyticsConfig = {
   maxQueueSize: 1000,
 }
 
-// 华为上报数据结构
 export interface HuaweiTracePayload {
-  action: string // sourceType
-  countryCode: string // 国家码
-  detail: string // AnalyticsEvent JSON 字符串
-  osArch: string // os_name
-  sid: number // 固定 10200
-  timestamp: number // 时间戳
-  uid: string // 用户标识
-  version: string // sourceVersion
+  action: string
+  countryCode: string
+  detail: string
+  osArch: string
+  sid: number
+  timestamp: number
+  uid: string
+  version: string
 }
 
 export const BUILTIN_TOOLS = new Set([

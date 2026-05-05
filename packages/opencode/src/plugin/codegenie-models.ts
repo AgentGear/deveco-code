@@ -1,4 +1,4 @@
-import type { Config } from "../config/config"
+import type { ConfigProvider } from "../config/provider"
 
 /**
  * CodeGenie 模型资源定义
@@ -22,4 +22,4 @@ export const CODEGENIE_PROVIDER_CONFIG = {
       limit: { context: 131072, output: 65536 },
     },
   },
-} satisfies Config.Provider
+} satisfies ConfigProvider.Info

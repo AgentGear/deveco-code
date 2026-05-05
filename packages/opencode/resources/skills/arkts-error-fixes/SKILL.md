@@ -148,9 +148,3 @@ This skill provides solutions for common ArkTS compilation errors and type misma
 ### Window Rect/Size Type Errors
 - [Window Rect/Size Type Error](./reference/window_rect_size_errors.md)
 - [Code Example](./assets/WindowRectSizeError.ets)
-
-## Related Resources
-
-- [Deprecated API Solutions](../deprecated_api_solutions/SKILL.md)
-- [UI Context Migration Guide](../deprecated_api_solutions/reference/ui_context_migration.md)
-- [System Capabilities Migration Guide](../deprecated_api_solutions/reference/system_migration.md)
