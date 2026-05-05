@@ -1,0 +1,59 @@
+name: 代码重构|Refactor
+description: 如果您对社区有重构建议，欢迎反馈咨询。
+title: "[Refactor]: 简短描述重构内容"
+labels: ["refactor", "triage"]
+type: "重构"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢对社区的支持与关注，欢迎反馈。
+  - type: textarea
+    id: refactor-description
+    attributes:
+      label: 代码重构描述
+      description: 请描述下您觉的需要代码重构的背景与动机。
+      placeholder: |
+        【重构原因】请描述下您觉得需要重构的原因是什么？是为了提升性能、改善代码结构、增加可维护性还是其他原因？
+    validations:
+      required: true
+  - type: textarea
+    id: refactor-content
+    attributes:
+      label: 代码重构涉及内容与验证
+      description: 请提供涉及的模块与测试计划。
+      placeholder: |
+        【涉及模块】列出受影响的文件或模块。
+        【验证计划】描述您计划如何验证重构的效果，例如通过单元测试、性能测试等。
+        【预期效果】描述重构后预期达到的效果，例如性能提升、代码可读性增强等。
+    validations:
+      required: true      
+  - type: input
+    id: version
+    attributes:
+      label: codegenie cli 版本。
+      description: 请提供您使用的codegenie cli 版本信息。
+      placeholder: "0.0.1"
+    validations:
+      required: true     
+  - type: textarea
+    id: other-info
+    attributes:
+      label: 其他信息
+      description: 如果您有其他具体的重构建议或者想法，可以在这里描述。
+    validations:
+      required: false
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前检查清单
+      description: 请在提交 Issue 前确认以下事项
+      options:
+        - label: 搜索现有 Issue，避免重复提交
+          required: true
+        - label: 使用正确的 Issue 模板
+          required: true
+        - label: 提供清晰的描述和必要的细节
+          required: true
+        - label: 检查标题是否清晰且包含类型前缀
+          required: true      

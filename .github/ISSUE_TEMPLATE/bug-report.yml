@@ -1,67 +1,95 @@
-name: Bug report
-description: Report an issue that should be fixed
-labels: ["bug"]
+name: 缺陷反馈|Bug
+description: 当您发现了一个缺陷，需要向社区反馈时，请使用此模板。
+title: "[Bug]: 【等级：严重/一般/提示】【分类：稳定性/性能/功能/工具】【版本】问题描述"
+labels: ["bug", "triage"]
+type: "缺陷"
 body:
-  - type: textarea
-    id: description
+  - type: markdown
     attributes:
-      label: Description
-      description: Describe the bug you encountered
-      placeholder: What happened?
+      value: |
+        感谢对社区的支持与关注，欢迎反馈缺陷。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 发生了什么问题？
+      description: 提供尽可能多的信息描述产生了什么问题。
+      placeholder: |
+        1、可提供截图或视频来更清晰地说明发生的行为。
     validations:
       required: true
-
-  - type: input
-    id: plugins
-    attributes:
-      label: Plugins
-      description: What plugins are you using?
-    validations:
-      required: false
-
-  - type: input
-    id: opencode-version
-    attributes:
-      label: OpenCode version
-      description: What version of OpenCode are you using?
-    validations:
-      required: false
-
   - type: textarea
-    id: reproduce
+    id: expected-behavior
     attributes:
-      label: Steps to reproduce
-      description: How can we reproduce this issue?
+      label: 期望行为是什么？
+      description: 描述期望的行为应该是什么样子的。
       placeholder: |
-        1.
-        2.
-        3.
+        1、可提供截图或视频来更清晰地说明期望的行为。
+        2、如果期望行为与当前行为不同，请详细说明差异。
     validations:
-      required: false
-
+      required: true
   - type: textarea
-    id: screenshot-or-link
+    id: defect-reproduction
     attributes:
-      label: Screenshot and/or share link
-      description: Run `/share` to get a share link, or attach a screenshot
-      placeholder: Paste link or drag and drop screenshot here
+      label: 如何复现该缺陷？
+      description: 提供尽可能多的信息描述如何复现该缺陷。
+      placeholder: |
+        【预置条件】
+        【测试步骤】
     validations:
-      required: false
-
+      required: true
   - type: input
-    id: os
+    id: version
     attributes:
-      label: Operating System
-      description: what OS are you using?
-      placeholder: e.g., macOS 26.0.1, Ubuntu 22.04, Windows 11
+      label: codegenie cli 版本。
+      description: 请提供您使用的codegenie cli 版本信息。
+      placeholder: "0.0.1"
     validations:
-      required: false
+      required: true
+  - type: textarea
+    id: stacktrace
+    attributes:
+      label: 堆栈跟踪或日志
+      description: 请提供崩溃或故障的堆栈跟踪或日志。
+      render: text
+      placeholder: |
+        请在此处粘贴堆栈跟踪或日志。它们可能看起来像这样:
 
-  - type: input
-    id: terminal
+        java.lang.UnsatisfiedLinkError: couldn't find DSO to load: libfabricjni.so caused by: com.facebook.react.fabric.StateWrapperImpl result: 0
+            at com.facebook.soloader.SoLoader.g(Unknown Source:341)
+            at com.facebook.soloader.SoLoader.t(Unknown Source:124)
+            at com.facebook.soloader.SoLoader.s(Unknown Source:2)
+            at com.facebook.soloader.SoLoader.q(Unknown Source:42)
+            at com.facebook.soloader.SoLoader.p(Unknown Source:1)
+            ...
+    validations:
+      required: true
+  - type: textarea
+    id: other-info
     attributes:
-      label: Terminal
-      description: what terminal are you using?
-      placeholder: e.g., iTerm2, Ghostty, Alacritty, Windows Terminal
+      label: 其他补充信息
+      description: 补充下其他您认为需要提供的信息。
+      render: text
+      placeholder: |
+        1、如果您有复现问题的公共仓库的链接，可提供链接。
+        2、如果您认为该缺陷与特定的设备、操作系统版本或其他环境因素相关，请提供相关信息。
+        3、如果您已经尝试过某些解决方法或绕过方法，请描述它们以及它们的效果。
     validations:
       required: false
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前检查清单
+      description: 请在提交 Issue 前确认以下事项
+      options:
+        - label: 搜索现有 Issue，避免重复提交
+          required: true
+        - label: 使用正确的 Issue 模板
+          required: true
+        - label: 提供清晰的复现步骤（Bug 类）
+          required: false
+        - label: 附上相关日志、截图或代码片段
+          required: false
+        - label: 说明环境信息（操作系统、版本号等）
+          required: true
+        - label: 检查标题是否清晰且包含类型前缀
+          required: true
