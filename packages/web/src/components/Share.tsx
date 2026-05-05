@@ -5,9 +5,9 @@ import { IconArrowDown } from "./icons"
 import { IconOpencode } from "./icons/custom"
 import { ShareI18nProvider, formatCurrency, formatNumber, normalizeLocale } from "./share/common"
 import styles from "./share.module.css"
-import type { MessageV2 } from "opencode/session/message-v2"
-import type { Message } from "opencode/session/message"
-import type { Session } from "opencode/session/index"
+import type { MessageV2 } from "codegenie/session/message-v2"
+import type { Message } from "codegenie/session/message"
+import type { Session } from "codegenie/session/index"
 import { Part, ProviderIcon } from "./share/part"
 
 type MessageWithParts = MessageV2.Info & { parts: MessageV2.Part[] }
@@ -355,7 +355,6 @@ export default function Share(props: {
                           if (x.type === "patch") return false
                           if (x.type === "step-finish") return false
                           if (x.type === "text" && x.synthetic === true) return false
-                          if (x.type === "tool" && x.tool === "todoread") return false
                           if (x.type === "text" && !x.text) return false
                           if (x.type === "tool" && (x.state.status === "pending" || x.state.status === "running"))
                             return false
@@ -367,21 +366,13 @@ export default function Share(props: {
                         <Suspense>
                           <For each={filteredParts()}>
                             {(part, partIndex) => {
-                              const last = createMemo(
-                                () =>
-                                  data().messages.length === msgIndex() + 1 &&
-                                  filteredParts().length === partIndex() + 1,
-                              )
+                              const last = () =>
+                                data().messages.length === msgIndex() + 1 && filteredParts().length === partIndex() + 1
 
                               onMount(() => {
                                 const hash = window.location.hash.slice(1)
                                 // Wait till all parts are loaded
-                                if (
-                                  hash !== "" &&
-                                  !hasScrolledToAnchor &&
-                                  filteredParts().length === partIndex() + 1 &&
-                                  data().messages.length === msgIndex() + 1
-                                ) {
+                                if (hash !== "" && !hasScrolledToAnchor && last()) {
                                   hasScrolledToAnchor = true
                                   scrollToAnchor(hash)
                                 }

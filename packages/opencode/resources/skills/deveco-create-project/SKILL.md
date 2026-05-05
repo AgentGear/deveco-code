@@ -27,8 +27,8 @@ If the user does not specify one, do not let the model invent a version. Let the
 
 ## Execution Steps
 
-> `copy-template.ts` reads the sibling skill directory `deveco-create-project/application/` as the template source by default.
-> This script runs with Bun. If `bun` is not available in the environment, stop immediately and explain that to the user.
+> `copy-template.mjs` reads the sibling skill directory `deveco-create-project/application/` as the template source by default.
+> This script runs with Node.js. If `node` is not available in the environment, stop immediately and explain that to the user.
 > Default skills are extracted to a local user skill directory before execution. Keep all scripts in this skill self-contained and do not import repo-only source files.
 
 ### Step 1: Run the Private Script
@@ -36,7 +36,7 @@ If the user does not specify one, do not let the model invent a version. Let the
 Run the following with Shell:
 
 ```bash
-bun "{SKILL_DIR}/scripts/copy-template.ts" --project-path "{projectPath}" --app-name "{appName}" --bundle-name "{bundleName}" --api-level "{apiLevel}"
+node "{SKILL_DIR}/scripts/copy-template.mjs" --project-path "{projectPath}" --app-name "{appName}" --bundle-name "{bundleName}" --api-level "{apiLevel}"
 ```
 
 If `apiLevel` is not explicitly provided by the user, omit `--api-level` and let the script detect it from DevEco metadata.

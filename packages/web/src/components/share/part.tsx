@@ -27,7 +27,7 @@ import { ContentBash } from "./content-bash"
 import { ContentError } from "./content-error"
 import { formatCount, formatDuration, formatNumber, normalizeLocale, useShareMessages } from "../share/common"
 import { ContentMarkdown } from "./content-markdown"
-import type { MessageV2 } from "opencode/session/message-v2"
+import type { MessageV2 } from "codegenie/session/message-v2"
 import type { Diagnostic } from "vscode-languageserver-types"
 
 import styles from "./part.module.css"
@@ -88,9 +88,6 @@ export function Part(props: PartProps) {
                 <IconBrain width={18} height={18} />
               </Match>
               <Match when={props.part.type === "tool" && props.part.tool === "todowrite"}>
-                <IconQueueList width={18} height={18} />
-              </Match>
-              <Match when={props.part.type === "tool" && props.part.tool === "todoread"}>
                 <IconQueueList width={18} height={18} />
               </Match>
               <Match when={props.part.type === "tool" && props.part.tool === "bash"}>
@@ -733,7 +730,13 @@ export function FallbackTool(props: ToolProps) {
             <>
               <div></div>
               <div>{arg[0]}</div>
-              <div>{String(arg[1] ?? "")}</div>
+              <div>
+                {typeof arg[1] === "string" || typeof arg[1] === "number" || typeof arg[1] === "boolean"
+                  ? String(arg[1])
+                  : arg[1] == null
+                    ? ""
+                    : JSON.stringify(arg[1])}
+              </div>
             </>
           )}
         </For>

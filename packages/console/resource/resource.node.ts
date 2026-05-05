@@ -2,6 +2,14 @@ import type { KVNamespaceListOptions, KVNamespaceListResult, KVNamespacePutOptio
 import { Resource as ResourceBase } from "sst"
 import Cloudflare from "cloudflare"
 
+type KVNamespaceBulkGetResult = {
+  values?: Record<string, string | number | boolean | object | null> | null
+} | null
+
+type KVNamespaceKeysListResult = {
+  result: KVNamespaceListResult<unknown, string>["keys"]
+}
+
 export const waitUntil = async (promise: Promise<any>) => {
   await promise
 }
@@ -29,12 +37,15 @@ export const Resource = new Proxy(
           return {
             get: (k: string | string[]) => {
               const isMulti = Array.isArray(k)
+              const keys = isMulti ? k : [k]
               return client.kv.namespaces
                 .bulkGet(namespaceId, {
-                  keys: Array.isArray(k) ? k : [k],
+                  keys,
                   account_id: accountId,
                 })
-                .then((result) => (isMulti ? new Map(Object.entries(result?.values ?? {})) : result?.values?.[k]))
+                .then((result: KVNamespaceBulkGetResult) =>
+                  isMulti ? new Map(Object.entries(result?.values ?? {})) : result?.values?.[k],
+                )
             },
             put: (k: string, v: string, opts?: KVNamespacePutOptions) =>
               client.kv.namespaces.values.update(namespaceId, k, {
@@ -54,7 +65,7 @@ export const Resource = new Proxy(
                   account_id: accountId,
                   prefix: opts?.prefix ?? undefined,
                 })
-                .then((result) => {
+                .then((result: KVNamespaceKeysListResult) => {
                   return {
                     keys: result.result,
                     list_complete: true,

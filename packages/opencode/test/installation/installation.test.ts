@@ -3,6 +3,7 @@ import { Effect, Layer, Stream } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { Installation } from "../../src/installation"
+import { InstallationChannel } from "@opencode-ai/core/installation/version"
 
 const encoder = new TextEncoder()
 
@@ -27,6 +28,7 @@ function mockSpawner(handler: (cmd: string, args: readonly string[]) => string =
         all: Stream.empty,
         getInputFd: () => ({ [Symbol.for("effect/Sink/TypeId")]: Symbol.for("effect/Sink/TypeId") }) as any,
         getOutputFd: () => Stream.empty,
+        unref: Effect.succeed(Effect.void),
       }),
     )
   })
@@ -49,11 +51,34 @@ function testLayer(
 
 describe("installation", () => {
   describe("latest", () => {
-    test("reads npm registry versions", async () => {
+    test("reads release version from GitHub releases", async () => {
+      const layer = testLayer(() => jsonResponse({ tag_name: "v1.2.3" }))
+
+      const result = await Effect.runPromise(
+        Installation.Service.use((svc) => svc.latest("unknown")).pipe(Effect.provide(layer)),
+      )
+      expect(result).toBe("1.2.3")
+    })
+
+    test("strips v prefix from GitHub release tag", async () => {
+      const layer = testLayer(() => jsonResponse({ tag_name: "v4.0.0-beta.1" }))
+
+      const result = await Effect.runPromise(
+        Installation.Service.use((svc) => svc.latest("unknown")).pipe(Effect.provide(layer)),
+      )
+      expect(result).toBe("4.0.0-beta.1")
+    })
+
+    test("reads npm versions via npm view", async () => {
+      const calls: string[][] = []
+
       const layer = testLayer(
-        () => jsonResponse({ version: "1.5.0" }),
+        () => {
+          throw new Error("unexpected http request")
+        },
         (cmd, args) => {
-          if (cmd === "npm" && args.includes("registry")) return "https://registry.npmjs.org\n"
+          calls.push([cmd, ...args])
+          if (cmd === "npm" && args[0] === "view") return '"1.5.0"\n'
           return ""
         },
       )
@@ -62,18 +87,49 @@ describe("installation", () => {
         Installation.Service.use((svc) => svc.latest("npm")).pipe(Effect.provide(layer)),
       )
       expect(result).toBe("1.5.0")
+      expect(calls.some((c) => c[0] === "npm" && c[1] === "view")).toBe(true)
     })
 
-    test("reads npm registry versions for bun method", async () => {
+    test("reads bun versions via bun pm view", async () => {
+      const calls: string[][] = []
+
       const layer = testLayer(
-        () => jsonResponse({ version: "1.6.0" }),
-        () => "",
+        () => {
+          throw new Error("unexpected http request")
+        },
+        (cmd, args) => {
+          calls.push([cmd, ...args])
+          if (cmd === "bun" && args[0] === "pm") return '"1.6.0"\n'
+          return ""
+        },
       )
 
       const result = await Effect.runPromise(
         Installation.Service.use((svc) => svc.latest("bun")).pipe(Effect.provide(layer)),
       )
       expect(result).toBe("1.6.0")
+      expect(calls.some((c) => c[0] === "bun" && c[1] === "pm")).toBe(true)
+    })
+
+    test("reads pnpm versions via pnpm view", async () => {
+      const calls: string[][] = []
+
+      const layer = testLayer(
+        () => {
+          throw new Error("unexpected http request")
+        },
+        (cmd, args) => {
+          calls.push([cmd, ...args])
+          if (cmd === "pnpm" && args[0] === "view") return '"1.7.0"\n'
+          return ""
+        },
+      )
+
+      const result = await Effect.runPromise(
+        Installation.Service.use((svc) => svc.latest("pnpm")).pipe(Effect.provide(layer)),
+      )
+      expect(result).toBe("1.7.0")
+      expect(calls.some((c) => c[0] === "pnpm" && c[1] === "view")).toBe(true)
     })
   })
 })

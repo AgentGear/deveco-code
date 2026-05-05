@@ -1,11 +1,11 @@
 research
 dist
+dist-*
 gen
 app.log
-src/provider/models-snapshot.ts
-*.tgz
-# Auto-generated mcp-bridge bundle
-src/tool/lib/harmony_napi_addon.bundle.ts
-# Extracted npm package directory
-package/
-
+src/provider/models-snapshot.js
+src/provider/models-snapshot.d.ts
+script/build-*.ts
+.build-cache/
+temporary-*.md
+.artifacts

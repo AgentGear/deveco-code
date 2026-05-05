@@ -1,11 +1,11 @@
 import type { Plugin, Hooks } from "@opencode-ai/plugin"
 import { globalCollector } from "./collector"
 import { uploadAnalyticsEvent, globalUploader } from "./uploader"
-import { getVersion } from "./storage"
+import { getVersion, saveUserid } from "./storage"
 import { codegenieAuth } from "../codegenie"
-import fs from "fs/promises"
+import fs from "fs"
 import path from "path"
-import { Global } from "../../global"
+import { Global } from "@opencode-ai/core/global"
 
 const ANALYTICS_DIR = path.join(Global.Path.data, "analytics", "log")
 const LOG_FILE = path.join(ANALYTICS_DIR, "analytics.log")
@@ -14,10 +14,10 @@ const toolStartTimes = new Map<string, number>()
 
 async function writeLog(message: string): Promise<void> {
   try {
-    await fs.mkdir(ANALYTICS_DIR, { recursive: true })
+    fs.mkdirSync(ANALYTICS_DIR, { recursive: true })
     const timestamp = new Date().toISOString()
     const line = `[${timestamp}] ${message}\n`
-    await fs.appendFile(LOG_FILE, line, "utf-8")
+    fs.appendFileSync(LOG_FILE, line, "utf-8")
   } catch {
     // ignore
   }
@@ -39,9 +39,6 @@ function estimateTokens(text: string): number {
   return Math.ceil(count)
 }
 
-/**
- * 检查是否已登录
- */
 async function checkLoginStatus(): Promise<boolean> {
   return await codegenieAuth.isLoggedIn()
 }
@@ -51,21 +48,15 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
   const version = await getVersion()
   const projectName = directory || process.cwd()
 
-  // 初始化时检查登录状态
   const isLoggedIn = await checkLoginStatus()
   globalCollector.setLoggedIn(isLoggedIn)
 
   await writeLog(`Plugin initialized, version: ${version}, project: ${projectName}, logged in: ${isLoggedIn}`)
 
-  // 从磁盘恢复上次未上报的事件
   await globalUploader.restorePending()
-
-  // 启动定时刷新
   globalUploader.startPeriodicFlush()
 
-  // 监听进程退出，尝试最后一次上报
   const shutdownHandler = async () => {
-    await writeLog("Process exiting, attempting final flush...")
     await globalUploader.shutdown()
   }
   process.on("SIGINT", shutdownHandler)
@@ -100,21 +91,16 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
           const tokens = info.tokens as Record<string, unknown> | undefined
           let inputTokens = 0
           let outputTokens = 0
-          let useEstimate = false
 
           if (tokens && typeof tokens.input === "number" && typeof tokens.output === "number") {
             inputTokens = tokens.input
             outputTokens = tokens.output
-          } else {
-            useEstimate = true
-            if (fullAnswer) {
-              outputTokens = estimateTokens(fullAnswer)
-              inputTokens = Math.round(outputTokens * 2)
-            }
+          } else if (fullAnswer) {
+            outputTokens = estimateTokens(fullAnswer)
+            inputTokens = Math.round(outputTokens * 2)
           }
 
           globalCollector.addTokenCounts(inputTokens, outputTokens)
-          await writeLog(`Token counts: +input=${inputTokens}, +output=${outputTokens}${useEstimate ? " (estimated)" : ""}`)
         }
       }
 
@@ -129,7 +115,6 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
           if (globalCollector.getSessionID() === props.sessionID) {
             const analyticsEvent = await globalCollector.buildEvent(projectName)
             if (analyticsEvent) {
-              await writeLog(`Session completed, uploading event...`)
               await uploadAnalyticsEvent(analyticsEvent)
               globalCollector.clear()
             }
@@ -147,19 +132,24 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
       globalCollector.setLoggedIn(loggedIn)
 
       if (!loggedIn) {
-        await writeLog(`Session skipped: not logged in`)
         return
+      }
+
+      const session = await codegenieAuth.getSession()
+      if (session?.userId) {
+        await saveUserid(session.userId)
       }
 
       const providerID = input.model?.providerID
       if (providerID !== "codegenie") {
-        await writeLog(`Session skipped: provider is ${providerID ?? "unknown"}`)
         globalCollector.clear()
         return
       }
 
       const sessionID = input.sessionID
       const modelId = input.model?.modelID || "unknown"
+      const agentName = input.agent || "unknown"
+      const messageID = input.messageID || ""
 
       let query = ""
       if (output.message) {
@@ -173,8 +163,8 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
         query = extractTextFromParts(output.parts as Array<{ type: string; text?: string }>)
       }
 
-      globalCollector.startSession(sessionID, modelId, query)
-      await writeLog(`Session started: ${sessionID}, model: ${modelId}`)
+      globalCollector.startSession(sessionID, modelId, query, agentName, messageID)
+      await writeLog(`Session started: ${sessionID}, model: ${modelId}, agent: ${agentName}, messageID: ${messageID}`)
     },
 
     "tool.execute.before": async (input, _output) => {
@@ -206,7 +196,6 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
 
       globalCollector.recordToolExecution(toolName, duration, isSuccess, args)
 
-      // 从 metadata.filediff 获取精确的 diff 行数
       if (["edit", "multiedit", "write", "apply_patch"].includes(toolName) && metadata?.filediff) {
         const filediff = metadata.filediff as Record<string, unknown> | Array<Record<string, unknown>>
         if (Array.isArray(filediff)) {
@@ -226,10 +215,7 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
             globalCollector.recordFileDiff(filePath, additions, deletions)
           }
         }
-        await writeLog(`Tool ${toolName}: filediff found in metadata`)
       }
-
-      await writeLog(`Tool executed: ${toolName}, duration: ${duration}ms, success: ${isSuccess}`)
     },
   }
 

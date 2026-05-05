@@ -2,17 +2,35 @@ import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import * as prompts from "@clack/prompts"
 import { exec } from "child_process"
 import { promisify } from "util"
-import { homedir } from "os"
 import path from "path"
 import fs from "fs"
 import crypto from "crypto"
 import http, { IncomingMessage, ServerResponse } from "http"
 import https from "https"
-import { Auth, OAUTH_DUMMY_KEY } from "@/auth"
+import { OAUTH_DUMMY_KEY } from "@/auth"
+import { Global } from "@opencode-ai/core/global"
+import { LocalCrypto } from "@/security/local-crypto"
 import { URL } from "url"
 
 const execAsync = promisify(exec)
 const PROVIDER_ID = "codegenie"
+export const sessionChatIdMap = new Map<string, string>()
+
+const authFilePath = path.join(Global.Path.data, "auth.json")
+
+export async function saveAuthToDisk(key: string, info: Record<string, unknown>) {
+  try {
+    let data: Record<string, unknown> = {}
+    if (fs.existsSync(authFilePath)) {
+      data = LocalCrypto.decryptAuthData(JSON.parse(fs.readFileSync(authFilePath, "utf8")) as Record<string, unknown>)
+    }
+    data[key] = info
+    const dir = path.dirname(authFilePath)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    const encrypted = LocalCrypto.encryptAuthData(data)
+    fs.writeFileSync(authFilePath, JSON.stringify(encrypted, null, 2), { mode: 0o600 })
+  } catch {}
+}
 
 // ============ Types ============
 interface UserInfo {
@@ -145,7 +163,7 @@ class HttpClient {
 
     const headers = {
       ...this.defaultHeaders,
-      ...(config?.headers ?? {}),
+      ...(config?.headers || {}),
     }
 
     return new Promise((resolve, reject) => {
@@ -183,125 +201,45 @@ class HttpClient {
     })
   }
 
-  public parseJson<T>(response: HttpResponse): T {
-    return JSON.parse(response.data) as T
+  public parseJson(response: HttpResponse): TokenCheckResponse {
+    return JSON.parse(response.data) as TokenCheckResponse
   }
 }
 
 const httpClient = new HttpClient()
 
-// ============ TokenStorage ============
 class TokenStorage {
-  private keyFilePath: string
-  private algorithm: string = "aes-128-gcm"
-  private keyLength: number = 16
-  private ivLength: number = 12
+  private tokenFilePath: string
 
   constructor(configDir?: string) {
-    const configPath = configDir || path.join(homedir(), ".config", "codegenie")
-    this.keyFilePath = path.join(configPath, ".token_key")
-  }
-
-  private getKey(): Buffer {
-    try {
-      const keyData = fs.readFileSync(this.keyFilePath)
-      return keyData
-    } catch (err) {
-      const key = crypto.randomBytes(this.keyLength)
-
-      const dir = path.dirname(this.keyFilePath)
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true, mode: 0o700 })
-      }
-
-      fs.writeFileSync(this.keyFilePath, key, { mode: 0o600 })
-      return key
-    }
-  }
-
-  private encrypt(plaintext: string): { encrypted: string; iv: string; authTag: string } {
-    const key = this.getKey()
-    const iv = crypto.randomBytes(this.ivLength)
-
-    const cipher = crypto.createCipheriv(this.algorithm, key, iv) as crypto.CipherGCM
-
-    let encrypted = cipher.update(plaintext, "utf8", "hex")
-    encrypted += cipher.final("hex")
-
-    const authTag = cipher.getAuthTag()
-
-    return {
-      encrypted,
-      iv: iv.toString("hex"),
-      authTag: authTag.toString("hex"),
-    }
-  }
-
-  private decrypt(encrypted: string, ivHex: string, authTagHex: string): string {
-    const key = this.getKey()
-    const iv = Buffer.from(ivHex, "hex")
-    const authTag = Buffer.from(authTagHex, "hex")
-
-    const decipher = crypto.createDecipheriv(this.algorithm, key, iv) as crypto.DecipherGCM
-    decipher.setAuthTag(authTag)
-
-    let decrypted = decipher.update(encrypted, "hex", "utf8")
-    decrypted += decipher.final("utf8")
-    return decrypted
+    const configPath = configDir || Global.Path.config
+    this.tokenFilePath = path.join(configPath, "token.enc")
   }
 
   public async saveToken(token: string): Promise<void> {
-    if (!token) {
-      throw new Error("Token is empty")
-    }
-
-    const { encrypted, iv, authTag } = this.encrypt(token)
-
-    const configPath = path.dirname(this.keyFilePath)
-    const tokenFilePath = path.join(configPath, "token.enc")
-    const tokenData = {
-      encrypted,
-      iv,
-      authTag,
-      timeStamp: Date.now(),
-    }
-
-    fs.writeFileSync(tokenFilePath, JSON.stringify(tokenData, null, 2), { mode: 0o600 })
+    if (!token) throw new Error("Token is empty")
+    const tokenData = LocalCrypto.encryptForLocalStorage(token)
+    fs.writeFileSync(this.tokenFilePath, JSON.stringify(tokenData, null, 2), { mode: 0o600 })
   }
 
   public async loadToken(): Promise<string | null> {
     try {
-      const tokenFilePath = this.getTokenFilePath()
-
-      if (!fs.existsSync(tokenFilePath)) {
-        return null
-      }
-
-      const tokenData = JSON.parse(fs.readFileSync(tokenFilePath, "utf8"))
-      const { encrypted, iv, authTag } = tokenData
-
-      const token = this.decrypt(encrypted, iv, authTag)
-      return token
-    } catch (err) {
-      this.clearToken()
+      if (!fs.existsSync(this.tokenFilePath)) return null
+      const tokenData = JSON.parse(fs.readFileSync(this.tokenFilePath, "utf8"))
+      if (!LocalCrypto.isEncryptedBlob(tokenData)) return null
+      return LocalCrypto.decryptForLocalStorage(tokenData)
+    } catch {
+      void this.clearToken()
       return null
     }
   }
 
   public async clearToken(): Promise<void> {
     try {
-      const tokenFilePath = this.getTokenFilePath()
-      if (fs.existsSync(tokenFilePath)) {
-        fs.unlinkSync(tokenFilePath)
-      }
+      if (fs.existsSync(this.tokenFilePath)) fs.unlinkSync(this.tokenFilePath)
     } catch (err) {
-      throw new Error(`Failed to clear token: ${err}`)
+      throw new Error("Failed to clear token", { cause: err })
     }
-  }
-
-  private getTokenFilePath(): string {
-    const configPath = path.dirname(this.keyFilePath)
-    return path.join(configPath, "token.enc")
   }
 }
 
@@ -330,7 +268,7 @@ class LocalAuthServer {
         const actualPort = await this.tryPort(port)
         this.port = actualPort
         return actualPort
-      } catch (err) {
+      } catch {
         if (port === portsToTry[portsToTry.length - 1]) {
           throw new Error("All ports are in use. Please free up a port or close other CodeGenie instances.")
         }
@@ -429,7 +367,7 @@ class LocalAuthServer {
     } catch (err) {
       res.writeHead(500)
       res.end("Internal Server Error")
-      this.rejectCallback?.(err as Error)
+      this.rejectCallback?.(err instanceof Error ? err : new Error(String(err)))
     }
   }
 
@@ -488,7 +426,7 @@ class LocalAuthServer {
     } catch (err) {
       res.writeHead(500)
       res.end("Internal Server Error")
-      this.rejectCallback?.(err as Error)
+      this.rejectCallback?.(err instanceof Error ? err : new Error(String(err)))
     }
   }
 
@@ -593,7 +531,7 @@ class LoginService {
     try {
       await execAsync(command)
     } catch (err) {
-      throw new Error("Failed to open login page")
+      throw new Error("Failed to open login page", { cause: err })
     }
   }
 
@@ -606,7 +544,7 @@ class LoginService {
       tempToken: actualTempToken,
       site: countryCode,
       version: "1.0.0",
-      appid: this.config.appId.toString(),
+      appid: this.config.appId,
     }
 
     const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
@@ -663,11 +601,11 @@ class LoginService {
       throw new Error(`Failed to check jwtToken: ${response.statusCode}`)
     }
 
-    const result = httpClient.parseJson<TokenCheckResponse>(response)
+    const result = httpClient.parseJson(response)
     return result
   }
 
-  private parseJwt(token: string): JwtPayload {
+  public parseJwt(token: string): JwtPayload {
     const parts = token.split(".")
     if (parts.length !== 3) {
       throw new Error(`Invalid jwtToken format`)
@@ -678,7 +616,13 @@ class LoginService {
     const base64 = base64Url.padEnd(base64Url.length + ((4 - (base64Url.length % 4)) % 4), "=")
     const json = Buffer.from(base64, "base64").toString("utf8")
 
-    return JSON.parse(json) as JwtPayload
+    const parsed = JSON.parse(json)
+    return {
+      userId: parsed.userId ?? "",
+      userName: parsed.userName ?? "",
+      exp: parsed.exp,
+      iat: parsed.iat,
+    }
   }
 
   private getCountryCodeBySiteId(siteId: string): string {
@@ -729,7 +673,7 @@ class LoginService {
         return null
       }
 
-      const result = httpClient.parseJson<TokenCheckResponse>(response)
+      const result = httpClient.parseJson(response)
       if (!result.status || !result.userInfo) {
         return null
       }
@@ -773,6 +717,28 @@ class CodeGenieAuth {
         ...userInfo,
         createdAt: Date.now(),
         expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      }
+    }
+    const jwtToken = await tokenStorage.loadToken()
+    if (jwtToken) {
+      try {
+        const parsed = loginService.parseJwt(jwtToken)
+        if (parsed.userId) {
+          return {
+            userId: parsed.userId,
+            userName: parsed.userName ?? "",
+            accessToken: "",
+            refreshToken: "",
+            jwtToken,
+            countryCode: "",
+            language: "",
+            isRealName: false,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          }
+        }
+      } catch {
+        // ignore parse errors
       }
     }
     return null
@@ -860,7 +826,7 @@ export async function requireLogin(): Promise<boolean> {
     const accessToken = result.userInfo?.accessToken || ""
     const refreshToken = result.userInfo?.refreshToken || ""
     if (accessToken) {
-      await Auth.set("codegenie", {
+      await saveAuthToDisk("codegenie", {
         type: "oauth",
         access: accessToken,
         refresh: refreshToken,
@@ -908,7 +874,7 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
               if (!currentAuth.access || currentAuth.expires < Date.now()) {
                 const newTokens = await codegenieAuth.refreshToken()
                 if (newTokens) {
-                  await Auth.set("codegenie", {
+                  await saveAuthToDisk("codegenie", {
                     type: "oauth",
                     access: newTokens.accessToken,
                     refresh: newTokens.refreshToken,
@@ -938,7 +904,12 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
               headers.set("authorization", `Bearer ${currentAuth.access}`)
             }
 
-            headers.set("Chat-Id", crypto.randomUUID().replace(/-/g, ""))
+            const sessionId = headers.get("x-codegenie-session") || headers.get("x-session-affinity")
+            const chatId = (sessionId && sessionChatIdMap.get(sessionId)) || crypto.randomUUID().replace(/-/g, "")
+            headers.set("Chat-Id", chatId)
+            if (sessionId) {
+              headers.set("Session-Id", sessionId)
+            }
 
             return fetch(requestInput, {
               ...init,

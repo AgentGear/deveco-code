@@ -1,8 +1,9 @@
 import { UI } from "../ui"
 import { cmd } from "./cmd"
+import { AppRuntime } from "@/effect/app-runtime"
+import { Git } from "@/git"
 import { Instance } from "@/project/instance"
 import { Process } from "@/util/process"
-import { git } from "@/util/git"
 
 export const PrCommand = cmd({
   command: "pr <number>",
@@ -67,27 +68,37 @@ export const PrCommand = cmd({
               const remoteName = forkOwner
 
               // Check if remote already exists
-              const remotes = (await git(["remote"], { cwd: Instance.worktree })).text().trim()
+              const remotes = await AppRuntime.runPromise(
+                Git.Service.use((git) => git.run(["remote"], { cwd: Instance.worktree })),
+              ).then((x) => x.text().trim())
               if (!remotes.split("\n").includes(remoteName)) {
-                await git(["remote", "add", remoteName, `https://github.com/${forkOwner}/${forkName}.git`], {
-                  cwd: Instance.worktree,
-                })
+                await AppRuntime.runPromise(
+                  Git.Service.use((git) =>
+                    git.run(["remote", "add", remoteName, `https://github.com/${forkOwner}/${forkName}.git`], {
+                      cwd: Instance.worktree,
+                    }),
+                  ),
+                )
                 UI.println(`Added fork remote: ${remoteName}`)
               }
 
               // Set upstream to the fork so pushes go there
               const headRefName = prInfo.headRefName
-              await git(["branch", `--set-upstream-to=${remoteName}/${headRefName}`, localBranchName], {
-                cwd: Instance.worktree,
-              })
+              await AppRuntime.runPromise(
+                Git.Service.use((git) =>
+                  git.run(["branch", `--set-upstream-to=${remoteName}/${headRefName}`, localBranchName], {
+                    cwd: Instance.worktree,
+                  }),
+                ),
+              )
             }
 
-            // Check for opencode session link in PR body
+            // Check for codegenie session link in PR body
             if (prInfo && prInfo.body) {
               const sessionMatch = prInfo.body.match(/https:\/\/opncd\.ai\/s\/([a-zA-Z0-9_-]+)/)
               if (sessionMatch) {
                 const sessionUrl = sessionMatch[0]
-                UI.println(`Found opencode session: ${sessionUrl}`)
+                UI.println(`Found codegenie session: ${sessionUrl}`)
                 UI.println(`Importing session...`)
 
                 const importResult = await Process.text(["codegenie", "import", sessionUrl], {
@@ -112,15 +123,15 @@ export const PrCommand = cmd({
         UI.println("Starting codegenie...")
         UI.println()
 
-        const opencodeArgs = sessionId ? ["-s", sessionId] : []
-        const opencodeProcess = Process.spawn(["codegenie", ...opencodeArgs], {
+        const codegenieArgs = sessionId ? ["-s", sessionId] : []
+        const codegenieProcess = Process.spawn(["codegenie", ...codegenieArgs], {
           stdin: "inherit",
           stdout: "inherit",
           stderr: "inherit",
           cwd: process.cwd(),
         })
-        const code = await opencodeProcess.exited
-        if (code !== 0) throw new Error(`opencode exited with code ${code}`)
+        const code = await codegenieProcess.exited
+        if (code !== 0) throw new Error(`codegenie exited with code ${code}`)
       },
     })
   },

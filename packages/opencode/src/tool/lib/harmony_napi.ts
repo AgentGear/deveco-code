@@ -89,5 +89,3 @@ export async function callTool(
 ): Promise<unknown> {
   return callHarmonyNapiTool({ worktree, toolName, args })
 }
-
-

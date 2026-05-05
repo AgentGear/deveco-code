@@ -50,7 +50,7 @@ let arch = archMap[os.arch()]
 if (!arch) {
   arch = os.arch()
 }
-const base = "codegenie-" + platform + "-" + arch
+const base = "@codegenie-ai/codegenie-" + platform + "-" + arch
 const binary = platform === "windows" ? "codegenie.exe" : "codegenie"
 
 function supportsAvx2() {

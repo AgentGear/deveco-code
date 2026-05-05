@@ -2,13 +2,14 @@ import fs from "fs/promises"
 import path from "path"
 import os from "os"
 import { randomUUID } from "crypto"
-import { Global } from "../../global"
+import { Global } from "@opencode-ai/core/global"
+import { LocalCrypto } from "@/security/local-crypto"
 
 const ANALYTICS_FILE = "analytics.json"
-const UID_FILE = "uid"
 
 interface AnalyticsStorage {
   uid: string
+  userid: string
   pendingEvents: unknown[]
   lastFlush: number
 }
@@ -21,10 +22,6 @@ function getAnalyticsFilePath(): string {
   return path.join(getAnalyticsDir(), ANALYTICS_FILE)
 }
 
-function getUidFilePath(): string {
-  return path.join(getAnalyticsDir(), UID_FILE)
-}
-
 async function ensureDir(): Promise<void> {
   const dir = getAnalyticsDir()
   try {
@@ -35,37 +32,53 @@ async function ensureDir(): Promise<void> {
 }
 
 export async function getOrCreateUid(): Promise<string> {
-  const uidPath = getUidFilePath()
-  try {
-    const uid = await fs.readFile(uidPath, "utf-8")
-    if (uid && uid.trim()) return uid.trim()
-  } catch {
-    // file not exists
-  }
-  await ensureDir()
-  const newUid = randomUUID()
-  await fs.writeFile(uidPath, newUid, "utf-8")
-  return newUid
+  const storage = await loadStorage()
+  if (storage.uid.trim()) return storage.uid
+  storage.uid = randomUUID()
+  await saveStorage(storage)
+  return storage.uid
+}
+
+function isStorageShape(value: unknown): value is AnalyticsStorage {
+  if (!value || typeof value !== "object") return false
+  const item = value as Partial<AnalyticsStorage>
+  return (
+    typeof item.uid === "string" &&
+    typeof item.userid === "string" &&
+    Array.isArray(item.pendingEvents) &&
+    typeof item.lastFlush === "number"
+  )
 }
 
 export async function loadStorage(): Promise<AnalyticsStorage> {
   const filePath = getAnalyticsFilePath()
   try {
     const content = await fs.readFile(filePath, "utf-8")
-    return JSON.parse(content)
-  } catch {
-    return {
-      uid: await getOrCreateUid(),
-      pendingEvents: [],
-      lastFlush: Date.now(),
+    const encrypted = JSON.parse(content)
+    if (LocalCrypto.isEncryptedBlob(encrypted)) {
+      return JSON.parse(LocalCrypto.decryptForLocalStorage(encrypted))
     }
+    if (isStorageShape(encrypted)) {
+      if (!encrypted.userid) encrypted.userid = "unknown"
+      await saveStorage(encrypted)
+      return encrypted
+    }
+  } catch {
+    // ignore
+  }
+  return {
+    uid: randomUUID(),
+    userid: "unknown",
+    pendingEvents: [],
+    lastFlush: Date.now(),
   }
 }
 
 export async function saveStorage(storage: AnalyticsStorage): Promise<void> {
   await ensureDir()
   const filePath = getAnalyticsFilePath()
-  await fs.writeFile(filePath, JSON.stringify(storage, null, 2), "utf-8")
+  const encrypted = LocalCrypto.encryptForLocalStorage(JSON.stringify(storage))
+  await fs.writeFile(filePath, JSON.stringify(encrypted, null, 2), "utf-8")
 }
 
 export async function appendPendingEvent(event: unknown): Promise<void> {
@@ -86,8 +99,15 @@ export async function getPendingEvents(): Promise<unknown[]> {
   return storage.pendingEvents
 }
 
-export function getUserid(): string {
-  return process.env.CODEGENIE_USER_ID || process.env.USER || "unknown"
+export async function saveUserid(userid: string): Promise<void> {
+  const storage = await loadStorage()
+  storage.userid = userid || "unknown"
+  await saveStorage(storage)
+}
+
+export async function getUserid(): Promise<string> {
+  const storage = await loadStorage()
+  return storage.userid || "unknown"
 }
 
 export function getOsName(): string {
