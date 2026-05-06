@@ -13,6 +13,17 @@ console.log("=== Pipeline Prepare ===")
 console.log(`Monorepo root: ${monorepoRoot}`)
 console.log(`Opencode dir:  ${opencodeDir}`)
 
+// Upgrade Node.js if version < 20 (Vite 7 requires Node 20.19+)
+const nodeVersion = await $`node --version`.text().catch(() => "v0.0.0")
+const nodeMajor = parseInt(nodeVersion.replace("v", "").split(".")[0])
+if (nodeMajor < 20) {
+  console.log(`\n[0/4] Upgrading Node.js (current: ${nodeVersion.trim()})...`)
+  await $`bash -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash"`
+  await $`bash -c ". ~/.nvm/nvm.sh && nvm install 22"`
+  const newVersion = await $`bash -c ". ~/.nvm/nvm.sh && node --version"`.text()
+  console.log(`  Node.js upgraded to ${newVersion.trim()}`)
+}
+
 // Filter workspace packages to only what's needed for CI build
 // Full monorepo includes electron/tauri/desktop apps that are unnecessary for CLI build
 // and cause CI timeout when electron's postinstall downloads ~200MB binary from GitHub
