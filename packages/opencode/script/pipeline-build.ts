@@ -12,6 +12,19 @@ const dir = path.resolve(__dirname, "..")
 
 process.chdir(dir)
 
+// Upgrade Node.js if version < 20 (Vite 7 requires Node 20.19+)
+const nodeVersion = await $`node --version`.text().catch(() => "v0.0.0")
+const nodeMajor = parseInt(nodeVersion.replace("v", "").split(".")[0])
+if (nodeMajor < 20) {
+  console.log(`Upgrading Node.js (current: ${nodeVersion.trim()})...`)
+  const nodeDir = "/tmp/node22"
+  await $`mkdir -p ${nodeDir}`
+  await $`curl -fsSL https://npmmirror.com/mirrors/node/v22.14.0/node-v22.14.0-linux-x64.tar.xz | tar -xJ -C ${nodeDir} --strip-components=1`
+  process.env.PATH = `${nodeDir}/bin:${process.env.PATH}`
+  const newVersion = await $`node --version`.text()
+  console.log(`  Node.js upgraded to ${newVersion.trim()}`)
+}
+
 await import("./generate.ts")
 
 import { Script } from "@opencode-ai/script"
