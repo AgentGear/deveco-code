@@ -53,12 +53,20 @@ interface LoginResult {
   cancelled?: boolean
   userInfo?: UserInfo
   error?: string
+  unsupportedRegion?: boolean
 }
 
 class LoginCancelledError extends Error {
   constructor(message: string = "Login cancelled by user") {
     super(message)
     this.name = "LoginCancelledError"
+  }
+}
+
+class UnsupportedRegionError extends Error {
+  constructor(message: string = "Unsupported region") {
+    super(message)
+    this.name = "UnsupportedRegionError"
   }
 }
 
@@ -89,7 +97,6 @@ interface LoginConfig {
   appId: string
   defaultPort: number
   timeout: number
-  countryCode?: string
 }
 
 interface CallbackData {
@@ -114,7 +121,7 @@ interface HttpRequestConfig {
 const ACCESS_TOKEN_EXPIRES_MS = 30 * 60 * 1000 // 30 minutes
 
 const DEFAULT_CONFIG: LoginConfig = {
-  baseUrl: "https://devecostudio.huawei.com",
+  baseUrl: "https://cn.devecostudio.huawei.com",
   authUrl: "console/DevEcoIDE/apply",
   tempTokenCheckUrl: "authrouter/auth/api/temptoken/check",
   jwtTokenCheckUrl: "authrouter/auth/api/jwToken/check",
@@ -123,28 +130,7 @@ const DEFAULT_CONFIG: LoginConfig = {
   appId: "1008",
   defaultPort: 10101,
   timeout: 600000, // 10 minutes
-  countryCode: "CN",
 }
-
-const CountryCode = {
-  CHINA: "CN",
-  RUSSIA: "RU",
-  SINGAPORE: "SG",
-  EUROPE: "EU",
-} as const
-
-const LanguageCode = {
-  CHINA: "zh_CN",
-  RUSSIA: "ru_RU",
-  EUROPE: "de_DE",
-} as const
-
-const SiteId = {
-  CHINA: "1",
-  SINGAPORE: "5",
-  EUROPE: "7",
-  RUSSIA: "8",
-} as const
 
 // ============ HttpClient ============
 class HttpClient {
@@ -443,6 +429,15 @@ class LocalAuthServer {
         return
       }
 
+      if (siteId !== "1") {
+        this.rejectCallback?.(new UnsupportedRegionError("Unsupported region"))
+        res.writeHead(302, {
+          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
+        })
+        res.end()
+        return
+      }
+
       const callbackData: CallbackData = {
         tempToken,
         siteId,
@@ -481,14 +476,14 @@ class LoginService {
     try {
       const clientSecret = this.generateClientSecret()
 
-      this.server = new LocalAuthServer(this.config.defaultPort, clientSecret, this.getRegionalizedBaseUrl(), this.config.successRedirectUrl, this.config.failedRedirectUrl)
+      this.server = new LocalAuthServer(this.config.defaultPort, clientSecret, this.config.baseUrl, this.config.successRedirectUrl, this.config.failedRedirectUrl)
       await this.server.start()
 
       await this.openLoginPage(this.server.getPort(), clientSecret)
 
       const callbackData = await this.server.waitForCallback(this.config.timeout)
 
-      const jwtToken = await this.getJwtToken(callbackData.tempToken, callbackData.siteId)
+      const jwtToken = await this.getJwtToken(callbackData.tempToken)
 
       const userInfo = await this.getUserInfoFromJwt(jwtToken)
 
@@ -506,6 +501,13 @@ class LoginService {
           success: false,
           cancelled: true,
           error: err.message,
+        }
+      }
+      if (err instanceof UnsupportedRegionError) {
+        return {
+          success: false,
+          unsupportedRegion: true,
+          error: "Sorry, only China site accounts are currently supported",
         }
       }
       return {
@@ -547,18 +549,8 @@ class LoginService {
     return crypto.randomUUID().replace(/-/g, "")
   }
 
-  private getRegionalizedBaseUrl(): string {
-    const countryCode = this.config.countryCode?.toUpperCase()
-
-    if (countryCode === "CN") {
-      return "https://cn.devecostudio.huawei.com"
-    }
-    return this.config.baseUrl
-  }
-
   private async openLoginPage(port: number, clientSecret: string): Promise<void> {
-    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-    const loginUrl = `${regionalizedBaseUrl}/${this.config.authUrl}?port=${port}&appid=${this.config.appId}&code=${clientSecret}`
+    const loginUrl = `${this.config.baseUrl}/${this.config.authUrl}?port=${port}&appid=${this.config.appId}&code=${clientSecret}`
 
     const platform = process.platform
     let command: string
@@ -580,20 +572,17 @@ class LoginService {
     }
   }
 
-  private async getJwtToken(tempToken: string, siteId: string): Promise<string> {
+  private async getJwtToken(tempToken: string): Promise<string> {
     const actualTempToken = tempToken.split("&")[0]
-
-    const countryCode = this.getCountryCodeBySiteId(siteId)
 
     const params = {
       tempToken: actualTempToken,
-      site: countryCode,
+      site: "CN",
       version: "1.0.0",
       appid: this.config.appId,
     }
 
-    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-    const url = `${regionalizedBaseUrl}/${this.config.tempTokenCheckUrl}`
+    const url = `${this.config.baseUrl}/${this.config.tempTokenCheckUrl}`
     const response = await httpClient.get(url, { params })
 
     if (response.statusCode !== 200) {
@@ -624,8 +613,8 @@ class LoginService {
       accessToken: tokenInfo.userInfo.accessToken,
       refreshToken: tokenInfo.userInfo.refreshToken ?? "",
       jwtToken: jwtToken,
-      countryCode: tokenInfo.userInfo.nationalCode,
-      language: this.getLanguageByCountryCode(tokenInfo.userInfo.nationalCode),
+      countryCode: "CN",
+      language: "zh_CN",
       isRealName: tokenInfo.userInfo.realName === "true",
     }
 
@@ -638,8 +627,7 @@ class LoginService {
       jwtToken: jwtToken,
     }
 
-    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-    const url = `${regionalizedBaseUrl}/${this.config.jwtTokenCheckUrl}`
+    const url = `${this.config.baseUrl}/${this.config.jwtTokenCheckUrl}`
     const response = await httpClient.get(url, { headers })
 
     if (response.statusCode !== 200) {
@@ -670,42 +658,13 @@ class LoginService {
     }
   }
 
-  private getCountryCodeBySiteId(siteId: string): string {
-    switch (siteId) {
-      case SiteId.CHINA:
-        return CountryCode.CHINA
-      case SiteId.SINGAPORE:
-        return CountryCode.SINGAPORE
-      case SiteId.EUROPE:
-        return CountryCode.EUROPE
-      case SiteId.RUSSIA:
-        return CountryCode.RUSSIA
-      default:
-        return CountryCode.CHINA
-    }
-  }
-
-  private getLanguageByCountryCode(countryCode: string): string {
-    switch (countryCode) {
-      case CountryCode.CHINA:
-        return LanguageCode.CHINA
-      case CountryCode.RUSSIA:
-        return LanguageCode.RUSSIA
-      case CountryCode.EUROPE:
-        return LanguageCode.EUROPE
-      default:
-        return LanguageCode.CHINA
-    }
-  }
-
   /**
    * 刷新 accessToken
    * @param jwtToken 当前的 jwtToken
    * @returns 新的 accessToken 和 refreshToken，如果刷新失败返回 null
    */
   async refreshToken(jwtToken: string): Promise<{ accessToken: string; refreshToken: string } | null> {
-    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-    const url = `${regionalizedBaseUrl}/${this.config.jwtTokenCheckUrl}`
+    const url = `${this.config.baseUrl}/${this.config.jwtTokenCheckUrl}`
     try {
       const headers: Record<string, string> = {
         refresh: "true",
@@ -866,7 +825,11 @@ export async function requireLogin(): Promise<boolean> {
 
     if (!result.success) {
       spinner.stop("Login failed")
-      prompts.log.error(result.error || "An error occurred during login")
+      if (result.unsupportedRegion) {
+        prompts.log.error("Sorry, only China site accounts are currently supported")
+      } else {
+        prompts.log.error(result.error || "An error occurred during login")
+      }
       prompts.outro("Please try again later")
       return false
     }
@@ -983,6 +946,9 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
                 const result = await codegenieAuth.login()
 
                 if (!result.success) {
+                  if (result.unsupportedRegion) {
+                    return { type: "failed" as const, error: "Sorry, only China site accounts are currently supported" }
+                  }
                   return { type: "failed" as const }
                 }
 
