@@ -41,6 +41,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
   const [authMessage, setAuthMessage] = createSignal<string | null>(null)
   const [authBusy, setAuthBusy] = createSignal(false)
   const [providerIndex, setProviderIndex] = createSignal(0)
+  let authAborted = false
   let providerScroll: ScrollBoxRenderable | undefined
 
   const providerList = createMemo(() => {
@@ -75,8 +76,10 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
   const runBrowserLogin = async () => {
     setAuthBusy(true)
     setAuthMessage(null)
+    authAborted = false
     try {
       const result = await codegenieAuth.login()
+      if (authAborted) return
       if (!result.success) {
         if (result.cancelled) {
           setStep("entry")
@@ -99,6 +102,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
       await sync.bootstrap()
       props.onComplete()
     } catch (error) {
+      if (authAborted) return
       const errorMessage = error instanceof Error ? error.message : "Login failed"
       setAuthMessage(errorMessage)
       setAuthBusy(false)
@@ -287,7 +291,6 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
     }
 
     if (st === "auth") {
-      if (authBusy()) return
       if (evt.ctrl && evt.name === "c") {
         evt.preventDefault()
         void exit()
@@ -295,9 +298,15 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
       }
       if (evt.name === "escape") {
         evt.preventDefault()
+        if (authBusy()) {
+          authAborted = true
+          codegenieAuth.cancel()
+          setAuthBusy(false)
+        }
         setStep("entry")
         return
       }
+      if (authBusy()) return
       if (evt.name === "return") {
         evt.preventDefault()
         void runBrowserLogin()
@@ -382,7 +391,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
                 {authMessage()}
               </text>
             </Show>
-            <Show when={!authBusy()}>
+            <Show when={authBusy()}>
               <text fg={theme.textMuted} selectable={false}>
                 Press Esc to go back
               </text>

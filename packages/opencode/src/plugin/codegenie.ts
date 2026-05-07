@@ -328,6 +328,18 @@ class LocalAuthServer {
     })
   }
 
+  public cancel(): void {
+    if (this.rejectCallback) {
+      this.rejectCallback(new LoginCancelledError("Login cancelled by user"))
+      this.rejectCallback = null
+      this.resolveCallback = null
+    }
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId)
+      this.timeoutId = null
+    }
+  }
+
   public async stop(): Promise<void> {
     if (this.timeoutId) {
       clearTimeout(this.timeoutId)
@@ -521,6 +533,12 @@ class LoginService {
   public async logout(): Promise<void> {
     await tokenStorage.clearToken()
     this.userInfo = null
+  }
+
+  public cancel(): void {
+    if (this.server) {
+      this.server.cancel()
+    }
   }
 
   private generateClientSecret(): string {
@@ -777,6 +795,10 @@ class CodeGenieAuth {
     return loginService.logout()
   }
 
+  cancel(): void {
+    loginService.cancel()
+  }
+
   /**
    * 检查 token 是否过期
    * @param expires 过期时间戳（毫秒）
@@ -953,41 +975,21 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
               instructions: "Opening browser for login...",
               method: "auto" as const,
               async callback() {
-                const spinner = prompts.spinner()
-                spinner.start("Starting login process...")
+                const result = await codegenieAuth.login()
 
-                try {
-                  const result = await codegenieAuth.login()
-
-                  if (!result.success) {
-                    if (result.cancelled) {
-                      spinner.stop("Login cancelled")
-                      prompts.log.warn("You cancelled the login. You can try again anytime.")
-                      return { type: "failed" as const }
-                    }
-                    spinner.stop("Login failed")
-                    prompts.log.error(result.error || "Login failed")
-                    return { type: "failed" as const }
-                  }
-
-                  spinner.stop("Login successful!")
-                  prompts.log.success(`Logged in as ${result.userInfo?.userName}`)
-
-                  const access = result.userInfo?.accessToken || ""
-                  const refresh = result.userInfo?.refreshToken || ""
-
-                  return {
-                    type: "success" as const,
-                    provider: PROVIDER_ID,
-                    access,
-                    refresh,
-                    expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
-                  }
-                } catch (error) {
-                  spinner.stop("Login failed")
-                  const errorMessage = error instanceof Error ? error.message : "Unknown error"
-                  prompts.log.error(errorMessage)
+                if (!result.success) {
                   return { type: "failed" as const }
+                }
+
+                const access = result.userInfo?.accessToken || ""
+                const refresh = result.userInfo?.refreshToken || ""
+
+                return {
+                  type: "success" as const,
+                  provider: PROVIDER_ID,
+                  access,
+                  refresh,
+                  expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
                 }
               },
             }
