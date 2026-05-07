@@ -8,11 +8,13 @@ import crypto from "crypto"
 import http, { IncomingMessage, ServerResponse } from "http"
 import https from "https"
 import { OAUTH_DUMMY_KEY } from "@/auth"
+import * as Log from "@opencode-ai/core/util/log"
 import { Global } from "@opencode-ai/core/global"
 import { LocalCrypto } from "@/security/local-crypto"
 import { URL } from "url"
 
 const execAsync = promisify(exec)
+const log = Log.create({ service: "codegenie" })
 const PROVIDER_ID = "codegenie"
 export const sessionChatIdMap = new Map<string, string>()
 
@@ -702,22 +704,24 @@ class LoginService {
    * @returns 新的 accessToken 和 refreshToken，如果刷新失败返回 null
    */
   async refreshToken(jwtToken: string): Promise<{ accessToken: string; refreshToken: string } | null> {
+    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
+    const url = `${regionalizedBaseUrl}/${this.config.jwtTokenCheckUrl}`
     try {
       const headers: Record<string, string> = {
         refresh: "true",
         jwtToken: jwtToken,
       }
 
-      const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-      const url = `${regionalizedBaseUrl}/${this.config.jwtTokenCheckUrl}`
       const response = await httpClient.get(url, { headers })
 
       if (response.statusCode !== 200) {
+        log.error(`refreshToken failed: HTTP ${response.statusCode}`, { url })
         return null
       }
 
       const result = httpClient.parseJson(response)
       if (!result.status || !result.userInfo) {
+        log.error(`refreshToken failed: invalid response`, { status: result.status, hasUserInfo: !!result.userInfo, url })
         return null
       }
 
@@ -725,7 +729,8 @@ class LoginService {
         accessToken: result.userInfo.accessToken,
         refreshToken: result.userInfo.refreshToken ?? "",
       }
-    } catch {
+    } catch (err) {
+      log.error(`refreshToken error: ${err}`, { url })
       return null
     }
   }

@@ -824,6 +824,16 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           const newTokens = yield* Effect.promise(() => codegenieAuth.refreshToken())
           if (newTokens) {
             log.info("codegenie token refresh successful")
+            yield* Effect.promise(() =>
+              import("@/plugin/codegenie").then((m) =>
+                m.saveAuthToDisk("codegenie", {
+                  type: "oauth",
+                  access: newTokens.accessToken,
+                  refresh: newTokens.refreshToken,
+                  expires: Date.now() + m.ACCESS_TOKEN_EXPIRES_MS,
+                }),
+              ),
+            )
             return {
               autoload: true,
               options: {
