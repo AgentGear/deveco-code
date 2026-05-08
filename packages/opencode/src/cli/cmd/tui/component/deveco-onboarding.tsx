@@ -100,6 +100,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
       })
       await sdk.client.instance.dispose()
       await sync.bootstrap()
+      setAuthBusy(false)
       props.onComplete()
     } catch (error) {
       if (authAborted) return

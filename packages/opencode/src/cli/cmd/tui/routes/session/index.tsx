@@ -81,6 +81,7 @@ import { DialogExportOptions } from "../../ui/dialog-export-options"
 import * as Model from "../../util/model"
 import { formatTranscript } from "../../util/transcript"
 import { UI } from "@/cli/ui.ts"
+import { bannerLogoPalette, formatBannerLogoAnsiLines } from "../../component/banner-logo"
 import { useTuiConfig } from "../../context/tui-config"
 import { getScrollAcceleration } from "../../util/scroll"
 import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
@@ -181,7 +182,7 @@ export function Session() {
   const project = useProject()
   const tuiConfig = useTuiConfig()
   const kv = useKV()
-  const { theme } = useTheme()
+  const { theme, mode } = useTheme()
   const promptRef = usePromptRef()
   const session = createMemo(() => sync.session.get(route.sessionID))
   const children = createMemo(() => {
@@ -336,7 +337,7 @@ export function Session() {
     const title = Locale.truncate(session()?.title ?? "", 50)
     const pad = (text: string) => text.padEnd(10, " ")
     const weak = (text: string) => UI.Style.TEXT_DIM + pad(text) + UI.Style.TEXT_NORMAL
-    const logo = UI.logo("  ").split(/\r?\n/)
+    const logo = formatBannerLogoAnsiLines(dimensions().width, bannerLogoPalette(mode() === "light", theme))
     return exit.message.set(
       [
         ``,
