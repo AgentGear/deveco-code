@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-import z from "zod"
-import { Tool } from "./tool"
+import { Effect, Schema } from "effect"
+import * as Tool from "./tool"
 import { findDevEcoHome, hdcPath } from "./lib/env"
 import DESCRIPTION from "./jscrash-report.txt"
 
@@ -373,52 +373,61 @@ function buildReport(
   }
 }
 
-export const JscrashReportTool = Tool.define("jscrash_report", async () => {
+export const JscrashReportTool = Tool.define("jscrash_report", Effect.gen(function* () {
+  const Parameters = Schema.Struct({
+    crash_log: Schema.optional(Schema.String).annotate({
+      description: "Raw crash log text. If omitted, collect recent hilog content from the device.",
+    }),
+    device_id: Schema.optional(Schema.String).annotate({ description: "Optional hdc target id" }),
+    bundle_name: Schema.optional(Schema.String).annotate({ description: "Optional bundle name to help filter the report" }),
+    process_hint: Schema.optional(Schema.String).annotate({ description: "Optional process name hint to help filter the report" }),
+    lines: Schema.Int.pipe(
+      Schema.check(Schema.isGreaterThanOrEqualTo(200)),
+      Schema.check(Schema.isLessThanOrEqualTo(10000)),
+      Schema.optional,
+      Schema.withDecodingDefault(Effect.succeed(4000)),
+    ).annotate({ description: "Number of log lines to analyze" }),
+  })
+
   return {
     description: DESCRIPTION,
-    parameters: z.object({
-      crash_log: z
-        .string()
-        .optional()
-        .describe("Raw crash log text. If omitted, collect recent hilog content from the device."),
-      device_id: z.string().optional().describe("Optional hdc target id"),
-      bundle_name: z.string().optional().describe("Optional bundle name to help filter the report"),
-      process_hint: z.string().optional().describe("Optional process name hint to help filter the report"),
-      lines: z.coerce.number().int().min(200).max(10000).default(4000).describe("Number of log lines to analyze"),
-    }),
-    async execute(args, _ctx) {
-      const rawLog = trim(String(args.crash_log || ""))
-      if (rawLog) {
-        const report = buildReport(rawLog, "provided_text", args.device_id || "default", args.bundle_name || "", args.process_hint || "")
+    parameters: Parameters,
+    execute: (args: Schema.Schema.Type<typeof Parameters>, _ctx: Tool.Context) =>
+      Effect.gen(function* () {
+        const rawLog = trim(String(args.crash_log || ""))
+        if (rawLog) {
+          const report = buildReport(rawLog, "provided_text", args.device_id || "default", args.bundle_name || "", args.process_hint || "")
+          return {
+            title: "Crash Report (from provided text)",
+            output: formatReport(report),
+            metadata: { status: report.status, errorType: report.errorType },
+          }
+        }
+
+        const home = yield* Effect.tryPromise(() => findDevEcoHome())
+        if (!home) {
+          return yield* Effect.fail(new Error("DevEco Studio path not found. Set DEVECO_HOME and retry, or pass crash_log directly."))
+        }
+        const hdc = hdcPath(home)
+        const hdcExists = yield* Effect.tryPromise(() => Bun.file(hdc).exists())
+        if (!hdcExists) {
+          return yield* Effect.fail(new Error(`hdc not found: ${hdc}`))
+        }
+
+        const out = yield* Effect.tryPromise(() => run([hdc, ...target(args.device_id), "shell", "hilog", "-x"]))
+        if (out.exitCode !== 0) {
+          return yield* Effect.fail(new Error(`hdc hilog -x failed (code=${out.exitCode}): ${out.stderr || out.stdout}`))
+        }
+
+        const logLines = cleanLines(out.stdout)
+        const lines = args.lines ?? 4000
+        const recent = logLines.slice(Math.max(0, logLines.length - lines)).join("\n")
+        const report = buildReport(recent, "device_hilog", args.device_id || "default", args.bundle_name || "", args.process_hint || "")
         return {
-          title: "Crash Report (from provided text)",
+          title: "Crash Report (from device hilog)",
           output: formatReport(report),
           metadata: { status: report.status, errorType: report.errorType },
         }
-      }
-
-      const home = await findDevEcoHome()
-      if (!home) {
-        throw new Error("DevEco Studio path not found. Set DEVECO_HOME and retry, or pass crash_log directly.")
-      }
-      const hdc = hdcPath(home)
-      if (!(await Bun.file(hdc).exists())) {
-        throw new Error(`hdc not found: ${hdc}`)
-      }
-
-      const out = await run([hdc, ...target(args.device_id), "shell", "hilog", "-x"])
-      if (out.exitCode !== 0) {
-        throw new Error(`hdc hilog -x failed (code=${out.exitCode}): ${out.stderr || out.stdout}`)
-      }
-
-      const logLines = cleanLines(out.stdout)
-      const recent = logLines.slice(Math.max(0, logLines.length - args.lines)).join("\n")
-      const report = buildReport(recent, "device_hilog", args.device_id || "default", args.bundle_name || "", args.process_hint || "")
-      return {
-        title: "Crash Report (from device hilog)",
-        output: formatReport(report),
-        metadata: { status: report.status, errorType: report.errorType },
-      }
-    },
+      }).pipe(Effect.orDie),
   }
-})
+}))
