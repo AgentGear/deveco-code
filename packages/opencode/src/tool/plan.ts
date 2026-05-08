@@ -6,7 +6,8 @@ import { Question } from "../question"
 import { Session } from "@/session/session"
 import { MessageV2 } from "../session/message-v2"
 import { Provider } from "@/provider/provider"
-import { Instance } from "../project/instance"
+import { InstanceState } from "@/effect/instance-state"
+import { Instance } from "@/project/instance"
 import { type SessionID, MessageID, PartID } from "../session/schema"
 import EXIT_DESCRIPTION from "./plan-exit.txt"
 import WRITE_DESCRIPTION from "./plan-write.txt"
@@ -33,8 +34,9 @@ export const PlanExitTool = Tool.define(
       parameters: Parameters,
       execute: (_params: {}, ctx: Tool.Context) =>
         Effect.gen(function* () {
+          const instance = yield* InstanceState.context
           const info = yield* session.get(ctx.sessionID)
-          const plan = path.relative(Instance.worktree, Session.plan(info))
+          const plan = path.relative(instance.worktree, Session.plan(info, instance))
           const answers = yield* question.ask({
             sessionID: ctx.sessionID,
             questions: [
@@ -98,7 +100,7 @@ export const PlanWriteTool = Tool.define(
       execute: (params: Schema.Schema.Type<typeof WriteParameters>, _ctx: Tool.Context) =>
         Effect.gen(function* () {
           const info = yield* session.get(_ctx.sessionID)
-          const planPath = Session.plan(info)
+          const planPath = Session.plan(info, Instance.current)
           yield* Effect.tryPromise(() =>
             fs.promises.mkdir(path.dirname(planPath), { recursive: true }),
           )
@@ -129,7 +131,7 @@ export const PlanEnterTool = Tool.define(
       execute: (_params: {}, ctx: Tool.Context) =>
         Effect.gen(function* () {
           const info = yield* session.get(ctx.sessionID)
-          const plan = path.relative(Instance.worktree, Session.plan(info))
+          const plan = path.relative(Instance.worktree, Session.plan(info, Instance.current))
 
           const answers = yield* question.ask({
             sessionID: ctx.sessionID,

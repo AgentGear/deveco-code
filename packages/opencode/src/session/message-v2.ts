@@ -42,7 +42,7 @@ export const OutputLengthError = namedSchemaError("MessageOutputLengthError", {}
 export const AbortedError = namedSchemaError("MessageAbortedError", { message: Schema.String })
 export const StructuredOutputError = namedSchemaError("StructuredOutputError", {
   message: Schema.String,
-  retries: Schema.Number,
+  retries: NonNegativeInt,
 })
 export const AuthError = namedSchemaError("ProviderAuthError", {
   providerID: Schema.String,
@@ -50,7 +50,7 @@ export const AuthError = namedSchemaError("ProviderAuthError", {
 })
 export const APIError = namedSchemaError("APIError", {
   message: Schema.String,
-  statusCode: Schema.optional(Schema.Number),
+  statusCode: Schema.optional(NonNegativeInt),
   isRetryable: Schema.Boolean,
   responseHeaders: Schema.optional(Schema.Record(Schema.String, Schema.String)),
   responseBody: Schema.optional(Schema.String),
@@ -122,8 +122,8 @@ export const TextPart = Schema.Struct({
   ignored: Schema.optional(Schema.Boolean),
   time: Schema.optional(
     Schema.Struct({
-      start: Schema.Number,
-      end: Schema.optional(Schema.Number),
+      start: NonNegativeInt,
+      end: Schema.optional(NonNegativeInt),
     }),
   ),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
@@ -138,8 +138,8 @@ export const ReasoningPart = Schema.Struct({
   text: Schema.String,
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
   time: Schema.Struct({
-    start: Schema.Number,
-    end: Schema.optional(Schema.Number),
+    start: NonNegativeInt,
+    end: Schema.optional(NonNegativeInt),
   }),
 })
   .annotate({ identifier: "ReasoningPart" })
@@ -149,8 +149,8 @@ export type ReasoningPart = Types.DeepMutable<Schema.Schema.Type<typeof Reasonin
 const filePartSourceBase = {
   text: Schema.Struct({
     value: Schema.String,
-    start: Schema.Int,
-    end: Schema.Int,
+    start: NonNegativeInt,
+    end: NonNegativeInt,
   }).annotate({ identifier: "FilePartSourceText" }),
 }
 
@@ -168,7 +168,7 @@ export const SymbolSource = Schema.Struct({
   path: Schema.String,
   range: LSP.Range,
   name: Schema.String,
-  kind: Schema.Int,
+  kind: NonNegativeInt,
 })
   .annotate({ identifier: "SymbolSource" })
   .pipe(withStatics((s) => ({ zod: zod(s) })))
@@ -207,8 +207,8 @@ export const AgentPart = Schema.Struct({
   source: Schema.optional(
     Schema.Struct({
       value: Schema.String,
-      start: Schema.Int,
-      end: Schema.Int,
+      start: NonNegativeInt,
+      end: NonNegativeInt,
     }),
   ),
 })
@@ -248,11 +248,10 @@ export type SubtaskPart = Types.DeepMutable<Schema.Schema.Type<typeof SubtaskPar
 export const RetryPart = Schema.Struct({
   ...partBase,
   type: Schema.Literal("retry"),
-  attempt: Schema.Number,
-  // APIError is still NamedError-based Zod; bridge via ZodOverride until errors migrate.
-  error: Schema.Any.annotate({ [ZodOverride]: APIError.Schema }),
+  attempt: NonNegativeInt,
+  error: APIError.EffectSchema,
   time: Schema.Struct({
-    created: Schema.Number,
+    created: NonNegativeInt,
   }),
 })
   .annotate({ identifier: "RetryPart" })
@@ -289,15 +288,15 @@ export const StepFinishPart = Schema.Struct({
   type: Schema.Literal("step-finish"),
   reason: Schema.String,
   snapshot: Schema.optional(Schema.String),
-  cost: Schema.Number,
+  cost: Schema.Finite,
   tokens: Schema.Struct({
-    total: Schema.optional(Schema.Number),
-    input: Schema.Number,
-    output: Schema.Number,
-    reasoning: Schema.Number,
+    total: Schema.optional(NonNegativeInt),
+    input: NonNegativeInt,
+    output: NonNegativeInt,
+    reasoning: NonNegativeInt,
     cache: Schema.Struct({
-      read: Schema.Number,
-      write: Schema.Number,
+      read: NonNegativeInt,
+      write: NonNegativeInt,
     }),
   }),
 })
@@ -320,7 +319,7 @@ export const ToolStateRunning = Schema.Struct({
   title: Schema.optional(Schema.String),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
   time: Schema.Struct({
-    start: Schema.Number,
+    start: NonNegativeInt,
   }),
 })
   .annotate({ identifier: "ToolStateRunning" })
@@ -334,9 +333,9 @@ export const ToolStateCompleted = Schema.Struct({
   title: Schema.String,
   metadata: Schema.Record(Schema.String, Schema.Any),
   time: Schema.Struct({
-    start: Schema.Number,
-    end: Schema.Number,
-    compacted: Schema.optional(Schema.Number),
+    start: NonNegativeInt,
+    end: NonNegativeInt,
+    compacted: Schema.optional(NonNegativeInt),
   }),
   attachments: Schema.optional(Schema.Array(FilePart)),
 })
@@ -356,8 +355,8 @@ export const ToolStateError = Schema.Struct({
   error: Schema.String,
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
   time: Schema.Struct({
-    start: Schema.Number,
-    end: Schema.Number,
+    start: NonNegativeInt,
+    end: NonNegativeInt,
   }),
 })
   .annotate({ identifier: "ToolStateError" })
@@ -400,7 +399,7 @@ export const User = Schema.Struct({
   ...messageBase,
   role: Schema.Literal("user"),
   time: Schema.Struct({
-    created: Schema.Number,
+    created: NonNegativeInt,
   }),
   format: Schema.optional(_Format),
   summary: Schema.optional(
@@ -470,9 +469,7 @@ export type Part =
   | QueuePart
   | CompactionPart
 
-// Errors are still NamedError-based Zod; bridge via ZodOverride so the derived
-// Zod + JSON Schema emit the original discriminatedUnion shape. Migrating the
-// error classes to Schema.TaggedErrorClass is a separate slice.
+// Zod discriminated union kept for the legacy Hono OpenAPI path.
 const AssistantErrorZod = z.discriminatedUnion("name", [
   AuthError.Schema,
   NamedError.Unknown.Schema,
@@ -484,6 +481,20 @@ const AssistantErrorZod = z.discriminatedUnion("name", [
   QueueError.Schema,
 ])
 type AssistantError = z.infer<typeof AssistantErrorZod>
+
+// Effect Schema for the same union — used by HttpApi OpenAPI generation.
+const AssistantErrorSchema = Schema.Union([
+  AuthError.EffectSchema,
+  Schema.Struct({ name: Schema.Literal("UnknownError"), data: Schema.Struct({ message: Schema.String }) }).annotate({
+    identifier: "UnknownError",
+  }),
+  OutputLengthError.EffectSchema,
+  AbortedError.EffectSchema,
+  StructuredOutputError.EffectSchema,
+  ContextOverflowError.EffectSchema,
+  APIError.EffectSchema,
+  QueueError.EffectSchema,
+]).annotate({ discriminator: "name" })
 
 // ── Prompt input schemas ─────────────────────────────────────────────────────
 //
@@ -501,8 +512,8 @@ export const TextPartInput = Schema.Struct({
   ignored: Schema.optional(Schema.Boolean),
   time: Schema.optional(
     Schema.Struct({
-      start: Schema.Number,
-      end: Schema.optional(Schema.Number),
+      start: NonNegativeInt,
+      end: Schema.optional(NonNegativeInt),
     }),
   ),
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
@@ -530,8 +541,8 @@ export const AgentPartInput = Schema.Struct({
   source: Schema.optional(
     Schema.Struct({
       value: Schema.String,
-      start: Schema.Int,
-      end: Schema.Int,
+      start: NonNegativeInt,
+      end: NonNegativeInt,
     }),
   ),
 })
@@ -561,10 +572,10 @@ export const Assistant = Schema.Struct({
   ...messageBase,
   role: Schema.Literal("assistant"),
   time: Schema.Struct({
-    created: Schema.Number,
-    completed: Schema.optional(Schema.Number),
+    created: NonNegativeInt,
+    completed: Schema.optional(NonNegativeInt),
   }),
-  error: Schema.optional(Schema.Any.annotate({ [ZodOverride]: AssistantErrorZod })),
+  error: Schema.optional(AssistantErrorSchema),
   parentID: MessageID,
   modelID: ModelID,
   providerID: ProviderID,
@@ -578,15 +589,15 @@ export const Assistant = Schema.Struct({
     root: Schema.String,
   }),
   summary: Schema.optional(Schema.Boolean),
-  cost: Schema.Number,
+  cost: Schema.Finite,
   tokens: Schema.Struct({
-    total: Schema.optional(Schema.Number),
-    input: Schema.Number,
-    output: Schema.Number,
-    reasoning: Schema.Number,
+    total: Schema.optional(NonNegativeInt),
+    input: NonNegativeInt,
+    output: NonNegativeInt,
+    reasoning: NonNegativeInt,
     cache: Schema.Struct({
-      read: Schema.Number,
-      write: Schema.Number,
+      read: NonNegativeInt,
+      write: NonNegativeInt,
     }),
   }),
   structured: Schema.optional(Schema.Any),
@@ -618,7 +629,7 @@ const RemovedEventSchema = Schema.Struct({
 const PartUpdatedEventSchema = Schema.Struct({
   sessionID: SessionID,
   part: _Part,
-  time: Schema.Number,
+  time: NonNegativeInt,
 })
 
 const PartRemovedEventSchema = Schema.Struct({
@@ -675,7 +686,7 @@ export type WithParts = {
 
 const Cursor = Schema.Struct({
   id: MessageID,
-  time: Schema.Number,
+  time: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
 })
 type Cursor = typeof Cursor.Type
 
@@ -786,7 +797,7 @@ export const toModelMessagesEffect = Effect.fnUntraced(function* (
       return {
         type: "content",
         value: [
-          { type: "text", text: outputObject.text },
+          ...(outputObject.text ? [{ type: "text", text: outputObject.text }] : []),
           ...attachments.map((attachment) => ({
             type: "media",
             mediaType: attachment.mime,

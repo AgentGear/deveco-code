@@ -20,6 +20,7 @@ import { CloudflareAIGatewayAuthPlugin, CloudflareWorkersAuthPlugin } from "./cl
 import { CodegenieAuthPlugin } from "./codegenie"
 import AnalyticsPlugin from "./analytics/analytics-plugin"
 import HarmonyNapiDynamicToolsPlugin from "./harmony-napi-dynamic-tools"
+import { AzureAuthPlugin } from "./azure"
 import { Effect, Layer, Context, Stream } from "effect"
 import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
@@ -67,6 +68,7 @@ const INTERNAL_PLUGINS: PluginInstance[] = [
   CodegenieAuthPlugin,
   AnalyticsPlugin,
   HarmonyNapiDynamicToolsPlugin,
+  AzureAuthPlugin,
 ]
 
 function isServerPlugin(value: unknown): value is PluginInstance {

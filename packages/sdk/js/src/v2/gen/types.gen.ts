@@ -201,6 +201,14 @@ export type ApiError = {
   }
 }
 
+export type QueueError = {
+  name: "QueueError"
+  data: {
+    position: number
+    message: string
+  }
+}
+
 export type EventSessionError = {
   type: "session.error"
   properties: {
@@ -213,6 +221,7 @@ export type EventSessionError = {
       | StructuredOutputError
       | ContextOverflowError
       | ApiError
+      | QueueError
   }
 }
 
@@ -341,6 +350,13 @@ export type SessionStatus =
       next: number
     }
   | {
+      type: "queue"
+      attempt: number
+      position: number
+      message: string
+      next: number
+    }
+  | {
       type: "busy"
     }
 
@@ -452,6 +468,38 @@ export type EventVcsBranchUpdated = {
   }
 }
 
+export type EventWorkspaceReady = {
+  type: "workspace.ready"
+  properties: {
+    name: string
+  }
+}
+
+export type EventWorkspaceFailed = {
+  type: "workspace.failed"
+  properties: {
+    message: string
+  }
+}
+
+export type EventWorkspaceRestore = {
+  type: "workspace.restore"
+  properties: {
+    workspaceID: string
+    sessionID: string
+    total: number
+    step: number
+  }
+}
+
+export type EventWorkspaceStatus = {
+  type: "workspace.status"
+  properties: {
+    workspaceID: string
+    status: "connected" | "connecting" | "disconnected" | "error"
+  }
+}
+
 export type EventWorktreeReady = {
   type: "worktree.ready"
   properties: {
@@ -503,38 +551,6 @@ export type EventPtyDeleted = {
   type: "pty.deleted"
   properties: {
     id: string
-  }
-}
-
-export type EventWorkspaceReady = {
-  type: "workspace.ready"
-  properties: {
-    name: string
-  }
-}
-
-export type EventWorkspaceFailed = {
-  type: "workspace.failed"
-  properties: {
-    message: string
-  }
-}
-
-export type EventWorkspaceRestore = {
-  type: "workspace.restore"
-  properties: {
-    workspaceID: string
-    sessionID: string
-    total: number
-    step: number
-  }
-}
-
-export type EventWorkspaceStatus = {
-  type: "workspace.status"
-  properties: {
-    workspaceID: string
-    status: "connected" | "connecting" | "disconnected" | "error"
   }
 }
 
@@ -595,6 +611,7 @@ export type AssistantMessage = {
     | StructuredOutputError
     | ContextOverflowError
     | ApiError
+    | QueueError
   parentID: string
   modelID: string
   providerID: string
@@ -878,6 +895,19 @@ export type RetryPart = {
   }
 }
 
+export type QueuePart = {
+  id: string
+  sessionID: string
+  messageID: string
+  type: "queue"
+  position: number
+  message: string
+  time: {
+    start: number
+    end?: number
+  }
+}
+
 export type CompactionPart = {
   id: string
   sessionID: string
@@ -900,6 +930,7 @@ export type Part =
   | PatchPart
   | AgentPart
   | RetryPart
+  | QueuePart
   | CompactionPart
 
 export type EventMessagePartUpdated = {
@@ -1141,16 +1172,16 @@ export type GlobalEvent = {
     | EventMcpBrowserOpenFailed
     | EventCommandExecuted
     | EventVcsBranchUpdated
+    | EventWorkspaceReady
+    | EventWorkspaceFailed
+    | EventWorkspaceRestore
+    | EventWorkspaceStatus
     | EventWorktreeReady
     | EventWorktreeFailed
     | EventPtyCreated
     | EventPtyUpdated
     | EventPtyExited
     | EventPtyDeleted
-    | EventWorkspaceReady
-    | EventWorkspaceFailed
-    | EventWorkspaceRestore
-    | EventWorkspaceStatus
     | EventMessageUpdated
     | EventMessageRemoved
     | EventMessagePartUpdated
@@ -1221,7 +1252,6 @@ export type PermissionConfig =
       question?: PermissionActionConfig
       webfetch?: PermissionActionConfig
       websearch?: PermissionActionConfig
-      codesearch?: PermissionActionConfig
       lsp?: PermissionRuleConfig
       doom_loop?: PermissionActionConfig
       skill?: PermissionRuleConfig
@@ -2085,16 +2115,16 @@ export type Event =
   | EventMcpBrowserOpenFailed
   | EventCommandExecuted
   | EventVcsBranchUpdated
+  | EventWorkspaceReady
+  | EventWorkspaceFailed
+  | EventWorkspaceRestore
+  | EventWorkspaceStatus
   | EventWorktreeReady
   | EventWorktreeFailed
   | EventPtyCreated
   | EventPtyUpdated
   | EventPtyExited
   | EventPtyDeleted
-  | EventWorkspaceReady
-  | EventWorkspaceFailed
-  | EventWorkspaceRestore
-  | EventWorkspaceStatus
   | EventMessageUpdated
   | EventMessageRemoved
   | EventMessagePartUpdated
@@ -3285,10 +3315,18 @@ export type SessionListData = {
   path?: never
   query?: {
     /**
-     * Filter sessions by project directory
+     * Filter sessions by directory
      */
     directory?: string
     workspace?: string
+    /**
+     * List all sessions for the current project
+     */
+    scope?: "project"
+    /**
+     * Filter sessions by project-relative path
+     */
+    path?: string
     /**
      * Only return root sessions (no parentID)
      */
