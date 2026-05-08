@@ -156,6 +156,7 @@ export type AuthHook = {
             }
           | {
               type: "failed"
+              error?: string
             }
         >
       }
@@ -181,6 +182,7 @@ export type AuthOAuthResult = { url: string; instructions: string } & (
           ))
         | {
             type: "failed"
+            error?: string
           }
       >
     }
@@ -202,6 +204,7 @@ export type AuthOAuthResult = { url: string; instructions: string } & (
           ))
         | {
             type: "failed"
+            error?: string
           }
       >
     }
