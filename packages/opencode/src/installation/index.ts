@@ -74,6 +74,7 @@ export interface Interface {
   readonly info: () => Effect.Effect<Info>
   readonly method: () => Effect.Effect<Method>
   readonly latest: (method?: Method) => Effect.Effect<string>
+  readonly validateVersion: (method: Method, target: string) => Effect.Effect<boolean>
   readonly upgrade: (method: Method, target: string) => Effect.Effect<void, UpgradeFailedError>
 }
 
@@ -186,6 +187,15 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | ChildPro
           const data = yield* HttpClientResponse.schemaBodyJson(NpmPackage)(response)
           return data.version
         }, Effect.orDie),
+        validateVersion: Effect.fn("Installation.validateVersion")(function* (m: Method, target: string) {
+          const effectiveMethod = (m === "unknown" ? "npm" : m) as "npm" | "pnpm" | "bun"
+          const args =
+            effectiveMethod === "bun"
+              ? ["pm", "view", `@codegenie-ai/codegenie-cli@${target}`, "version", "--json"]
+              : ["view", `@codegenie-ai/codegenie-cli@${target}`, "version", "--json"]
+          const result = yield* run([effectiveMethod, ...args])
+          return result.code === 0 && !!result.stdout.trim()
+        }),
         upgrade: Effect.fn("Installation.upgrade")(function* (m: Method, target: string) {
           let upgradeResult: { code: ChildProcessSpawner.ExitCode; stdout: string; stderr: string } | undefined
           switch (m) {
@@ -228,6 +238,8 @@ const { runPromise } = makeRuntime(Service, defaultLayer)
 
 export const latest = (...args: Parameters<Interface["latest"]>) => runPromise((s) => s.latest(...args))
 export const method = () => runPromise((s) => s.method())
+export const validateVersion = (...args: Parameters<Interface["validateVersion"]>) =>
+  runPromise((s) => s.validateVersion(...args))
 export const upgrade = (...args: Parameters<Interface["upgrade"]>) => runPromise((s) => s.upgrade(...args))
 
 export * as Installation from "."
