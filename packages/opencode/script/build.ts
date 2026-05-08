@@ -65,14 +65,14 @@ async function walk(directory: string): Promise<string[]> {
 }
 
 const defaultSkillsDir = path.join(dir, "resources/skills")
-type EmbeddedSkillFile = string | { encoding: "base64"; content: string }
+type EmbeddedFile = string | { encoding: "base64"; content: string }
 
 const binaryExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bin"])
-const defaultSkillsData: Record<string, Record<string, EmbeddedSkillFile>> = {}
+const defaultSkillsData: Record<string, Record<string, EmbeddedFile>> = {}
 if (fs.existsSync(defaultSkillsDir)) {
   for (const entry of await fs.promises.readdir(defaultSkillsDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
-    const files: Record<string, EmbeddedSkillFile> = {}
+    const files: Record<string, EmbeddedFile> = {}
     const skillPath = path.join(defaultSkillsDir, entry.name)
     for (const file of await walk(skillPath)) {
       const rel = path.relative(skillPath, file)
@@ -84,6 +84,27 @@ if (fs.existsSync(defaultSkillsDir)) {
   }
 }
 console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
+
+const defaultSpecDir = path.join(dir, "resources/spec")
+const defaultSpecData: Record<string, Record<string, EmbeddedFile> | EmbeddedFile> = {}
+if (fs.existsSync(defaultSpecDir)) {
+  for (const entry of await fs.promises.readdir(defaultSpecDir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      const files: Record<string, EmbeddedFile> = {}
+      const specPath = path.join(defaultSpecDir, entry.name)
+      for (const file of await walk(specPath)) {
+        const rel = path.relative(specPath, file)
+        files[rel] = binaryExtensions.has(path.extname(file).toLowerCase())
+          ? { encoding: "base64", content: Buffer.from(await Bun.file(file).arrayBuffer()).toString("base64") }
+          : await Bun.file(file).text()
+      }
+      defaultSpecData[entry.name] = files
+    } else if (entry.isFile()) {
+      defaultSpecData[entry.name] = await Bun.file(path.join(defaultSpecDir, entry.name)).text()
+    }
+  }
+}
+console.log(`Loaded ${Object.keys(defaultSpecData).length} default spec resources`)
 
 const singleFlag = process.argv.includes("--single")
 const baselineFlag = process.argv.includes("--baseline")
@@ -230,6 +251,7 @@ for (const item of targets) {
       CODEGENIE_CHANNEL: `'${Script.channel}'`,
       CODEGENIE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
       CODEGENIE_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
+      CODEGENIE_DEFAULT_SPEC_RESOURCES: JSON.stringify(defaultSpecData),
     },
   })
 
