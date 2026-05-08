@@ -52,6 +52,12 @@ export const UpgradeCommand = {
     }
 
     prompts.log.info(`From ${InstallationVersion} → ${target}`)
+    const valid = await Installation.validateVersion(method, target).catch(() => false)
+    if (!valid) {
+      prompts.log.error(`Version "${target}" not found in registry`)
+      prompts.outro("Done")
+      return
+    }
     const spinner = prompts.spinner()
     spinner.start("Upgrading...")
     const err = await Installation.upgrade(method, target).catch((err) => err)
