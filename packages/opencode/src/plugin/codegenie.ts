@@ -8,11 +8,13 @@ import crypto from "crypto"
 import http, { IncomingMessage, ServerResponse } from "http"
 import https from "https"
 import { OAUTH_DUMMY_KEY } from "@/auth"
+import * as Log from "@opencode-ai/core/util/log"
 import { Global } from "@opencode-ai/core/global"
 import { LocalCrypto } from "@/security/local-crypto"
 import { URL } from "url"
 
 const execAsync = promisify(exec)
+const log = Log.create({ service: "codegenie" })
 const PROVIDER_ID = "codegenie"
 export const sessionChatIdMap = new Map<string, string>()
 
@@ -48,8 +50,24 @@ interface UserInfo {
 
 interface LoginResult {
   success: boolean
+  cancelled?: boolean
   userInfo?: UserInfo
   error?: string
+  unsupportedRegion?: boolean
+}
+
+class LoginCancelledError extends Error {
+  constructor(message: string = "Login cancelled by user") {
+    super(message)
+    this.name = "LoginCancelledError"
+  }
+}
+
+class UnsupportedRegionError extends Error {
+  constructor(message: string = "Unsupported region") {
+    super(message)
+    this.name = "UnsupportedRegionError"
+  }
 }
 
 interface TokenCheckResponse {
@@ -79,7 +97,6 @@ interface LoginConfig {
   appId: string
   defaultPort: number
   timeout: number
-  countryCode?: string
 }
 
 interface CallbackData {
@@ -104,7 +121,7 @@ interface HttpRequestConfig {
 const ACCESS_TOKEN_EXPIRES_MS = 30 * 60 * 1000 // 30 minutes
 
 const DEFAULT_CONFIG: LoginConfig = {
-  baseUrl: "https://devecostudio.huawei.com",
+  baseUrl: "https://cn.devecostudio.huawei.com",
   authUrl: "console/DevEcoIDE/apply",
   tempTokenCheckUrl: "authrouter/auth/api/temptoken/check",
   jwtTokenCheckUrl: "authrouter/auth/api/jwToken/check",
@@ -113,28 +130,7 @@ const DEFAULT_CONFIG: LoginConfig = {
   appId: "1008",
   defaultPort: 10101,
   timeout: 600000, // 10 minutes
-  countryCode: "CN",
 }
-
-const CountryCode = {
-  CHINA: "CN",
-  RUSSIA: "RU",
-  SINGAPORE: "SG",
-  EUROPE: "EU",
-} as const
-
-const LanguageCode = {
-  CHINA: "zh_CN",
-  RUSSIA: "ru_RU",
-  EUROPE: "de_DE",
-} as const
-
-const SiteId = {
-  CHINA: "1",
-  SINGAPORE: "5",
-  EUROPE: "7",
-  RUSSIA: "8",
-} as const
 
 // ============ HttpClient ============
 class HttpClient {
@@ -320,6 +316,18 @@ class LocalAuthServer {
     })
   }
 
+  public cancel(): void {
+    if (this.rejectCallback) {
+      this.rejectCallback(new LoginCancelledError("Login cancelled by user"))
+      this.rejectCallback = null
+      this.resolveCallback = null
+    }
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId)
+      this.timeoutId = null
+    }
+  }
+
   public async stop(): Promise<void> {
     if (this.timeoutId) {
       clearTimeout(this.timeoutId)
@@ -390,14 +398,21 @@ class LocalAuthServer {
       const siteId = params.get("siteId")
       const quit = params.get("quit")
 
-      if (code !== this.clientSecret) {
-        res.writeHead(400)
-        res.end("Bad Request")
+      if (quit === "true" || quit === "access_denied") {
+        this.rejectCallback?.(
+          new LoginCancelledError(
+            quit === "access_denied" ? "Access denied by user" : "Login cancelled by user",
+          ),
+        )
+        res.writeHead(302, {
+          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
+        })
+        res.end()
         return
       }
 
-      if (quit === "true" || quit === "access_denied") {
-        this.rejectCallback?.(new Error("User quit the login process"))
+      if (code !== this.clientSecret) {
+        this.rejectCallback?.(new LoginCancelledError("Login cancelled or invalid callback"))
         res.writeHead(302, {
           Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
         })
@@ -406,8 +421,20 @@ class LocalAuthServer {
       }
 
       if (!tempToken || !siteId) {
-        res.writeHead(400)
-        res.end("Bad Request")
+        this.rejectCallback?.(new Error("Login cancelled by user"))
+        res.writeHead(302, {
+          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
+        })
+        res.end()
+        return
+      }
+
+      if (siteId !== "1") {
+        this.rejectCallback?.(new UnsupportedRegionError("Unsupported region"))
+        res.writeHead(302, {
+          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
+        })
+        res.end()
         return
       }
 
@@ -449,14 +476,14 @@ class LoginService {
     try {
       const clientSecret = this.generateClientSecret()
 
-      this.server = new LocalAuthServer(this.config.defaultPort, clientSecret, this.getRegionalizedBaseUrl(), this.config.successRedirectUrl, this.config.failedRedirectUrl)
+      this.server = new LocalAuthServer(this.config.defaultPort, clientSecret, this.config.baseUrl, this.config.successRedirectUrl, this.config.failedRedirectUrl)
       await this.server.start()
 
       await this.openLoginPage(this.server.getPort(), clientSecret)
 
       const callbackData = await this.server.waitForCallback(this.config.timeout)
 
-      const jwtToken = await this.getJwtToken(callbackData.tempToken, callbackData.siteId)
+      const jwtToken = await this.getJwtToken(callbackData.tempToken)
 
       const userInfo = await this.getUserInfoFromJwt(jwtToken)
 
@@ -469,6 +496,20 @@ class LoginService {
         userInfo,
       }
     } catch (err) {
+      if (err instanceof LoginCancelledError) {
+        return {
+          success: false,
+          cancelled: true,
+          error: err.message,
+        }
+      }
+      if (err instanceof UnsupportedRegionError) {
+        return {
+          success: false,
+          unsupportedRegion: true,
+          error: "Sorry, only China site accounts are currently supported",
+        }
+      }
       return {
         success: false,
         error: err instanceof Error ? err.message : "Unknown error",
@@ -498,22 +539,18 @@ class LoginService {
     this.userInfo = null
   }
 
+  public cancel(): void {
+    if (this.server) {
+      this.server.cancel()
+    }
+  }
+
   private generateClientSecret(): string {
     return crypto.randomUUID().replace(/-/g, "")
   }
 
-  private getRegionalizedBaseUrl(): string {
-    const countryCode = this.config.countryCode?.toUpperCase()
-
-    if (countryCode === "CN") {
-      return "https://cn.devecostudio.huawei.com"
-    }
-    return this.config.baseUrl
-  }
-
   private async openLoginPage(port: number, clientSecret: string): Promise<void> {
-    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-    const loginUrl = `${regionalizedBaseUrl}/${this.config.authUrl}?port=${port}&appid=${this.config.appId}&code=${clientSecret}`
+    const loginUrl = `${this.config.baseUrl}/${this.config.authUrl}?port=${port}&appid=${this.config.appId}&code=${clientSecret}`
 
     const platform = process.platform
     let command: string
@@ -535,20 +572,17 @@ class LoginService {
     }
   }
 
-  private async getJwtToken(tempToken: string, siteId: string): Promise<string> {
+  private async getJwtToken(tempToken: string): Promise<string> {
     const actualTempToken = tempToken.split("&")[0]
-
-    const countryCode = this.getCountryCodeBySiteId(siteId)
 
     const params = {
       tempToken: actualTempToken,
-      site: countryCode,
+      site: "CN",
       version: "1.0.0",
       appid: this.config.appId,
     }
 
-    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-    const url = `${regionalizedBaseUrl}/${this.config.tempTokenCheckUrl}`
+    const url = `${this.config.baseUrl}/${this.config.tempTokenCheckUrl}`
     const response = await httpClient.get(url, { params })
 
     if (response.statusCode !== 200) {
@@ -579,8 +613,8 @@ class LoginService {
       accessToken: tokenInfo.userInfo.accessToken,
       refreshToken: tokenInfo.userInfo.refreshToken ?? "",
       jwtToken: jwtToken,
-      countryCode: tokenInfo.userInfo.nationalCode,
-      language: this.getLanguageByCountryCode(tokenInfo.userInfo.nationalCode),
+      countryCode: "CN",
+      language: "zh_CN",
       isRealName: tokenInfo.userInfo.realName === "true",
     }
 
@@ -593,8 +627,7 @@ class LoginService {
       jwtToken: jwtToken,
     }
 
-    const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-    const url = `${regionalizedBaseUrl}/${this.config.jwtTokenCheckUrl}`
+    const url = `${this.config.baseUrl}/${this.config.jwtTokenCheckUrl}`
     const response = await httpClient.get(url, { headers })
 
     if (response.statusCode !== 200) {
@@ -625,56 +658,29 @@ class LoginService {
     }
   }
 
-  private getCountryCodeBySiteId(siteId: string): string {
-    switch (siteId) {
-      case SiteId.CHINA:
-        return CountryCode.CHINA
-      case SiteId.SINGAPORE:
-        return CountryCode.SINGAPORE
-      case SiteId.EUROPE:
-        return CountryCode.EUROPE
-      case SiteId.RUSSIA:
-        return CountryCode.RUSSIA
-      default:
-        return CountryCode.CHINA
-    }
-  }
-
-  private getLanguageByCountryCode(countryCode: string): string {
-    switch (countryCode) {
-      case CountryCode.CHINA:
-        return LanguageCode.CHINA
-      case CountryCode.RUSSIA:
-        return LanguageCode.RUSSIA
-      case CountryCode.EUROPE:
-        return LanguageCode.EUROPE
-      default:
-        return LanguageCode.CHINA
-    }
-  }
-
   /**
    * 刷新 accessToken
    * @param jwtToken 当前的 jwtToken
    * @returns 新的 accessToken 和 refreshToken，如果刷新失败返回 null
    */
   async refreshToken(jwtToken: string): Promise<{ accessToken: string; refreshToken: string } | null> {
+    const url = `${this.config.baseUrl}/${this.config.jwtTokenCheckUrl}`
     try {
       const headers: Record<string, string> = {
         refresh: "true",
         jwtToken: jwtToken,
       }
 
-      const regionalizedBaseUrl = this.getRegionalizedBaseUrl()
-      const url = `${regionalizedBaseUrl}/${this.config.jwtTokenCheckUrl}`
       const response = await httpClient.get(url, { headers })
 
       if (response.statusCode !== 200) {
+        log.error(`refreshToken failed: HTTP ${response.statusCode}`, { url })
         return null
       }
 
       const result = httpClient.parseJson(response)
       if (!result.status || !result.userInfo) {
+        log.error(`refreshToken failed: invalid response`, { status: result.status, hasUserInfo: !!result.userInfo, url })
         return null
       }
 
@@ -682,7 +688,8 @@ class LoginService {
         accessToken: result.userInfo.accessToken,
         refreshToken: result.userInfo.refreshToken ?? "",
       }
-    } catch {
+    } catch (err) {
+      log.error(`refreshToken error: ${err}`, { url })
       return null
     }
   }
@@ -752,6 +759,10 @@ class CodeGenieAuth {
     return loginService.logout()
   }
 
+  cancel(): void {
+    loginService.cancel()
+  }
+
   /**
    * 检查 token 是否过期
    * @param expires 过期时间戳（毫秒）
@@ -814,7 +825,11 @@ export async function requireLogin(): Promise<boolean> {
 
     if (!result.success) {
       spinner.stop("Login failed")
-      prompts.log.error(result.error || "An error occurred during login")
+      if (result.unsupportedRegion) {
+        prompts.log.error("Sorry, only China site accounts are currently supported")
+      } else {
+        prompts.log.error(result.error || "An error occurred during login")
+      }
       prompts.outro("Please try again later")
       return false
     }
@@ -928,36 +943,24 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
               instructions: "Opening browser for login...",
               method: "auto" as const,
               async callback() {
-                const spinner = prompts.spinner()
-                spinner.start("Starting login process...")
+                const result = await codegenieAuth.login()
 
-                try {
-                  const result = await codegenieAuth.login()
-
-                  if (!result.success) {
-                    spinner.stop("Login failed")
-                    prompts.log.error(result.error || "Login failed")
-                    return { type: "failed" as const }
+                if (!result.success) {
+                  if (result.unsupportedRegion) {
+                    return { type: "failed" as const, error: "Sorry, only China site accounts are currently supported" }
                   }
-
-                  spinner.stop("Login successful!")
-                  prompts.log.success(`Logged in as ${result.userInfo?.userName}`)
-
-                  const access = result.userInfo?.accessToken || ""
-                  const refresh = result.userInfo?.refreshToken || ""
-
-                  return {
-                    type: "success" as const,
-                    provider: PROVIDER_ID,
-                    access,
-                    refresh,
-                    expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
-                  }
-                } catch (error) {
-                  spinner.stop("Login failed")
-                  const errorMessage = error instanceof Error ? error.message : "Unknown error"
-                  prompts.log.error(errorMessage)
                   return { type: "failed" as const }
+                }
+
+                const access = result.userInfo?.accessToken || ""
+                const refresh = result.userInfo?.refreshToken || ""
+
+                return {
+                  type: "success" as const,
+                  provider: PROVIDER_ID,
+                  access,
+                  refresh,
+                  expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
                 }
               },
             }

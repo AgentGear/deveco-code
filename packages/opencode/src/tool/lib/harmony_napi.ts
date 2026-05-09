@@ -89,3 +89,12 @@ export async function callTool(
 ): Promise<unknown> {
   return callHarmonyNapiTool({ worktree, toolName, args })
 }
+
+
+export async function napiBridgeStop(): Promise<void> {
+  try {
+    await bridge?.stop?.();
+  } catch (error) {
+    
+  }
+}

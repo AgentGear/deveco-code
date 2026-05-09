@@ -30,3 +30,5 @@ logs/
 *.bun-build
 tsconfig.tsbuildinfo
 .build-cache/
+specs/
+docs/

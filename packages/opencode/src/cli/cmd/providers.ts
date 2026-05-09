@@ -18,6 +18,10 @@ import { Effect } from "effect"
 
 type PluginAuth = NonNullable<Hooks["auth"]>
 
+const PLUGIN_PROVIDER_CONFIG: Record<string, { name: string; type?: string }> = {
+  codegenie: { name: "CodeGenie OAuth", type: "OAuth" },
+}
+
 const put = (key: string, info: Auth.Info) =>
   AppRuntime.runPromise(
     Effect.gen(function* () {
@@ -95,7 +99,7 @@ async function handlePluginAuth(plugin: { auth: PluginAuth }, provider: string, 
       spinner.start("Waiting for authorization...")
       const result = await authorize.callback()
       if (result.type === "failed") {
-        spinner.stop("Failed to authorize", 1)
+        spinner.stop(result.error || "Login cancelled", 1)
       }
       if (result.type === "success") {
         const saveProvider = result.provider ?? provider
@@ -156,28 +160,38 @@ async function handlePluginAuth(plugin: { auth: PluginAuth }, provider: string, 
   }
 
   if (method.type === "api") {
-    if (method.authorize) {
-      const key = await prompts.password({
-        message: "Enter your API key",
-        validate: (x) => (x && x.length > 0 ? undefined : "Required"),
-      })
-      if (prompts.isCancel(key)) throw new UI.CancelledError()
+    const key = await prompts.password({
+      message: "Enter your API key",
+      validate: (x) => (x && x.length > 0 ? undefined : "Required"),
+    })
+    if (prompts.isCancel(key)) throw new UI.CancelledError()
 
-      const result = await method.authorize(inputs)
-      if (result.type === "failed") {
-        prompts.log.error("Failed to authorize")
-      }
-      if (result.type === "success") {
-        const saveProvider = result.provider ?? provider
-        await put(saveProvider, {
-          type: "api",
-          key: result.key ?? key,
-        })
-        prompts.log.success("Login successful")
-      }
+    const metadata = Object.keys(inputs).length ? { metadata: inputs } : {}
+    if (!method.authorize) {
+      await put(provider, {
+        type: "api",
+        key,
+        ...metadata,
+      })
       prompts.outro("Done")
       return true
     }
+
+    const result = await method.authorize(inputs)
+    if (result.type === "failed") {
+      prompts.log.error("Failed to authorize")
+    }
+    if (result.type === "success") {
+      const saveProvider = result.provider ?? provider
+      await put(saveProvider, {
+        type: "api",
+        key: result.key ?? key,
+        ...metadata,
+      })
+      prompts.log.success("Login successful")
+    }
+    prompts.outro("Done")
+    return true
   }
 
   return false
@@ -190,10 +204,6 @@ export function resolvePluginProviders(input: {
   enabled?: Set<string>
   providerNames: Record<string, string | undefined>
 }): Array<{ id: string; name: string }> {
-  const PLUGIN_PROVIDER_CONFIG: Record<string, { name: string; type?: string }> = {
-    codegenie: { name: "CodeGenie OAuth", type: "OAuth" },
-  }
-
   const seen = new Set<string>()
   const result: Array<{ id: string; name: string }> = []
 
@@ -242,8 +252,13 @@ export const ProvidersListCommand = cmd({
     const database = await ModelsDev.get()
 
     for (const [providerID, result] of results) {
-      const name = database[providerID]?.name || providerID
-      prompts.log.info(`${name} ${UI.Style.TEXT_DIM}${result.type}`)
+      const pluginName = PLUGIN_PROVIDER_CONFIG[providerID]?.name
+      if (pluginName) {
+        prompts.log.info(pluginName)
+      } else {
+        const name = database[providerID]?.name || providerID
+        prompts.log.info(`${name} ${UI.Style.TEXT_DIM}${result.type}`)
+      }
     }
 
     prompts.outro(`${results.length} credentials`)
@@ -507,10 +522,11 @@ export const ProvidersLogoutCommand = cmd({
     const database = await ModelsDev.get()
     const selected = await prompts.select({
       message: "Select provider",
-      options: credentials.map(([key, value]) => ({
-        label: (database[key]?.name || key) + UI.Style.TEXT_DIM + " (" + value.type + ")",
-        value: key,
-      })),
+      options: credentials.map(([key, value]) => {
+        const pluginName = PLUGIN_PROVIDER_CONFIG[key]?.name
+        const label = pluginName ?? ((database[key]?.name || key) + UI.Style.TEXT_DIM + " (" + value.type + ")")
+        return { label, value: key }
+      }),
     })
     if (prompts.isCancel(selected)) throw new UI.CancelledError()
     const providerID = selected as string
