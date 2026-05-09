@@ -21,49 +21,21 @@
   },
   {
     "name": "build_project",
-    "description": "执行编译构建导出构建产物。支持构建整个 APP 或特定模块（HAP/HSP/HAR）。通过选择不同的构建意图（BuildIntent）来自动配置底层的编译参数。当需要重新构建或清理项目缓存时请将 clean 参数设为 true，这将在构建前执行清理（clean）。",
+    "description": "执行编译构建导出构建产物。支持构建整个 APP 或特定模块（HAP/HSP/HAR）。当需要重新构建或清理项目缓存时请将 clean 参数设为 true，这将在构建前执行清理clean。",
     "inputSchema": {
-      "$defs": {
-        "BuildIntent": {
-          "oneOf": [
-            {
-              "const": "LogVerification",
-              "description": "看详细日志确认功能：保留详细运行日志和变量名，支持断点调试（包体积较大）",
-              "type": "string"
-            },
-            {
-              "const": "UIDebug",
-              "description": "查看界面调试功能：支持获取界面元素和代码位置的对应关系（包体积最大）",
-              "type": "string"
-            },
-            {
-              "const": "PerformanceProfile",
-              "description": "性能分析调试：开启代码优化，保留调试钩子，可用于性能调优",
-              "type": "string"
-            },
-            {
-              "const": "Release",
-              "description": "单纯发布：极致压缩，完全混淆优化代码，不支持断点调试（包体积最小）",
-              "type": "string"
-            }
-          ]
-        }
-      },
       "properties": {
-        "build_intent": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BuildIntent"
-            },
-            {
-              "const": null,
-              "nullable": true
-            }
-          ],
-          "description": "构建意图：根据你需要进行的测试/发布场景选择。缺省默认为 LogVerification"
+        "build_mode": {
+          "description": "构建模式，值为 build-profile.json5 中 buildModeSet 定义的模式的 name 字段（如内置的 'debug'、'release'，或用户自定义的模式名称）。如果不传，默认为 'debug'。",
+          "nullable": true,
+          "type": "string"
         },
         "clean": {
           "description": "是否在构建前执行 clean 清理构建产物（类似 cargo clean或者mvn clean）。如果为 true，则会先执行清理然后再进行构建。",
+          "nullable": true,
+          "type": "boolean"
+        },
+        "enable_inspector_source_jump": {
+          "description": "支持hap包运行后，从获取到UI树json文件中精准对应到源码位置。",
           "nullable": true,
           "type": "boolean"
         },
