@@ -16,8 +16,8 @@ import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
 import { writeHeapSnapshot } from "v8"
 import { TuiConfig } from "./config/tui"
 import {
-  OPENCODE_PROCESS_ROLE,
-  OPENCODE_RUN_ID,
+  CODEGENIE_PROCESS_ROLE,
+  CODEGENIE_RUN_ID,
   ensureRunID,
   sanitizedProcessEnv,
 } from "@opencode-ai/core/util/opencode-process"
@@ -140,8 +140,8 @@ export const TuiThreadCommand = cmd({
       }
       const cwd = Filesystem.resolve(process.cwd())
       const env = sanitizedProcessEnv({
-        [OPENCODE_PROCESS_ROLE]: "worker",
-        [OPENCODE_RUN_ID]: ensureRunID(),
+        [CODEGENIE_PROCESS_ROLE]: "worker",
+        [CODEGENIE_RUN_ID]: ensureRunID(),
       })
 
       const worker = new Worker(file, {

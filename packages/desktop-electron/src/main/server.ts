@@ -64,11 +64,11 @@ function prepareServerEnv(password: string) {
   const env = {
     ...process.env,
     ...shellEnv,
-    OPENCODE_EXPERIMENTAL_ICON_DISCOVERY: "true",
-    OPENCODE_EXPERIMENTAL_FILEWATCHER: "true",
-    OPENCODE_CLIENT: "desktop",
-    OPENCODE_SERVER_USERNAME: "opencode",
-    OPENCODE_SERVER_PASSWORD: password,
+    CODEGENIE_EXPERIMENTAL_ICON_DISCOVERY: "true",
+    CODEGENIE_EXPERIMENTAL_FILEWATCHER: "true",
+    CODEGENIE_CLIENT: "desktop",
+    CODEGENIE_SERVER_USERNAME: "opencode",
+    CODEGENIE_SERVER_PASSWORD: password,
     XDG_STATE_HOME: app.getPath("userData"),
   }
   Object.assign(process.env, env)

@@ -51,9 +51,9 @@ const deepLinkEvent = "opencode:deep-link"
 
 const emitDeepLinks = (urls: string[]) => {
   if (urls.length === 0) return
-  window.__OPENCODE__ ??= {}
-  const pending = window.__OPENCODE__.deepLinks ?? []
-  window.__OPENCODE__.deepLinks = [...pending, ...urls]
+  window.__CODEGENIE__ ??= {}
+  const pending = window.__CODEGENIE__.deepLinks ?? []
+  window.__CODEGENIE__.deepLinks = [...pending, ...urls]
   window.dispatchEvent(new CustomEvent(deepLinkEvent, { detail: { urls } }))
 }
 
@@ -71,12 +71,12 @@ const createPlatform = (): Platform => {
   })()
 
   const wslHome = async () => {
-    if (os !== "windows" || !window.__OPENCODE__?.wsl) return undefined
+    if (os !== "windows" || !window.__CODEGENIE__?.wsl) return undefined
     return commands.wslPath("~", "windows").catch(() => undefined)
   }
 
   const handleWslPicker = async <T extends string | string[]>(result: T | null): Promise<T | null> => {
-    if (!result || !window.__OPENCODE__?.wsl) return result
+    if (!result || !window.__CODEGENIE__?.wsl) return result
     if (Array.isArray(result)) {
       return Promise.all(result.map((path) => commands.wslPath(path, "linux").catch(() => path))) as any
     }
@@ -352,7 +352,7 @@ const createPlatform = (): Platform => {
     getWslEnabled: async () => {
       const next = await commands.getWslConfig().catch(() => null)
       if (next) return next.enabled
-      return window.__OPENCODE__!.wsl ?? false
+      return window.__CODEGENIE__!.wsl ?? false
     },
 
     setWslEnabled: async (enabled) => {
