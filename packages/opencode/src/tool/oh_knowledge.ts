@@ -29,14 +29,17 @@ interface KnowledgeResponseError {
 type KnowledgeResponse = KnowledgeResponseSuccess | KnowledgeResponseError
 
 const Parameters = Schema.Struct({
-  question: Schema.String.annotate({ description: "The question you want to ask about HarmonyOS/OpenHarmony knowledge" }),
+  question: Schema.String.annotate({
+    description:
+      "A concise ArkTS/ArkUI/HarmonyOS/OpenHarmony question. Include key symbols, APIs, decorators, lifecycle names, build errors, symptoms, or URL-derived keywords.",
+  }),
 })
 
 export const OhKnowledgeTool = Tool.define(KNOWLEDGE_TOOL_ID, Effect.gen(function* () {
   const auth = yield* Auth.Service
   return {
     description:
-      "Search and obtain answers from the official arkts knowledge base. Use this tool FIRST (instead of webfetch) when user asks about HarmonyOS/OpenHarmony development knowledge, or when user provides a URL from developer.huawei.com or any HarmonyOS documentation site. Extract the topic or keywords from the URL path and use them as the question.",
+      "Search the official ArkTS / ArkUI / HarmonyOS / OpenHarmony knowledge base. MUST call this tool before answering questions about .ets code, ArkUI decorators or lifecycle, state refresh issues, HarmonyOS SDK APIs, DevEco/hvigor build errors, @kit.* or @ohos.* APIs, or HarmonyOS documentation URLs. For code snippets or URLs, extract the key symbols, APIs, errors, and observed symptom as the question.",
     parameters: Parameters,
     execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
       Effect.gen(function* () {
