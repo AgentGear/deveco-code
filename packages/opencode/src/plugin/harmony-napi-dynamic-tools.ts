@@ -162,6 +162,7 @@ const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
             ),
         },
         async execute(args, ctx) {
+          if (!process.env.DEVECO_HOME?.trim()) throw new Error('DEVECO_HOME environment variable is not configured. PLEASE set your DEVECO_HOME path manually and restart.');
           if (name === 'verify_ui') {
             const params = await resolveUIVerifyParams();
             if (!params.baseURL || !params.apiKey || !params.modelName) {

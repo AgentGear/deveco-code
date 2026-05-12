@@ -11,6 +11,14 @@ export const Parameters = Schema.Struct({
   name: Schema.String.annotate({ description: "The name of the skill from available_skills" }),
 })
 
+const DevEcoRequiredSkills = new Set([
+  "arkts-error-fixes",
+  "arkts-grammar-standards",
+  "arkts-runtime-fix",
+  "arkui-knowledge",
+  "deveco-create-project",
+])
+
 export const SkillTool = Tool.define(
   "skill",
   Effect.gen(function* () {
@@ -27,6 +35,12 @@ export const SkillTool = Tool.define(
             const all = yield* skill.all()
             const available = all.map((item) => item.name).join(", ")
             throw new Error(`Skill "${params.name}" not found. Available skills: ${available || "none"}`)
+          }
+
+          if (DevEcoRequiredSkills.has(info.name) && !process.env.DEVECO_HOME?.trim()) {
+            throw new Error(
+              "DEVECO_HOME environment variable is not configured. PLEASE set your DEVECO_HOME path manually and restart.",
+            )
           }
 
           yield* ctx.ask({

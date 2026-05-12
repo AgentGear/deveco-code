@@ -20,6 +20,18 @@ function binary(name: string) {
   return process.platform === "win32" ? `${name}.exe` : name;
 }
 
+function devEcoHomeCandidates(home: string) {
+  const normalized = home.trim();
+  if (!normalized) {
+    return [];
+  }
+  const candidates = [normalized];
+  if (process.platform !== "win32" && path.basename(normalized) !== "Contents") {
+    candidates.push(path.join(normalized, "Contents"));
+  }
+  return candidates;
+}
+
 function envPath() {
   return String(process.env.DEVECO_HOME || "").trim();
 }
@@ -37,18 +49,19 @@ async function isDir(file: string) {
 function defaults() {
   if (process.platform === "darwin") {
     return [
-      "/Applications/DevEco-Studio.app/Contents",
+      "/Applications/DevEco-Studio.app",
     ];
   }
   if (process.platform === "linux") {
     const home = String(process.env.HOME || "").trim();
     return [
-      home ? path.join(home, "devecostudio/Contents") : "",
-      home ? path.join(home, "DevEco-Studio/Contents") : "",
+      home ? path.join(home, "devecostudio") : "",
+      home ? path.join(home, "DevEco-Studio") : "",
     ].filter(Boolean);
   }
   const home = String(process.env.USERPROFILE || "").trim();
   return [
+    "D:\\DevEco Studio",
     "C:\\Program Files\\DevEco Studio",
     "C:\\Program Files (x86)\\DevEco Studio",
     home ? path.join(home, "DevEco Studio") : "",
@@ -73,21 +86,39 @@ export function hdcPath(home: string) {
   return path.join(home, "sdk", "default", "openharmony", "toolchains", binary("hdc"));
 }
 
-export async function findDevEcoHome(): Promise<string | undefined> {
-  const env = envPath();
-  if (env && (await isDir(env)) && (await Bun.file(nodePath(env)).exists())) {
-    return env;
-  }
-
-  for (const item of defaults()) {
-    if (!(await isDir(item))) {
-      continue;
-    }
-    if (await Bun.file(nodePath(item)).exists()) {
-      return item;
+export async function resolveDevEcoHome(home: string): Promise<string | undefined> {
+  for (const candidate of devEcoHomeCandidates(home)) {
+    if ((await isDir(candidate)) && (await Bun.file(nodePath(candidate)).exists())) {
+      return candidate;
     }
   }
   return undefined;
+}
+
+export async function isDevEcoHome(home: string): Promise<boolean> {
+  return Boolean(await resolveDevEcoHome(home));
+}
+
+export async function findDevEcoHomes(): Promise<string[]> {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const item of defaults()) {
+    const home = await resolveDevEcoHome(item);
+    if (!home || seen.has(home)) {
+      continue;
+    }
+    seen.add(home);
+    result.push(home);
+  }
+  return result;
+}
+
+export async function findDevEcoHome(): Promise<string | undefined> {
+  const env = envPath();
+  const home = await resolveDevEcoHome(env);
+  if (home) return home;
+
+  return (await findDevEcoHomes())[0];
 }
 
 export function buildEnv(home: string, sdk: string) {
