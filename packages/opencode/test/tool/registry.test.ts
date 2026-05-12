@@ -49,7 +49,7 @@ const registryLayer = ToolRegistry.layer.pipe(
   Layer.provide(Truncate.defaultLayer),
 )
 
-const it = testEffect(Layer.mergeAll(registryLayer, node))
+const it = testEffect(Layer.mergeAll(registryLayer, node) as unknown as Layer.Layer<ToolRegistry.Service>)
 
 afterEach(async () => {
   await disposeAllInstances()

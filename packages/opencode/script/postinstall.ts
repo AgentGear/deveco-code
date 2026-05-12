@@ -149,7 +149,7 @@ async function downloadMcpBridge(platform: string) {
   const os_ = platform.split("-")[0]
   const arch = platform.split("-")[1]
   const pkgName = `@deveco-codegenie/mcp-bridge-${os_}-${arch}`
-  const version = pkg.dependencies["@deveco-codegenie/mcp-bridge"]
+  const version = (pkg.dependencies as Record<string, string>)["@deveco-codegenie/mcp-bridge"]
   const cacheSubDir = path.join(mcpCacheDir, platform)
   const cachedNode = path.join(cacheSubDir, "napi_bridge.node")
   const cachedPkgJson = path.join(cacheSubDir, "package.json")

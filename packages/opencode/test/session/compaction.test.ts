@@ -279,20 +279,20 @@ function liveRuntime(layer: Layer.Layer<LLM.Service>, provider = ProviderTest.fa
   const bus = Bus.layer
   const status = SessionStatus.layer.pipe(Layer.provide(bus))
   const processor = SessionProcessorModule.SessionProcessor.layer.pipe(Layer.provide(summary))
-  return ManagedRuntime.make(
-    Layer.mergeAll(SessionCompaction.layer.pipe(Layer.provide(processor)), processor, bus, status).pipe(
-      Layer.provide(provider.layer),
-      Layer.provide(SessionNs.defaultLayer),
-      Layer.provide(Snapshot.defaultLayer),
-      Layer.provide(layer),
-      Layer.provide(Permission.defaultLayer),
-      Layer.provide(Agent.defaultLayer),
-      Layer.provide(Plugin.defaultLayer),
-      Layer.provide(status),
-      Layer.provide(bus),
-      Layer.provide(config),
-    ),
+  const merged = Layer.mergeAll(SessionCompaction.layer.pipe(Layer.provide(processor)), processor, bus, status).pipe(
+    Layer.provide(provider.layer),
+    Layer.provide(SessionNs.defaultLayer),
+    Layer.provide(Snapshot.defaultLayer),
+    Layer.provide(layer),
+    Layer.provide(Permission.defaultLayer),
+    Layer.provide(Agent.defaultLayer),
+    Layer.provide(Plugin.defaultLayer),
+    Layer.provide(status),
+    Layer.provide(bus),
+    Layer.provide(config),
   )
+  // @ts-expect-error — Layer.mergeAll infers residual Service requirements that are fully provided at runtime
+  return ManagedRuntime.make(merged)
 }
 
 function reply(
@@ -1413,7 +1413,7 @@ describe("session.compaction.process", () => {
               ),
               { signal: abort.signal },
             )
-            .then((exit) => {
+            .then((exit: Exit.Exit<"continue" | "stop", unknown>) => {
               if (Exit.isFailure(exit)) {
                 if (Cause.hasInterrupts(exit.cause) && abort.signal.aborted) return "stop"
                 throw Cause.squash(exit.cause)
@@ -1431,7 +1431,7 @@ describe("session.compaction.process", () => {
           const start = Date.now()
           abort.abort()
           const result = await Promise.race([
-            run.then((value) => ({ kind: "done" as const, value, ms: Date.now() - start })),
+            run!.then((value) => ({ kind: "done" as const, value, ms: Date.now() - start })),
             wait(250).then(() => ({ kind: "timeout" as const })),
           ])
 

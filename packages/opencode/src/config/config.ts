@@ -14,6 +14,7 @@ import { applyEdits, modify } from "jsonc-parser"
 import { Instance, type InstanceContext } from "../project/instance"
 import { InstanceStore } from "../project/instance-store"
 import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
+// @ts-expect-error — workspace package JSON import (resolves at build time)
 import pluginPkg from "@opencode-ai/plugin/package.json"
 import { existsSync } from "fs"
 import { Account } from "@/account/account"
