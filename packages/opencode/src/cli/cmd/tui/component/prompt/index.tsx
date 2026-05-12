@@ -41,7 +41,12 @@ import { useKV } from "../../context/kv"
 import { createFadeIn } from "../../util/signal"
 import { useTextareaKeybindings } from "../textarea-keybindings"
 import { DialogSkill } from "../dialog-skill"
-import { openWorkspaceSelect, warpWorkspaceSession, type WorkspaceSelection } from "../dialog-workspace-create"
+import {
+  confirmWorkspaceFileChanges,
+  openWorkspaceSelect,
+  warpWorkspaceSession,
+  type WorkspaceSelection,
+} from "../dialog-workspace-create"
 import { DialogWorkspaceUnavailable } from "../dialog-workspace-unavailable"
 import { useArgs } from "@tui/context/args"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -229,6 +234,9 @@ export function Prompt(props: PromptProps) {
       if (selection.type === "new") void createWorkspace(selection)
       return
     }
+    const sourceWorkspaceID = project.workspace.current()
+    const copyChanges = await confirmWorkspaceFileChanges({ dialog, sdk, sourceWorkspaceID })
+    if (copyChanges === undefined) return
     selectWorkspace(selection)
     dialog.clear()
 
@@ -246,8 +254,10 @@ export function Prompt(props: PromptProps) {
       sync,
       project,
       toast,
+      sourceWorkspaceID,
       workspaceID: workspace.id,
       sessionID: props.sessionID,
+      copyChanges,
     })
     if (warped) showWarpNotice(workspace.name)
   }
