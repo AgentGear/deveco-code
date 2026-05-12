@@ -286,7 +286,7 @@ class LocalAuthServer {
           reject(err)
         }
       })
-      server.listen(port, "0.0.0.0", () => {
+      server.listen(port, "127.0.0.1", () => {
         this.server = server
         resolve(port)
       })
