@@ -122,12 +122,10 @@ export const layer = Layer.effect(
           const cfg = yield* config.get()
           const cfgIgnores = cfg.watcher?.ignore ?? []
 
-if (yield* Flag.CODEGENIE_EXPERIMENTAL_FILEWATCHER) {
-            yield* subscribe(ctx.directory, [
-              ...FileIgnore.PATTERNS,
-              ...cfgIgnores,
-              ...protecteds(ctx.directory),
-            ])
+          if (yield* Flag.CODEGENIE_EXPERIMENTAL_FILEWATCHER) {
+            yield* Effect.forkScoped(
+              subscribe(ctx.directory, [...FileIgnore.PATTERNS, ...cfgIgnores, ...protecteds(ctx.directory)]),
+            )
           }
 
           if (ctx.project.vcs === "git") {
@@ -139,7 +137,7 @@ if (yield* Flag.CODEGENIE_EXPERIMENTAL_FILEWATCHER) {
               const ignore = (yield* Effect.promise(() => readdir(vcsDir).catch(() => []))).filter(
                 (entry) => entry !== "HEAD",
               )
-              yield* subscribe(vcsDir, ignore)
+              yield* Effect.forkScoped(subscribe(vcsDir, ignore))
             }
           }
         },

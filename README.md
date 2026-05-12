@@ -1,208 +1,141 @@
 <p align="center">
-  <a href="https://www.npmjs.com/package/@codegenie-ai/codegenie-cli">
-    <img src="packages/console/app/src/asset/codegenie-logo.jpg" alt="CodeGenie logo" width="420">
+  <a href="https://opencode.ai">
+    <picture>
+      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
+      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
+      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
+    </picture>
   </a>
 </p>
-<p align="center">An AI CLI assistant for HarmonyOS application development.</p>
+<p align="center">The open source AI coding agent.</p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@codegenie-ai/codegenie-cli"><img alt="npm" src="https://img.shields.io/npm/v/%40codegenie-ai%2Fcodegenie-cli?style=flat-square" /></a>
-  <a href="https://developer.huawei.com/consumer/cn/deveco-studio/"><img alt="DevEco Studio" src="https://img.shields.io/badge/DevEco%20Studio-required-blue?style=flat-square" /></a>
-  <a href="https://opencode.ai"><img alt="Based on OpenCode" src="https://img.shields.io/badge/based%20on-OpenCode-black?style=flat-square" /></a>
+  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
+  <a href="https://www.npmjs.com/package/opencode-ai"><img alt="npm" src="https://img.shields.io/npm/v/opencode-ai?style=flat-square" /></a>
+  <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
 <p align="center">
   <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a>
+  <a href="README.zh.md">简体中文</a> |
+  <a href="README.zht.md">繁體中文</a> |
+  <a href="README.ko.md">한국어</a> |
+  <a href="README.de.md">Deutsch</a> |
+  <a href="README.es.md">Español</a> |
+  <a href="README.fr.md">Français</a> |
+  <a href="README.it.md">Italiano</a> |
+  <a href="README.da.md">Dansk</a> |
+  <a href="README.ja.md">日本語</a> |
+  <a href="README.pl.md">Polski</a> |
+  <a href="README.ru.md">Русский</a> |
+  <a href="README.bs.md">Bosanski</a> |
+  <a href="README.ar.md">العربية</a> |
+  <a href="README.no.md">Norsk</a> |
+  <a href="README.br.md">Português (Brasil)</a> |
+  <a href="README.th.md">ไทย</a> |
+  <a href="README.tr.md">Türkçe</a> |
+  <a href="README.uk.md">Українська</a> |
+  <a href="README.bn.md">বাংলা</a> |
+  <a href="README.gr.md">Ελληνικά</a> |
+  <a href="README.vi.md">Tiếng Việt</a>
 </p>
 
-[![CodeGenie Terminal UI](packages/web/src/assets/lander/codegenie-terminal-ui.jpg)](https://www.npmjs.com/package/@codegenie-ai/codegenie-cli)
+[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
 ---
 
-### Introduction
-
-CodeGenie CLI is an AI CLI assistant for HarmonyOS application development. It supports coding, build and compile workflows, device runs, documentation lookup, runtime debugging, and ArkTS issue fixing.
-
-CodeGenie is built on top of the open source project [OpenCode](https://opencode.ai). It keeps OpenCode's terminal experience, configuration system, Provider / MCP / Skill / Plugin capabilities, and adds HarmonyOS-focused integrations for DevEco Studio, hvigorw, hdc, ArkTS checks, and device debugging.
-
 ### Installation
 
-#### System Requirements
-
-| Platform | Support |
-| --- | --- |
-| Windows x64 | Supported |
-| macOS Apple Silicon | Supported |
-| macOS Intel x64 | Supported |
-
-#### Prerequisites
-
-CodeGenie is distributed through npm. Install [Node.js LTS](https://nodejs.org) first, then verify your environment:
-
 ```bash
-node -v
-npm -v
-```
+# YOLO
+curl -fsSL https://opencode.ai/install | bash
 
-To use HarmonyOS build, run, and debugging features, install [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) and configure `DEVECO_HOME` to point to the DevEco Studio installation directory.
-
-#### Install / Update / Uninstall
-
-```bash
-# Install
-npm install -g @codegenie-ai/codegenie-cli --registry=https://registry.npmjs.org
-
-# Check version
-codegenie --version
-
-# Start
-codegenie
-
-# Update
-codegenie upgrade
-
-# Remove runtime data
-codegenie uninstall
-
-# Remove the npm global package
-npm uninstall -g @codegenie-ai/codegenie-cli
+# Package managers
+npm i -g opencode-ai@latest        # or bun/pnpm/yarn
+scoop install opencode             # Windows
+choco install opencode             # Windows
+brew install anomalyco/tap/opencode # macOS and Linux (recommended, always up to date)
+brew install opencode              # macOS and Linux (official brew formula, updated less)
+sudo pacman -S opencode            # Arch Linux (Stable)
+paru -S opencode-bin               # Arch Linux (Latest from AUR)
+mise use -g opencode               # Any OS
+nix run nixpkgs#opencode           # or github:anomalyco/opencode for latest dev branch
 ```
 
 > [!TIP]
-> On macOS, if global installation fails because of permissions, try `sudo -i npm install -g @codegenie-ai/codegenie-cli --registry=https://registry.npmjs.org`.
+> Remove versions older than 0.1.x before installing.
 
-### Login And Models
+### Desktop App (BETA)
 
-After starting `codegenie`, you can log in with a Huawei account. After login, you can use CodeGenie's free model channel. Without login, you can still use OpenCode's Provider configuration system and configure your own models.
+OpenCode is also available as a desktop application. Download directly from the [releases page](https://github.com/anomalyco/opencode/releases) or [opencode.ai/download](https://opencode.ai/download).
+
+| Platform              | Download                              |
+| --------------------- | ------------------------------------- |
+| macOS (Apple Silicon) | `opencode-desktop-darwin-aarch64.dmg` |
+| macOS (Intel)         | `opencode-desktop-darwin-x64.dmg`     |
+| Windows               | `opencode-desktop-windows-x64.exe`    |
+| Linux                 | `.deb`, `.rpm`, or AppImage           |
 
 ```bash
-# Log out
-codegenie auth logout
+# macOS (Homebrew)
+brew install --cask opencode-desktop
+# Windows (Scoop)
+scoop bucket add extras; scoop install extras/opencode-desktop
 ```
 
-Type `/models` in CodeGenie to open the model configuration UI. CodeGenie currently provides `glm-5` and `deepseek-v3.2` for free, with a default limit of 50 requests per minute per account. You can also press `Ctrl+A` to enter the Provider selection UI and configure Zhipu, Alibaba, or other OpenAI-compatible models.
+#### Installation Directory
 
-You can also configure models through `codegenie.jsonc`:
+The install script respects the following priority order for the installation path:
 
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "codegenie": {
-      "name": "CodeGenie",
-      "models": {
-        "glm-5": {
-          "tool_call": true,
-          "limit": {
-            "context": 200000,
-            "output": 8192
-          }
-        }
-      },
-      "options": {
-        "baseURL": "https://api.openbitfun.com/v1",
-        "apiKey": "{env:CODEGENIE_API_KEY}"
-      }
-    }
-  }
-}
+1. `$OPENCODE_INSTALL_DIR` - Custom installation directory
+2. `$XDG_BIN_DIR` - XDG Base Directory Specification compliant path
+3. `$HOME/bin` - Standard user binary directory (if it exists or can be created)
+4. `$HOME/.opencode/bin` - Default fallback
+
+```bash
+# Examples
+OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
+XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
 ```
-
-Configuration priority:
-
-1. `.codegenie/codegenie.jsonc` in the project directory
-2. `codegenie.jsonc` in the project directory
-3. `.config/codegenie/codegenie.jsonc` in the user directory
 
 ### Agents
 
-CodeGenie provides the following Agent modes for HarmonyOS development:
+OpenCode includes two built-in agents you can switch between with the `Tab` key.
 
-- **build** - Default mode for project generation, code generation, configuration fixes, test execution, package deployment, app runs, and release execution.
-- **plan** - For requirement breakdown, technical plans, release planning, test planning, and documentation generation.
+- **build** - Default, full-access agent for development work
+- **plan** - Read-only agent for analysis and code exploration
+  - Denies file edits by default
+  - Asks permission before running bash commands
+  - Ideal for exploring unfamiliar codebases or planning changes
 
-Also included is a **general** subagent for complex searches and multistep tasks. It is used internally and can also be invoked with `@general` in messages.
+Also included is a **general** subagent for complex searches and multistep tasks.
+This is used internally and can be invoked using `@general` in messages.
 
-### HarmonyOS Capabilities
+Learn more about [agents](https://opencode.ai/docs/agents).
 
-CodeGenie integrates common HarmonyOS development tools:
+### Documentation
 
-| Tool | Description |
-| --- | --- |
-| `build_project` | Build the project and export build artifacts |
-| `start_app` | Run the app on an emulator or physical device |
-| `runtime-calibration` | UI automation testing, available through settings |
-| `runtime-calibration_getLog` | Fetch device runtime logs, available through settings |
-| `execute_uitest` | UI test actions, including click, swipe, input, key press, and screenshot |
-| `hdc_log` | Collect or clear device logs |
-| `check_ets_files` | Static syntax checks for ArkTS |
+For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/docs).
 
-Common scenarios include creating a HarmonyOS project from scratch, incremental page development, fixing build errors, physical device debugging, and generating UI code from images with multimodal models.
+### Contributing
 
-### Extensions
+If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
 
-CodeGenie is compatible with OpenCode's Skill, MCP, and Plugin extension mechanisms.
+### Building on OpenCode
 
-#### Skills
-
-```bash
-# Install community skills
-npx skills add vercel-labs/agent-skills
-```
-
-You can also place Skills under `~/.config/codegenie/skills` and restart CodeGenie to load them.
-
-#### MCP
-
-Configure MCP in `~/.config/codegenie/codegenie.jsonc`:
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "playwright": {
-      "type": "local",
-      "command": ["npx", "@playwright/mcp@latest"],
-      "enabled": true
-    }
-  }
-}
-```
-
-#### Plugins
-
-```bash
-npm install -g oh-my-opencode
-```
-
-Then configure the plugin entry in `codegenie.jsonc`:
-
-```jsonc
-{
-  "plugin": [
-    "file:///C:/Users/tylor/AppData/Roaming/npm/node_modules/oh-my-opencode/dist/index.js"
-  ]
-}
-```
-
-### Migrating From OpenCode
-
-To migrate from OpenCode to CodeGenie, move your configuration files to the CodeGenie directory. For the main configuration file:
-
-```powershell
-# Windows PowerShell
-Copy-Item -Force "{source path}\opencode.jsonc" "~\.config\codegenie\codegenie.jsonc"
-```
-
-```bash
-# macOS
-cp {source path}/opencode.jsonc ~/.config/codegenie/codegenie.jsonc
-```
-
-Skills, Agents, and Plugins can also be migrated to their corresponding directories under `~/.config/codegenie`. MCP configuration can be migrated into `codegenie.jsonc`.
+If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
 
 ### FAQ
 
-#### What is the relationship between CodeGenie and OpenCode?
+#### How is this different from Claude Code?
 
-CodeGenie is built on top of OpenCode. It keeps OpenCode's terminal UI, Provider, MCP, Skill, Plugin, and configuration system, and adds HarmonyOS-specific capabilities for build workflows, device runs, log collection, ArkTS checks, and runtime debugging.
+It's very similar to Claude Code in terms of capability. Here are the key differences:
+
+- 100% open source
+- Not coupled to any provider. Although we recommend the models we provide through [OpenCode Zen](https://opencode.ai/zen), OpenCode can be used with Claude, OpenAI, Google, or even local models. As models evolve, the gaps between them will close and pricing will drop, so being provider-agnostic is important.
+- Built-in opt-in LSP support
+- A focus on TUI. OpenCode is built by neovim users and the creators of [terminal.shop](https://terminal.shop); we are going to push the limits of what's possible in the terminal.
+- A client/server architecture. This, for example, can allow OpenCode to run on your computer while you drive it remotely from a mobile app, meaning that the TUI frontend is just one of the possible clients.
+
+---
+
+**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)

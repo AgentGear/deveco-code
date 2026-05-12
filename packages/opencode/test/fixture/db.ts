@@ -1,5 +1,5 @@
 import { rm } from "fs/promises"
-import { disposeAllInstances } from "../../src/project/instance-store"
+import { disposeAllInstances } from "../../src/project/instance-runtime"
 import { Database } from "@/storage/db"
 
 export async function resetDatabase() {
