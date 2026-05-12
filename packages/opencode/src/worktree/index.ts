@@ -2,7 +2,6 @@ import z from "zod"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { Global } from "@opencode-ai/core/global"
 import { Instance } from "../project/instance"
-import { InstanceBootstrap } from "../project/bootstrap"
 import { Project } from "@/project/project"
 import { Database } from "@/storage/db"
 import { eq } from "drizzle-orm"
@@ -18,7 +17,6 @@ import { Effect, Layer, Path, Schema, Scope, Context, Stream } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { NodePath } from "@effect/platform-node"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
-import { BootstrapRuntime } from "@/effect/bootstrap-runtime"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { InstanceState } from "@/effect/instance-state"
 import { zod as effectZod } from "@/util/effect-zod"
@@ -255,7 +253,6 @@ export const layer: Layer.Layer<
       const booted = yield* Effect.promise(() =>
         Instance.provide({
           directory: info.directory,
-          init: () => BootstrapRuntime.runPromise(InstanceBootstrap),
           fn: () => undefined,
         })
           .then(() => true)
