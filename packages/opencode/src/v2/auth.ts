@@ -108,9 +108,9 @@ export const layer = Layer.effect(
     const file = path.join(global.data, "auth-v2.json")
 
     const load: () => Effect.Effect<Writable, AuthError> = Effect.fnUntraced(function* () {
-      if (process.env.OPENCODE_AUTH_CONTENT) {
+      if (process.env.CODEGENIE_AUTH_CONTENT) {
         try {
-          return JSON.parse(process.env.OPENCODE_AUTH_CONTENT)
+          return JSON.parse(process.env.CODEGENIE_AUTH_CONTENT)
         } catch {}
       }
 

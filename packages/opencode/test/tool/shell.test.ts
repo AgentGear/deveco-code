@@ -550,7 +550,7 @@ describe("tool.shell permissions", () => {
       test(
         `asks for external_directory permission for missing PowerShell env paths [${item.label}]`,
         withShell(item, async () => {
-          const key = "OPENCODE_TEST_MISSING"
+          const key = "CODEGENIE_TEST_MISSING"
           const prev = process.env[key]
           delete process.env[key]
           try {
