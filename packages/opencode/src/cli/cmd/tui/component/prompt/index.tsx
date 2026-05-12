@@ -996,6 +996,15 @@ export function Prompt(props: PromptProps) {
     return local.agent.color(agent.name)
   })
 
+  // backgroundElement is only visually effective when the terminal supports
+  // truecolor (RGB) — terminals without truecolor support (e.g. macOS
+  // Terminal.app which only supports 256 colors) will silently ignore
+  // background color sequences, making backgroundElement appear transparent
+  const bgElementVisible = createMemo(() => {
+    const rgb = renderer.capabilities?.rgb ?? false
+    return rgb && theme.backgroundElement.a !== 0
+  })
+
   const showVariant = createMemo(() => {
     const variants = local.model.variant.list()
     if (variants.length === 0) return false
@@ -1327,7 +1336,7 @@ export function Prompt(props: PromptProps) {
           borderColor={borderHighlight()}
           customBorderChars={{
             ...EmptyBorder,
-            vertical: theme.backgroundElement.a !== 0 ? "╹" : " ",
+            vertical: bgElementVisible() ? "╹" : " ",
           }}
         >
           <box
@@ -1335,7 +1344,7 @@ export function Prompt(props: PromptProps) {
             border={["bottom"]}
             borderColor={theme.backgroundElement}
             customBorderChars={
-              theme.backgroundElement.a !== 0
+              bgElementVisible()
                 ? {
                     ...EmptyBorder,
                     horizontal: "▀",
