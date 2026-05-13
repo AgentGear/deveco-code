@@ -109,7 +109,10 @@ export function httpEffect(url: string | URL, extra: HeadersInit | undefined, re
     })
   }).pipe(
     Effect.provide(FetchHttpClient.layer),
-    Effect.catch(() => Effect.succeed(new Response(null, { status: 500 }))),
+    Effect.catch((err) => {
+      Log.Default.error("Proxy request failed", { url: String(url), error: err instanceof Error ? err.message : String(err) })
+      return Effect.succeed(new Response(null, { status: 500 }))
+    }),
   )
 }
 

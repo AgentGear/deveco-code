@@ -48,6 +48,10 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
       const part = await new Promise<Awaited<ReturnType<typeof reader.read>>>((resolve, reject) => {
         const id = setTimeout(() => {
           const err = new Error("SSE read timed out")
+          Log.Default.warn("SSE chunk timeout", {
+            timeoutMs: ms,
+            url: res.url?.slice(0, 200),
+          })
           ctl.abort(err)
           void reader.cancel(err)
           reject(err)

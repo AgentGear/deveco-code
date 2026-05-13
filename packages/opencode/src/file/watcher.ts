@@ -113,7 +113,9 @@ export const layer = Layer.effect(
               Effect.timeout(SUBSCRIBE_TIMEOUT_MS),
               Effect.catchCause((cause) => {
                 log.error("failed to subscribe", { dir, cause: Cause.pretty(cause) })
-                pending.then((s) => s.unsubscribe()).catch(() => {})
+                pending.then((s) => s.unsubscribe()).catch((e) => {
+                  log.warn("Failed to unsubscribe watcher", { dir, error: e instanceof Error ? e.message : String(e) })
+                })
                 return Effect.void
               }),
             )

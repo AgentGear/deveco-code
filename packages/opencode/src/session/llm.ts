@@ -96,6 +96,8 @@ const live: Layer.Layer<
         chatId,
       })
 
+      const requestStartTime = Date.now()
+
       const [language, cfg, item, info] = yield* Effect.all(
         [
           provider.getLanguage(input.model),
@@ -343,10 +345,23 @@ const live: Layer.Layer<
         ? (yield* InstanceState.context).project.id
         : undefined
 
+      // Log request details for debugging
+      l.info("model request starting", {
+        temperature: params.temperature,
+        maxOutputTokens: params.maxOutputTokens,
+        messageCount: messages.length,
+        toolCount: Object.keys(tools).length,
+        toolChoice: input.toolChoice,
+        maxRetries: input.retries ?? 0,
+      })
+
       return streamText({
         onError(error) {
+          const duration = Date.now() - requestStartTime
           l.error("stream error", {
-            error,
+            error: error instanceof Error ? error.message : String(error),
+            errorType: error instanceof Error ? error.constructor.name : typeof error,
+            duration,
           })
         },
         async experimental_repairToolCall(failed) {

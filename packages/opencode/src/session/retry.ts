@@ -2,6 +2,9 @@ import type { NamedError } from "@opencode-ai/core/util/error"
 import { Cause, Clock, Duration, Effect, Schedule } from "effect"
 import { MessageV2 } from "./message-v2"
 import { iife } from "@/util/iife"
+import * as Log from "@opencode-ai/core/util/log"
+
+const log = Log.create({ service: "session.retry" })
 
 export type Err = ReturnType<NamedError["toObject"]>
 
@@ -184,6 +187,12 @@ export function policy(opts: {
       return Effect.gen(function* () {
         const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined)
         const now = yield* Clock.currentTimeMillis
+        log.warn("retrying request", {
+          provider: opts.provider,
+          attempt: meta.attempt,
+          delayMs: wait,
+          message: retry.message,
+        })
         yield* opts.set({
           attempt: meta.attempt,
           message: retry.message,

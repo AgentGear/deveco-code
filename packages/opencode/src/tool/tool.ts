@@ -4,6 +4,9 @@ import type { Permission } from "../permission"
 import type { SessionID, MessageID } from "../session/schema"
 import * as Truncate from "./truncate"
 import { Agent } from "@/agent/agent"
+import * as Log from "@opencode-ai/core/util/log"
+
+const log = Log.create({ service: "tool" })
 
 interface Metadata {
   [key: string]: any
@@ -95,6 +98,13 @@ function wrap<Parameters extends Schema.Decoder<unknown>, Result extends Metadat
           "message.id": ctx.messageID,
           ...(ctx.callID ? { "tool.call_id": ctx.callID } : {}),
         }
+        const startTime = Date.now()
+        log.info("tool execution starting", {
+          tool: id,
+          sessionID: ctx.sessionID,
+          messageID: ctx.messageID,
+          argsPreview: JSON.stringify(args).slice(0, 200),
+        })
         return Effect.gen(function* () {
           const decoded = yield* decode(args).pipe(
             Effect.mapError((error) =>
@@ -107,6 +117,14 @@ function wrap<Parameters extends Schema.Decoder<unknown>, Result extends Metadat
             ),
           )
           const result = yield* execute(decoded as Schema.Schema.Type<Parameters>, ctx)
+          const duration = Date.now() - startTime
+          log.info("tool execution completed", {
+            tool: id,
+            sessionID: ctx.sessionID,
+            duration,
+            outputLength: result.output.length,
+            truncated: result.metadata.truncated,
+          })
           if (result.metadata.truncated !== undefined) {
             return result
           }
