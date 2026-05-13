@@ -177,41 +177,10 @@ export type ParsedAPICallError =
       responseBody?: string
       metadata?: Record<string, string>
     }
-  | {
-      type: "queue"
-      position: number
-      message: string
-      responseBody?: string
-    }
-
-/**
- * Parse queue position from message like "当前模型访问量较高，您目前排在第123位，请耐心等待。"
- */
-function parseQueuePosition(message: string): number | undefined {
-  const match = message.match(/第(\d+)位/)
-  if (match) {
-    const pos = parseInt(match[1], 10)
-    if (!isNaN(pos) && pos > 0) return pos
-  }
-  return undefined
-}
 
 export function parseAPICallError(input: { providerID: ProviderID; error: APICallError }): ParsedAPICallError {
   const m = message(input.providerID, input.error)
   const body = json(input.error.responseBody)
-  
-  // Check for queue error: 406 + WaitingInLine type
-  if (input.error.statusCode === 406 && body?.error?.type === "WaitingInLine") {
-    const queueMessage = typeof body.error.message === "string" ? body.error.message : m
-    const position = parseQueuePosition(queueMessage) ?? 1
-    return {
-      type: "queue",
-      position,
-      message: queueMessage,
-      responseBody: input.error.responseBody,
-    }
-  }
-  
   if (isOverflow(m) || input.error.statusCode === 413 || body?.error?.code === "context_length_exceeded") {
     return {
       type: "context_overflow",
