@@ -926,7 +926,25 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
               headers.set("Session-Id", sessionId)
             }
 
-            return fetch(requestInput, {
+            // CodeGenie API requires /no-stream in URL path for non-streaming requests
+            // e.g. /v2/chat/completions → /v2/no-stream/chat/completions
+            let finalInput: RequestInfo | URL = requestInput
+            if (typeof init?.body === "string") {
+              try {
+                const body = JSON.parse(init.body)
+                if (body?.stream !== true) {
+                  const url = requestInput instanceof URL
+                    ? new URL(requestInput.toString())
+                    : new URL(typeof requestInput === "string" ? requestInput : requestInput.url)
+                  url.pathname = url.pathname.replace(/\/$/, "").replace(/\/chat\/completions$/, "/no-stream/chat/completions")
+                  finalInput = url
+                }
+              } catch {
+                log.error("Failed to rewrite URL for non-streaming request", { requestInput: String(requestInput) })
+              }
+            }
+
+            return fetch(finalInput, {
               ...init,
               headers,
             })
