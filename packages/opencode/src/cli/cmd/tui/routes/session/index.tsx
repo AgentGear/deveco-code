@@ -1240,6 +1240,7 @@ export function Session() {
                         toBottom()
                       }}
                       sessionID={route.sessionID}
+                      notice="⚠︎AI-generated content. For reference only"
                       right={<TuiPluginRuntime.Slot name="session_prompt_right" session_id={route.sessionID} />}
                     />
                   </TuiPluginRuntime.Slot>

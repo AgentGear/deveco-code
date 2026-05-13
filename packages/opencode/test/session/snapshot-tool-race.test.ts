@@ -59,6 +59,7 @@ import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Ripgrep } from "../../src/file/ripgrep"
 import { Format } from "../../src/format"
 import { Reference } from "../../src/reference/reference"
+import { SyncEvent } from "@/sync"
 
 void Log.init({ print: false })
 
@@ -125,6 +126,7 @@ function makeHttp() {
     mcp,
     AppFileSystem.defaultLayer,
     status,
+    SyncEvent.defaultLayer,
   ).pipe(Layer.provideMerge(infra))
   const question = Question.layer.pipe(Layer.provideMerge(deps))
   const todo = Todo.layer.pipe(Layer.provideMerge(deps))
