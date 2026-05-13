@@ -6,6 +6,9 @@ import { generateObject, streamObject, type ModelMessage } from "ai"
 import { Truncate } from "@/tool/truncate"
 import { Auth } from "../auth"
 import { ProviderTransform } from "@/provider/transform"
+import * as Log from "@opencode-ai/core/util/log"
+
+const log = Log.create({ service: "agent" })
 
 import PROMPT_GENERATE from "./generate.txt"
 import PROMPT_BUILD from "./prompt/build.txt"
@@ -393,6 +396,10 @@ export const layer = Layer.effect(
             whenToUse: z.string(),
             systemPrompt: z.string(),
           }),
+          experimental_repairText: async ({ text }: { text: string }) => {
+            // Some models wrap JSON in markdown code blocks (```json ... ```)
+            return text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/, "")
+          },
         } satisfies Parameters<typeof generateObject>[0]
 
         if (isOpenaiOauth) {
@@ -412,7 +419,20 @@ export const layer = Layer.effect(
           })
         }
 
-        return yield* Effect.promise(() => generateObject(params).then((r) => r.object))
+        return yield* Effect.promise(() =>
+          generateObject(params)
+            .then((r) => r.object)
+            .catch((err) => {
+              log.error("generateObject failed", {
+                provider: model.providerID,
+                model: model.modelID,
+                error: err.message,
+                cause: err.cause instanceof Error ? err.cause.message : err.cause,
+                text: err.text ? String(err.text).slice(0, 500) : undefined,
+              })
+              throw err
+            }),
+        )
       }),
     })
   }),
