@@ -45,14 +45,23 @@ const log = Log.create({ service: "session" })
 const parentTitlePrefix = "New session - "
 const childTitlePrefix = "Child session - "
 
-function createDefaultTitle(isChild = false) {
-  return (isChild ? childTitlePrefix : parentTitlePrefix) + new Date().toISOString()
+function toLocalTimeString(date: Date): string {
+  return date.toLocaleString()
 }
 
-export function isDefaultTitle(title: string) {
-  return new RegExp(
-    `^(${parentTitlePrefix}|${childTitlePrefix})\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$`,
-  ).test(title)
+function createDefaultTitle(isChild = false) {
+  return (isChild ? childTitlePrefix : parentTitlePrefix) + toLocalTimeString(new Date())
+}
+
+export function isDefaultTitle(title: string): boolean {
+  if (!title.startsWith(parentTitlePrefix) && !title.startsWith(childTitlePrefix)) {
+    return false
+  }
+  const timestamp = title.startsWith(parentTitlePrefix)
+    ? title.slice(parentTitlePrefix.length)
+    : title.slice(childTitlePrefix.length)
+  // Check if timestamp is a valid locale string format (contains digits, separators, etc.)
+  return /^\d{1,4}[\s\/\-:].+\d/.test(timestamp)
 }
 
 type SessionRow = typeof SessionTable.$inferSelect
