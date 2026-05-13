@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test } from "bun:test"
 import path from "path"
 import fs from "fs/promises"
-import { tmpdir } from "../fixture/fixture"
-import { Instance } from "../../src/project/instance"
+import { provideTestInstance, tmpdir } from "../fixture/fixture"
+import { InstanceRuntime } from "@/project/instance-runtime"
 import { TuiConfig } from "../../src/cli/cmd/tui/config/tui"
 import { Config } from "@/config/config"
 import { Global } from "@opencode-ai/core/global"
@@ -13,7 +13,10 @@ import { CurrentWorkingDirectory } from "@/cli/cmd/tui/config/cwd"
 import { ConfigPlugin } from "@/config/plugin"
 
 const wintest = process.platform === "win32" ? test : test.skip
-const clear = (wait = false) => AppRuntime.runPromise(Config.Service.use((svc) => svc.invalidate(wait)))
+const clear = async (wait = false) => {
+  await AppRuntime.runPromise(Config.Service.use((svc) => svc.invalidate()))
+  if (wait) await InstanceRuntime.disposeAllInstances()
+}
 const load = () => AppRuntime.runPromise(Config.Service.use((svc) => svc.get()))
 
 beforeEach(async () => {
@@ -28,8 +31,8 @@ const getTuiConfig = async (directory: string) =>
   )
 
 afterEach(async () => {
-  delete process.env.OPENCODE_CONFIG
-  delete process.env.OPENCODE_TUI_CONFIG
+  delete process.env.CODEGENIE_CONFIG
+  delete process.env.CODEGENIE_TUI_CONFIG
   await fs.rm(path.join(Global.Path.config, "opencode.json"), { force: true }).catch(() => {})
   await fs.rm(path.join(Global.Path.config, "opencode.jsonc"), { force: true }).catch(() => {})
   await fs.rm(path.join(Global.Path.config, "tui.json"), { force: true }).catch(() => {})
@@ -87,7 +90,7 @@ test("keeps server and tui plugin merge semantics aligned", async () => {
     },
   })
 
-  await Instance.provide({
+  await provideTestInstance({
     directory: tmp.path,
     fn: async () => {
       const server = await load()
@@ -357,13 +360,13 @@ test("top-level keys in tui.json take precedence over nested tui key", async () 
   expect(config.scroll_speed).toBe(2)
 })
 
-test("project config takes precedence over OPENCODE_TUI_CONFIG (matches OPENCODE_CONFIG)", async () => {
+test("project config takes precedence over CODEGENIE_TUI_CONFIG (matches CODEGENIE_CONFIG)", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(path.join(dir, "tui.json"), JSON.stringify({ theme: "project", diff_style: "auto" }))
       const custom = path.join(dir, "custom-tui.json")
       await Bun.write(custom, JSON.stringify({ theme: "custom", diff_style: "stacked" }))
-      process.env.OPENCODE_TUI_CONFIG = custom
+      process.env.CODEGENIE_TUI_CONFIG = custom
     },
   })
 
@@ -416,12 +419,12 @@ wintest("ignores terminal suspend bindings on Windows", async () => {
   expect(config.keybinds?.input_undo).toBe("ctrl+z,ctrl+-,super+z")
 })
 
-test("OPENCODE_TUI_CONFIG provides settings when no project config exists", async () => {
+test("CODEGENIE_TUI_CONFIG provides settings when no project config exists", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       const custom = path.join(dir, "custom-tui.json")
       await Bun.write(custom, JSON.stringify({ theme: "from-env", diff_style: "stacked" }))
-      process.env.OPENCODE_TUI_CONFIG = custom
+      process.env.CODEGENIE_TUI_CONFIG = custom
     },
   })
   const config = await getTuiConfig(tmp.path)
@@ -429,14 +432,14 @@ test("OPENCODE_TUI_CONFIG provides settings when no project config exists", asyn
   expect(config.diff_style).toBe("stacked")
 })
 
-test("does not derive tui path from OPENCODE_CONFIG", async () => {
+test("does not derive tui path from CODEGENIE_CONFIG", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       const customDir = path.join(dir, "custom")
       await fs.mkdir(customDir, { recursive: true })
       await Bun.write(path.join(customDir, "opencode.json"), JSON.stringify({ model: "test/model" }))
       await Bun.write(path.join(customDir, "tui.json"), JSON.stringify({ theme: "should-not-load" }))
-      process.env.OPENCODE_CONFIG = path.join(customDir, "opencode.json")
+      process.env.CODEGENIE_CONFIG = path.join(customDir, "opencode.json")
     },
   })
   const config = await getTuiConfig(tmp.path)
@@ -623,4 +626,44 @@ test("merges plugin_enabled flags across config layers", async () => {
     "demo.plugin": false,
     "local.plugin": true,
   })
+})
+
+test("silently skips malformed tui.json — load failures degrade to {}", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(path.join(dir, "tui.json"), '{ "theme": "broken",')
+      await Bun.write(path.join(dir, ".opencode", "tui.json"), JSON.stringify({ theme: "fallback" }))
+    },
+  })
+
+  const config = await getTuiConfig(tmp.path)
+  // Project tui.json is malformed → silently skipped (logs a warning)
+  // .opencode/tui.json (lower precedence in this path) still loads
+  expect(config.theme).toBe("fallback")
+})
+
+test("silently skips non-ENOENT read failures (e.g. tui.json is a directory) — fallback layer still loads", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      // tui.json exists as a DIRECTORY rather than a file → readFileString fails
+      // with EISDIR (PlatformError reason ≠ NotFound). The fix in this PR routes
+      // that through catchCause → log + skip, so a fallback layer should still load.
+      await fs.mkdir(path.join(dir, "tui.json"), { recursive: true })
+      await Bun.write(path.join(dir, ".opencode", "tui.json"), JSON.stringify({ theme: "fallback" }))
+    },
+  })
+
+  const config = await getTuiConfig(tmp.path)
+  // Did NOT crash; .opencode/tui.json (lower precedence) still loads.
+  expect(config.theme).toBe("fallback")
+})
+
+test("missing tui.json — silently treated as empty (ENOENT path)", async () => {
+  await using tmp = await tmpdir({})
+
+  // No tui.json anywhere. Should not throw.
+  const config = await getTuiConfig(tmp.path)
+  expect(config).toBeDefined()
+  // No theme set anywhere.
+  expect(config.theme).toBeUndefined()
 })

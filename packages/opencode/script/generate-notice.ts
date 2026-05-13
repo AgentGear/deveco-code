@@ -126,9 +126,11 @@ function collectAllPackages(): Map<string, PkgInfo> {
       const ver: string = pkg.version ?? ""
       if (!name || !ver) continue
 
-      let lic: string = pkg.license ?? "UNKNOWN"
-      if (typeof lic === "object" && lic.type) lic = lic.type
-      if (Array.isArray(lic)) lic = lic.join(" AND ")
+      const licRaw: unknown = pkg.license ?? "UNKNOWN"
+      let lic: string = "UNKNOWN"
+      if (typeof licRaw === "object" && licRaw !== null && "type" in licRaw) lic = (licRaw as { type: string }).type
+      else if (Array.isArray(licRaw)) lic = licRaw.join(" AND ")
+      else if (typeof licRaw === "string") lic = licRaw
 
       const key = `${name}@${ver}`
       if (!packages.has(key)) {

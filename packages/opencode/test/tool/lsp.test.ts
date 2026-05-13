@@ -6,16 +6,15 @@ import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { LSP } from "@/lsp/lsp"
 import { Permission } from "../../src/permission"
-import { Instance } from "../../src/project/instance"
 import { MessageID, SessionID } from "../../src/session/schema"
 import { Tool } from "@/tool/tool"
 import { Truncate } from "@/tool/truncate"
 import { LspTool } from "../../src/tool/lsp"
-import { provideTmpdirInstance } from "../fixture/fixture"
+import { disposeAllInstances, provideTmpdirInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 
 afterEach(async () => {
-  await Instance.disposeAll()
+  await disposeAllInstances()
 })
 
 const ctx = {

@@ -14,6 +14,7 @@ import { useCommandDialog } from "../component/dialog-command"
 import { useLocal } from "../context/local"
 import { CodeGenieOnboarding } from "../component/codegenie-onboarding"
 import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
+import { useEditorContext } from "@tui/context/editor"
 
 // TODO: what is the best way to do this?
 let once = false
@@ -85,6 +86,12 @@ export function Home() {
   let prompt: PromptRef | undefined
   const args = useArgs()
   const local = useLocal()
+  const editor = useEditorContext()
+
+  onMount(() => {
+    editor.clearSelection()
+  })
+
   onMount(() => {
     if (once) return
     if (!prompt) return

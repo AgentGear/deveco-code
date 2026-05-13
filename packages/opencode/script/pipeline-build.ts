@@ -223,7 +223,7 @@ if (!skipInstall) {
     }
     try {
       await $`mkdir -p ${cacheSubDir}`
-      await $`bun install --os="*" --cpu="*" ${pkgName}@${pkg.dependencies["@deveco-codegenie/mcp-bridge"]}`.quiet()
+      await $`bun install --os="*" --cpu="*" ${pkgName}@${(pkg.dependencies as Record<string, string>)["@deveco-codegenie/mcp-bridge"]}`.quiet()
       const nodeSrc = path.join(dir, "node_modules", pkgName, "napi_bridge.node")
       const pkgJsonSrc = path.join(dir, "node_modules", pkgName, "package.json")
       if (fs.existsSync(nodeSrc)) {

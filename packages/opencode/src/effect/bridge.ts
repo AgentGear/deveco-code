@@ -56,4 +56,11 @@ export function make(): Effect.Effect<Shape> {
   })
 }
 
+export const fromPromise = <T>(fn: () => Promise<T> | T): Effect.Effect<T> =>
+  Effect.gen(function* () {
+    const instance = yield* InstanceRef
+    const workspace = yield* WorkspaceRef
+    return yield* Effect.promise(() => Promise.resolve(restore(instance, workspace, () => fn())))
+  })
+
 export * as EffectBridge from "./bridge"

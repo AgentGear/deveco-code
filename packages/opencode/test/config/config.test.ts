@@ -7,13 +7,15 @@ import { ConfigParse } from "../../src/config/parse"
 import { EffectFlock } from "@opencode-ai/core/util/effect-flock"
 
 import { Instance } from "../../src/project/instance"
+import { WithInstance } from "../../src/project/with-instance"
 import { Auth } from "../../src/auth"
 import { Account } from "../../src/account/account"
 import { AccessToken, AccountID, OrgID } from "../../src/account/schema"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { Env } from "../../src/env"
-import { provideTmpdirInstance } from "../fixture/fixture"
+import { provideTestInstance, provideTmpdirInstance } from "../fixture/fixture"
 import { tmpdir } from "../fixture/fixture"
+import { InstanceRuntime } from "@/project/instance-runtime"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { testEffect } from "../lib/effect"
 
@@ -41,6 +43,12 @@ const emptyAuth = Layer.mock(Auth.Service)({
 
 const testFlock = EffectFlock.defaultLayer
 
+const noopNpm = Layer.mock(Npm.Service)({
+  install: () => Effect.void,
+  add: () => Effect.die("not implemented"),
+  which: () => Effect.succeed(Option.none()),
+})
+
 const layer = Config.layer.pipe(
   Layer.provide(testFlock),
   Layer.provide(AppFileSystem.defaultLayer),
@@ -48,7 +56,7 @@ const layer = Config.layer.pipe(
   Layer.provide(emptyAuth),
   Layer.provide(emptyAccount),
   Layer.provideMerge(infra),
-  Layer.provide(Npm.defaultLayer),
+  Layer.provide(noopNpm),
 )
 
 const it = testEffect(layer)
@@ -57,16 +65,24 @@ const load = () => Effect.runPromise(Config.Service.use((svc) => svc.get()).pipe
 const save = (config: Config.Info) =>
   Effect.runPromise(Config.Service.use((svc) => svc.update(config)).pipe(Effect.scoped, Effect.provide(layer)))
 const saveGlobal = (config: Config.Info) =>
-  Effect.runPromise(Config.Service.use((svc) => svc.updateGlobal(config)).pipe(Effect.scoped, Effect.provide(layer)))
-const clear = (wait = false) =>
-  Effect.runPromise(Config.Service.use((svc) => svc.invalidate(wait)).pipe(Effect.scoped, Effect.provide(layer)))
+  Effect.runPromise(
+    Config.Service.use((svc) => svc.updateGlobal(config)).pipe(
+      Effect.map((result) => result.info),
+      Effect.scoped,
+      Effect.provide(layer),
+    ),
+  )
+const clear = async (wait = false) => {
+  await Effect.runPromise(Config.Service.use((svc) => svc.invalidate()).pipe(Effect.scoped, Effect.provide(layer)))
+  if (wait) await InstanceRuntime.disposeAllInstances()
+}
 const listDirs = () =>
   Effect.runPromise(Config.Service.use((svc) => svc.directories()).pipe(Effect.scoped, Effect.provide(layer)))
 const ready = () =>
   Effect.runPromise(Config.Service.use((svc) => svc.waitForDependencies()).pipe(Effect.scoped, Effect.provide(layer)))
 
 // Get managed config directory from environment (set in preload.ts)
-const managedConfigDir = process.env.OPENCODE_TEST_MANAGED_CONFIG_DIR!
+const managedConfigDir = process.env.CODEGENIE_TEST_MANAGED_CONFIG_DIR!
 
 beforeEach(async () => {
   await clear(true)
@@ -98,7 +114,7 @@ async function check(map: (dir: string) => string) {
       $schema: "https://opencode.ai/config.json",
       snapshot: false,
     })
-    await Instance.provide({
+    await WithInstance.provide({
       directory: map(tmp.path),
       fn: async () => {
         const cfg = await load()
@@ -108,7 +124,7 @@ async function check(map: (dir: string) => string) {
       },
     })
   } finally {
-    await Instance.disposeAll()
+    await InstanceRuntime.disposeAllInstances()
     ;(Global.Path as { config: string }).config = prev
     await clear()
   }
@@ -116,7 +132,7 @@ async function check(map: (dir: string) => string) {
 
 test("loads config with defaults when no files exist", async () => {
   await using tmp = await tmpdir()
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -135,7 +151,7 @@ test("loads JSON config file", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -154,7 +170,7 @@ test("loads shell config field", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -176,7 +192,7 @@ test("updates config and preserves empty shell sentinel", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       await save({ shell: "" })
@@ -254,7 +270,7 @@ test("loads formatter boolean config", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -272,7 +288,7 @@ test("loads lsp boolean config", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -309,7 +325,7 @@ test("ignores legacy tui keys in opencode config", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -334,7 +350,7 @@ test("loads JSONC config file", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -362,7 +378,7 @@ test("jsonc overrides json in the same directory", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -385,7 +401,7 @@ test("handles environment variable substitution", async () => {
         })
       },
     })
-    await Instance.provide({
+    await WithInstance.provide({
       directory: tmp.path,
       fn: async () => {
         const config = await load()
@@ -417,7 +433,7 @@ test("preserves env variables when adding $schema to config", async () => {
         )
       },
     })
-    await Instance.provide({
+    await WithInstance.provide({
       directory: tmp.path,
       fn: async () => {
         const config = await load()
@@ -440,7 +456,7 @@ test("preserves env variables when adding $schema to config", async () => {
 })
 
 test("resolves env templates in account config with account token", async () => {
-  const originalControlToken = process.env["OPENCODE_CONSOLE_TOKEN"]
+  const originalControlToken = process.env["CODEGENIE_CONSOLE_TOKEN"]
 
   const fakeAccount = Layer.mock(Account.Service)({
     active: () =>
@@ -470,7 +486,7 @@ test("resolves env templates in account config with account token", async () => 
     config: () =>
       Effect.succeed(
         Option.some({
-          provider: { opencode: { options: { apiKey: "{env:OPENCODE_CONSOLE_TOKEN}" } } },
+          provider: { opencode: { options: { apiKey: "{env:CODEGENIE_CONSOLE_TOKEN}" } } },
         }),
       ),
     token: () => Effect.succeed(Option.some(AccessToken.make("st_test_token"))),
@@ -483,6 +499,7 @@ test("resolves env templates in account config with account token", async () => 
     Layer.provide(emptyAuth),
     Layer.provide(fakeAccount),
     Layer.provideMerge(infra),
+    Layer.provide(noopNpm),
   )
 
   try {
@@ -493,12 +510,12 @@ test("resolves env templates in account config with account token", async () => 
           expect(config.provider?.["opencode"]?.options?.apiKey).toBe("st_test_token")
         }),
       ),
-    ).pipe(Effect.scoped, Effect.provide(layer), Effect.provide(Npm.defaultLayer), Effect.runPromise)
+    ).pipe(Effect.scoped, Effect.provide(layer), Effect.runPromise)
   } finally {
     if (originalControlToken !== undefined) {
-      process.env["OPENCODE_CONSOLE_TOKEN"] = originalControlToken
+      process.env["CODEGENIE_CONSOLE_TOKEN"] = originalControlToken
     } else {
-      delete process.env["OPENCODE_CONSOLE_TOKEN"]
+      delete process.env["CODEGENIE_CONSOLE_TOKEN"]
     }
   }
 })
@@ -513,7 +530,7 @@ test("handles file inclusion substitution", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -532,7 +549,7 @@ test("handles file inclusion with replacement tokens", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -550,7 +567,7 @@ test("validates config schema and throws on invalid fields", async () => {
       })
     },
   })
-  await Instance.provide({
+  await provideTestInstance({
     directory: tmp.path,
     fn: async () => {
       // Strict schema should throw an error for invalid fields
@@ -565,7 +582,7 @@ test("throws error for invalid JSON", async () => {
       await Filesystem.write(path.join(dir, "opencode.json"), "{ invalid json }")
     },
   })
-  await Instance.provide({
+  await provideTestInstance({
     directory: tmp.path,
     fn: async () => {
       await expect(load()).rejects.toThrow()
@@ -588,7 +605,7 @@ test("handles agent configuration", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -619,7 +636,7 @@ test("treats agent variant as model-scoped setting (not provider option)", async
     },
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -649,7 +666,7 @@ test("handles command configuration", async () => {
       })
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -674,7 +691,7 @@ test("migrates autoshare to share field", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -701,7 +718,7 @@ test("migrates mode field to agent field", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -733,7 +750,7 @@ Test agent prompt`,
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -766,7 +783,7 @@ Ordered permissions`,
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -804,7 +821,7 @@ Nested agent prompt`,
     },
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -853,7 +870,7 @@ Nested command template`,
     },
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -898,7 +915,7 @@ Nested command template`,
     },
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -918,7 +935,7 @@ Nested command template`,
 
 test("updates config and writes to file", async () => {
   await using tmp = await tmpdir()
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const newConfig = { model: "updated/model" }
@@ -932,7 +949,7 @@ test("updates config and writes to file", async () => {
 
 test("gets config directories", async () => {
   await using tmp = await tmpdir()
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const dirs = await listDirs()
@@ -941,7 +958,7 @@ test("gets config directories", async () => {
   })
 })
 
-test("does not try to install dependencies in read-only OPENCODE_CONFIG_DIR", async () => {
+test("does not try to install dependencies in read-only CODEGENIE_CONFIG_DIR", async () => {
   if (process.platform === "win32") return
 
   await using tmp = await tmpdir<string>({
@@ -958,23 +975,23 @@ test("does not try to install dependencies in read-only OPENCODE_CONFIG_DIR", as
     },
   })
 
-  const prev = process.env.OPENCODE_CONFIG_DIR
-  process.env.OPENCODE_CONFIG_DIR = tmp.extra
+  const prev = process.env.CODEGENIE_CONFIG_DIR
+  process.env.CODEGENIE_CONFIG_DIR = tmp.extra
 
   try {
-    await Instance.provide({
+    await WithInstance.provide({
       directory: tmp.path,
       fn: async () => {
         await load()
       },
     })
   } finally {
-    if (prev === undefined) delete process.env.OPENCODE_CONFIG_DIR
-    else process.env.OPENCODE_CONFIG_DIR = prev
+    if (prev === undefined) delete process.env.CODEGENIE_CONFIG_DIR
+    else process.env.CODEGENIE_CONFIG_DIR = prev
   }
 })
 
-test("installs dependencies in writable OPENCODE_CONFIG_DIR", async () => {
+test("installs dependencies in writable CODEGENIE_CONFIG_DIR", async () => {
   await using tmp = await tmpdir<string>({
     init: async (dir) => {
       const cfg = path.join(dir, "configdir")
@@ -983,14 +1000,9 @@ test("installs dependencies in writable OPENCODE_CONFIG_DIR", async () => {
     },
   })
 
-  const prev = process.env.OPENCODE_CONFIG_DIR
-  process.env.OPENCODE_CONFIG_DIR = tmp.extra
+  const prev = process.env.CODEGENIE_CONFIG_DIR
+  process.env.CODEGENIE_CONFIG_DIR = tmp.extra
 
-  const noopNpm = Layer.mock(Npm.Service)({
-    install: () => Effect.void,
-    add: () => Effect.die("not implemented"),
-    which: () => Effect.succeed(Option.none()),
-  })
   const testLayer = Config.layer.pipe(
     Layer.provide(testFlock),
     Layer.provide(AppFileSystem.defaultLayer),
@@ -1002,7 +1014,7 @@ test("installs dependencies in writable OPENCODE_CONFIG_DIR", async () => {
   )
 
   try {
-    await Instance.provide({
+    await WithInstance.provide({
       directory: tmp.path,
       fn: async () => {
         await Effect.runPromise(Config.Service.use((svc) => svc.get()).pipe(Effect.scoped, Effect.provide(testLayer)))
@@ -1018,8 +1030,8 @@ test("installs dependencies in writable OPENCODE_CONFIG_DIR", async () => {
     expect(await Filesystem.exists(path.join(tmp.extra, ".gitignore"))).toBe(true)
     expect(await Filesystem.readText(path.join(tmp.extra, ".gitignore"))).toContain("package-lock.json")
   } finally {
-    if (prev === undefined) delete process.env.OPENCODE_CONFIG_DIR
-    else process.env.OPENCODE_CONFIG_DIR = prev
+    if (prev === undefined) delete process.env.CODEGENIE_CONFIG_DIR
+    else process.env.CODEGENIE_CONFIG_DIR = prev
   }
 })
 
@@ -1061,7 +1073,7 @@ test("resolves scoped npm plugins in config", async () => {
     },
   })
 
-  await Instance.provide({
+  await provideTestInstance({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1099,7 +1111,7 @@ test("merges plugin arrays from global and local configs", async () => {
     },
   })
 
-  await Instance.provide({
+  await provideTestInstance({
     directory: path.join(tmp.path, "project"),
     fn: async () => {
       const config = await load()
@@ -1135,7 +1147,7 @@ Helper subagent prompt`,
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1174,7 +1186,7 @@ test("merges instructions arrays from global and local configs", async () => {
     },
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: path.join(tmp.path, "project"),
     fn: async () => {
       const config = await load()
@@ -1213,7 +1225,7 @@ test("deduplicates duplicate instructions from global and local configs", async 
     },
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: path.join(tmp.path, "project"),
     fn: async () => {
       const config = await load()
@@ -1258,7 +1270,7 @@ test("deduplicates duplicate plugins from global and local configs", async () =>
     },
   })
 
-  await Instance.provide({
+  await provideTestInstance({
     directory: path.join(tmp.path, "project"),
     fn: async () => {
       const config = await load()
@@ -1307,7 +1319,7 @@ test("keeps plugin origins aligned with merged plugin list", async () => {
     },
   })
 
-  await Instance.provide({
+  await provideTestInstance({
     directory: path.join(tmp.path, "project"),
     fn: async () => {
       const cfg = await load()
@@ -1348,7 +1360,7 @@ test("migrates legacy tools config to permissions - allow", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1379,7 +1391,7 @@ test("migrates legacy tools config to permissions - deny", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1409,7 +1421,7 @@ test("migrates legacy write tool to edit permission", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1421,7 +1433,7 @@ test("migrates legacy write tool to edit permission", async () => {
 })
 
 // Managed settings tests
-// Note: preload.ts sets OPENCODE_TEST_MANAGED_CONFIG which Global.Path.managedConfig uses
+// Note: preload.ts sets CODEGENIE_TEST_MANAGED_CONFIG which Global.Path.managedConfig uses
 
 test("managed settings override user settings", async () => {
   await using tmp = await tmpdir({
@@ -1441,7 +1453,7 @@ test("managed settings override user settings", async () => {
     share: "disabled",
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1469,7 +1481,7 @@ test("managed settings override project settings", async () => {
     disabled_providers: ["openai"],
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1489,7 +1501,7 @@ test("missing managed settings file is not an error", async () => {
     },
   })
 
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1516,7 +1528,7 @@ test("migrates legacy edit tool to edit permission", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1545,7 +1557,7 @@ test("migrates legacy patch tool to edit permission", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1577,7 +1589,7 @@ test("migrates mixed legacy tools config", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1612,7 +1624,7 @@ test("merges legacy tools with existing permission config", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1649,7 +1661,7 @@ test("permission config preserves user key order", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1732,7 +1744,7 @@ test("project config can override MCP server enabled status", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1788,7 +1800,7 @@ test("MCP config deep merges preserving base config properties", async () => {
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1839,7 +1851,7 @@ test("local .opencode config can override MCP from project config", async () => 
       )
     },
   })
-  await Instance.provide({
+  await WithInstance.provide({
     directory: tmp.path,
     fn: async () => {
       const config = await load()
@@ -1883,7 +1895,7 @@ test("project config overrides remote well-known config", async () => {
     Layer.provide(fakeAuth),
     Layer.provide(emptyAccount),
     Layer.provideMerge(infra),
-    Layer.provide(Npm.defaultLayer),
+    Layer.provide(noopNpm),
   )
 
   try {
@@ -1941,7 +1953,7 @@ test("wellknown URL with trailing slash is normalized", async () => {
     Layer.provide(fakeAuth),
     Layer.provide(emptyAccount),
     Layer.provideMerge(infra),
-    Layer.provide(Npm.defaultLayer),
+    Layer.provide(noopNpm),
   )
 
   try {
@@ -1957,6 +1969,83 @@ test("wellknown URL with trailing slash is normalized", async () => {
     ).pipe(Effect.scoped, Effect.provide(layer), Effect.runPromise)
   } finally {
     globalThis.fetch = originalFetch
+  }
+})
+
+test("wellknown remote_config supports templated env vars in headers", async () => {
+  const originalFetch = globalThis.fetch
+  const originalToken = process.env.TEST_TOKEN
+  let wellknownFetchedUrl: string | undefined
+  let remoteFetchedUrl: string | undefined
+  let remoteHeaders: HeadersInit | undefined
+  globalThis.fetch = mock((url: string | URL | Request, init?: RequestInit) => {
+    const urlStr = url instanceof Request ? url.url : url instanceof URL ? url.href : url
+    if (urlStr.includes(".well-known/opencode")) {
+      wellknownFetchedUrl = urlStr
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            remote_config: {
+              url: "https://config.example.com/opencode.json",
+              headers: {
+                Authorization: "Bearer {env:TEST_TOKEN}",
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      )
+    }
+    if (urlStr.includes("config.example.com")) {
+      remoteFetchedUrl = urlStr
+      remoteHeaders = init?.headers
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            mcp: { confluence: { type: "remote", url: "https://confluence.example.com/mcp", enabled: true } },
+          }),
+          { status: 200 },
+        ),
+      )
+    }
+    return originalFetch(url, init)
+  }) as unknown as typeof fetch
+
+  const fakeAuth = Layer.mock(Auth.Service)({
+    all: () =>
+      Effect.succeed({
+        "https://example.com": new Auth.WellKnown({ type: "wellknown", key: "TEST_TOKEN", token: "test-token" }),
+      }),
+  })
+
+  const layer = Config.layer.pipe(
+    Layer.provide(testFlock),
+    Layer.provide(AppFileSystem.defaultLayer),
+    Layer.provide(Env.defaultLayer),
+    Layer.provide(fakeAuth),
+    Layer.provide(emptyAccount),
+    Layer.provideMerge(infra),
+    Layer.provide(noopNpm),
+  )
+
+  try {
+    await provideTmpdirInstance(
+      () =>
+        Config.Service.use((svc) =>
+          Effect.gen(function* () {
+            const config = yield* svc.get()
+            expect(wellknownFetchedUrl).toBe("https://example.com/.well-known/opencode")
+            expect(remoteFetchedUrl).toBe("https://config.example.com/opencode.json")
+            expect(remoteHeaders).toEqual({ Authorization: "Bearer test-token" })
+            expect(config.mcp?.confluence?.enabled).toBe(true)
+          }),
+        ),
+      { git: true },
+    ).pipe(Effect.scoped, Effect.provide(layer), Effect.runPromise)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalToken === undefined) delete process.env.TEST_TOKEN
+    else process.env.TEST_TOKEN = originalToken
   }
 })
 
@@ -2096,7 +2185,7 @@ describe("deduplicatePluginOrigins", () => {
       },
     })
 
-    await Instance.provide({
+    await provideTestInstance({
       directory: path.join(tmp.path, "project"),
       fn: async () => {
         const config = await load()
@@ -2109,10 +2198,10 @@ describe("deduplicatePluginOrigins", () => {
   })
 })
 
-describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
+describe("CODEGENIE_DISABLE_PROJECT_CONFIG", () => {
   test("skips project config files when flag is set", async () => {
-    const originalEnv = process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
-    process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = "true"
+    const originalEnv = process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
+    process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = "true"
 
     try {
       await using tmp = await tmpdir({
@@ -2128,7 +2217,7 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
           )
         },
       })
-      await Instance.provide({
+      await WithInstance.provide({
         directory: tmp.path,
         fn: async () => {
           const config = await load()
@@ -2139,16 +2228,16 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
       })
     } finally {
       if (originalEnv === undefined) {
-        delete process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
+        delete process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
       } else {
-        process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = originalEnv
+        process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = originalEnv
       }
     }
   })
 
   test("skips project .opencode/ directories when flag is set", async () => {
-    const originalEnv = process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
-    process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = "true"
+    const originalEnv = process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
+    process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = "true"
 
     try {
       await using tmp = await tmpdir({
@@ -2159,7 +2248,7 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
           await Filesystem.write(path.join(opencodeDir, "test-cmd.md"), "# Test Command\nThis is a test command.")
         },
       })
-      await Instance.provide({
+      await WithInstance.provide({
         directory: tmp.path,
         fn: async () => {
           const directories = await listDirs()
@@ -2170,20 +2259,20 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
       })
     } finally {
       if (originalEnv === undefined) {
-        delete process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
+        delete process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
       } else {
-        process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = originalEnv
+        process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = originalEnv
       }
     }
   })
 
   test("still loads global config when flag is set", async () => {
-    const originalEnv = process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
-    process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = "true"
+    const originalEnv = process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
+    process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = "true"
 
     try {
       await using tmp = await tmpdir()
-      await Instance.provide({
+      await WithInstance.provide({
         directory: tmp.path,
         fn: async () => {
           // Should still get default config (from global or defaults)
@@ -2194,21 +2283,21 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
       })
     } finally {
       if (originalEnv === undefined) {
-        delete process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
+        delete process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
       } else {
-        process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = originalEnv
+        process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = originalEnv
       }
     }
   })
 
   test("skips relative instructions with warning when flag is set but no config dir", async () => {
-    const originalDisable = process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
-    const originalConfigDir = process.env["OPENCODE_CONFIG_DIR"]
+    const originalDisable = process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
+    const originalConfigDir = process.env["CODEGENIE_CONFIG_DIR"]
 
     try {
       // Ensure no config dir is set
-      delete process.env["OPENCODE_CONFIG_DIR"]
-      process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = "true"
+      delete process.env["CODEGENIE_CONFIG_DIR"]
+      process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = "true"
 
       await using tmp = await tmpdir({
         init: async (dir) => {
@@ -2225,7 +2314,7 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
         },
       })
 
-      await Instance.provide({
+      await WithInstance.provide({
         directory: tmp.path,
         fn: async () => {
           // The relative instruction should be skipped without error
@@ -2239,21 +2328,21 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
       })
     } finally {
       if (originalDisable === undefined) {
-        delete process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
+        delete process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
       } else {
-        process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = originalDisable
+        process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = originalDisable
       }
       if (originalConfigDir === undefined) {
-        delete process.env["OPENCODE_CONFIG_DIR"]
+        delete process.env["CODEGENIE_CONFIG_DIR"]
       } else {
-        process.env["OPENCODE_CONFIG_DIR"] = originalConfigDir
+        process.env["CODEGENIE_CONFIG_DIR"] = originalConfigDir
       }
     }
   })
 
-  test("OPENCODE_CONFIG_DIR still works when flag is set", async () => {
-    const originalDisable = process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
-    const originalConfigDir = process.env["OPENCODE_CONFIG_DIR"]
+  test("CODEGENIE_CONFIG_DIR still works when flag is set", async () => {
+    const originalDisable = process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
+    const originalConfigDir = process.env["CODEGENIE_CONFIG_DIR"]
 
     try {
       await using configDirTmp = await tmpdir({
@@ -2282,45 +2371,45 @@ describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
         },
       })
 
-      process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = "true"
-      process.env["OPENCODE_CONFIG_DIR"] = configDirTmp.path
+      process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = "true"
+      process.env["CODEGENIE_CONFIG_DIR"] = configDirTmp.path
 
-      await Instance.provide({
+      await WithInstance.provide({
         directory: projectTmp.path,
         fn: async () => {
           const config = await load()
-          // Should load from OPENCODE_CONFIG_DIR, not project
+          // Should load from CODEGENIE_CONFIG_DIR, not project
           expect(config.model).toBe("configdir/model")
         },
       })
     } finally {
       if (originalDisable === undefined) {
-        delete process.env["OPENCODE_DISABLE_PROJECT_CONFIG"]
+        delete process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"]
       } else {
-        process.env["OPENCODE_DISABLE_PROJECT_CONFIG"] = originalDisable
+        process.env["CODEGENIE_DISABLE_PROJECT_CONFIG"] = originalDisable
       }
       if (originalConfigDir === undefined) {
-        delete process.env["OPENCODE_CONFIG_DIR"]
+        delete process.env["CODEGENIE_CONFIG_DIR"]
       } else {
-        process.env["OPENCODE_CONFIG_DIR"] = originalConfigDir
+        process.env["CODEGENIE_CONFIG_DIR"] = originalConfigDir
       }
     }
   })
 })
 
-describe("OPENCODE_CONFIG_CONTENT token substitution", () => {
-  test("substitutes {env:} tokens in OPENCODE_CONFIG_CONTENT", async () => {
-    const originalEnv = process.env["OPENCODE_CONFIG_CONTENT"]
+describe("CODEGENIE_CONFIG_CONTENT token substitution", () => {
+  test("substitutes {env:} tokens in CODEGENIE_CONFIG_CONTENT", async () => {
+    const originalEnv = process.env["CODEGENIE_CONFIG_CONTENT"]
     const originalTestVar = process.env["TEST_CONFIG_VAR"]
     process.env["TEST_CONFIG_VAR"] = "test_api_key_12345"
-    process.env["OPENCODE_CONFIG_CONTENT"] = JSON.stringify({
+    process.env["CODEGENIE_CONFIG_CONTENT"] = JSON.stringify({
       $schema: "https://opencode.ai/config.json",
       username: "{env:TEST_CONFIG_VAR}",
     })
 
     try {
       await using tmp = await tmpdir()
-      await Instance.provide({
+      await WithInstance.provide({
         directory: tmp.path,
         fn: async () => {
           const config = await load()
@@ -2329,9 +2418,9 @@ describe("OPENCODE_CONFIG_CONTENT token substitution", () => {
       })
     } finally {
       if (originalEnv !== undefined) {
-        process.env["OPENCODE_CONFIG_CONTENT"] = originalEnv
+        process.env["CODEGENIE_CONFIG_CONTENT"] = originalEnv
       } else {
-        delete process.env["OPENCODE_CONFIG_CONTENT"]
+        delete process.env["CODEGENIE_CONFIG_CONTENT"]
       }
       if (originalTestVar !== undefined) {
         process.env["TEST_CONFIG_VAR"] = originalTestVar
@@ -2341,20 +2430,20 @@ describe("OPENCODE_CONFIG_CONTENT token substitution", () => {
     }
   })
 
-  test("substitutes {file:} tokens in OPENCODE_CONFIG_CONTENT", async () => {
-    const originalEnv = process.env["OPENCODE_CONFIG_CONTENT"]
+  test("substitutes {file:} tokens in CODEGENIE_CONFIG_CONTENT", async () => {
+    const originalEnv = process.env["CODEGENIE_CONFIG_CONTENT"]
 
     try {
       await using tmp = await tmpdir({
         init: async (dir) => {
           await Filesystem.write(path.join(dir, "api_key.txt"), "secret_key_from_file")
-          process.env["OPENCODE_CONFIG_CONTENT"] = JSON.stringify({
+          process.env["CODEGENIE_CONFIG_CONTENT"] = JSON.stringify({
             $schema: "https://opencode.ai/config.json",
             username: "{file:./api_key.txt}",
           })
         },
       })
-      await Instance.provide({
+      await WithInstance.provide({
         directory: tmp.path,
         fn: async () => {
           const config = await load()
@@ -2363,9 +2452,9 @@ describe("OPENCODE_CONFIG_CONTENT token substitution", () => {
       })
     } finally {
       if (originalEnv !== undefined) {
-        process.env["OPENCODE_CONFIG_CONTENT"] = originalEnv
+        process.env["CODEGENIE_CONFIG_CONTENT"] = originalEnv
       } else {
-        delete process.env["OPENCODE_CONFIG_CONTENT"]
+        delete process.env["CODEGENIE_CONFIG_CONTENT"]
       }
     }
   })

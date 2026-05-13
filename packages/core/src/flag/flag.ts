@@ -1,4 +1,5 @@
 import { Config } from "effect"
+import { InstallationChannel } from "../installation/version"
 
 function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
@@ -9,6 +10,10 @@ function falsy(key: string) {
   const value = process.env[key]?.toLowerCase()
   return value === "false" || value === "0"
 }
+
+// Channels that default to the new effect-httpapi server backend. The legacy
+// hono backend remains the default for stable (`prod`/`latest`) installs.
+const HTTPAPI_DEFAULT_ON_CHANNELS = new Set(["dev", "beta", "local"])
 
 function number(key: string) {
   const value = process.env[key]
@@ -83,8 +88,16 @@ export const Flag = {
   CODEGENIE_STRICT_CONFIG_DEPS: truthy("CODEGENIE_STRICT_CONFIG_DEPS"),
 
   CODEGENIE_WORKSPACE_ID: process.env["CODEGENIE_WORKSPACE_ID"],
-  CODEGENIE_EXPERIMENTAL_HTTPAPI: truthy("CODEGENIE_EXPERIMENTAL_HTTPAPI"),
+  // Defaults to true on dev/beta/local channels so internal users exercise the
+  // new effect-httpapi server backend. Stable (`prod`/`latest`) installs stay
+  // on the legacy hono backend until the rollout is complete. An explicit env
+  // var ("true"/"1" or "false"/"0") always wins, providing an opt-in for
+  // stable users and an escape hatch for dev/beta users.
+  CODEGENIE_EXPERIMENTAL_HTTPAPI:
+    truthy("CODEGENIE_EXPERIMENTAL_HTTPAPI") ||
+    (!falsy("CODEGENIE_EXPERIMENTAL_HTTPAPI") && HTTPAPI_DEFAULT_ON_CHANNELS.has(InstallationChannel)),
   CODEGENIE_EXPERIMENTAL_WORKSPACES: CODEGENIE_EXPERIMENTAL || truthy("CODEGENIE_EXPERIMENTAL_WORKSPACES"),
+  CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM: CODEGENIE_EXPERIMENTAL || truthy("CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM"),
 
   // Evaluated at access time (not module load) because tests, the CLI, and
   // external tooling set these env vars at runtime.
