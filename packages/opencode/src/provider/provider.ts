@@ -13,7 +13,7 @@ import { Auth } from "../auth"
 import { Env } from "../env"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Flag } from "@opencode-ai/core/flag/flag"
-import { zod } from "@/util/effect-zod"
+import { zod } from "@opencode-ai/core/effect-zod"
 import { namedSchemaError } from "@/util/named-schema-error"
 import { iife } from "@/util/iife"
 import { Global } from "@opencode-ai/core/global"
@@ -24,10 +24,11 @@ import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { isRecord } from "@/util/record"
-import { optionalOmitUndefined, withStatics } from "@/util/schema"
+import { optionalOmitUndefined, withStatics } from "@opencode-ai/core/schema"
 
 import * as ProviderTransform from "./transform"
 import { ModelID, ProviderID } from "./schema"
+import { ModelStatus } from "./model-status"
 
 const log = Log.create({ service: "provider" })
 
@@ -939,7 +940,7 @@ export const Model = Schema.Struct({
   capabilities: ProviderCapabilities,
   cost: ProviderCost,
   limit: ProviderLimit,
-  status: Schema.Literals(["alpha", "beta", "deprecated", "active"]),
+  status: ModelStatus,
   options: Schema.Record(Schema.String, Schema.Any),
   headers: Schema.Record(Schema.String, Schema.String),
   release_date: Schema.String,
@@ -1212,7 +1213,7 @@ const layer: Layer.Layer<
           const pluginAuth = yield* auth.get(providerID).pipe(Effect.orDie)
 
           provider.models = yield* Effect.promise(async () => {
-            const next = await models(provider, { auth: pluginAuth })
+            const next = await models(toPublicInfo(provider), { auth: pluginAuth })
             return Object.fromEntries(
               Object.entries(next).map(([id, model]) => [
                 id,
