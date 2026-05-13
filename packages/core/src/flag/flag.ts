@@ -1,4 +1,5 @@
 import { Config } from "effect"
+import { InstallationChannel } from "../installation/version"
 
 function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
@@ -8,6 +9,13 @@ function truthy(key: string) {
 function falsy(key: string) {
   const value = process.env[key]?.toLowerCase()
   return value === "false" || value === "0"
+}
+
+// Channels where new experiments default to ON (unstable / internal users).
+// Stable channels (`prod`, `latest`) stay opt-in.
+const UNSTABLE_CHANNELS = new Set(["dev", "beta", "local"])
+function unstableDefault(key: string) {
+  return truthy(key) || (!falsy(key) && UNSTABLE_CHANNELS.has(InstallationChannel))
 }
 
 function number(key: string) {
@@ -48,6 +56,9 @@ export const Flag = {
   CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT: CODEGENIE_DISABLE_CLAUDE_CODE || truthy("CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT"),
   CODEGENIE_DISABLE_CLAUDE_CODE_SKILLS,
   CODEGENIE_DISABLE_EXTERNAL_SKILLS: truthy("CODEGENIE_DISABLE_EXTERNAL_SKILLS"),
+  // Default-on for dev/beta/local; opt-in for stable. Set
+  // CODEGENIE_EXPERIMENTAL_CUSTOMIZE_SKILL=false to force off, =true to force on.
+  CODEGENIE_EXPERIMENTAL_CUSTOMIZE_SKILL: unstableDefault("CODEGENIE_EXPERIMENTAL_CUSTOMIZE_SKILL"),
   CODEGENIE_FAKE_VCS: process.env["CODEGENIE_FAKE_VCS"],
   CODEGENIE_SERVER_PASSWORD: process.env["CODEGENIE_SERVER_PASSWORD"],
   CODEGENIE_SERVER_USERNAME: process.env["CODEGENIE_SERVER_USERNAME"],

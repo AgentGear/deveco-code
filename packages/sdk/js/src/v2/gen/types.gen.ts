@@ -6235,6 +6235,16 @@ export type V2SessionListData = {
   query?: {
     directory?: string
     workspace?: string
+    limit?: number
+    order?: "asc" | "desc"
+    path?: string
+    roots?: boolean | "true" | "false"
+    start?: number
+    search?: string
+    /**
+     * Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response. Do not combine with order or filters.
+     */
+    cursor?: string
   }
   url: "/api/session"
 }
@@ -6352,6 +6362,12 @@ export type V2SessionMessagesData = {
   query?: {
     directory?: string
     workspace?: string
+    limit?: number
+    order?: "asc" | "desc"
+    /**
+     * Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response. Do not combine with order.
+     */
+    cursor?: string
   }
   url: "/api/session/{sessionID}/message"
 }

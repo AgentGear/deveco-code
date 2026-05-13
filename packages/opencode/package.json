@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "1.14.45",
+  "version": "1.14.46",
   "name": "codegenie",
   "type": "module",
   "license": "MIT",
@@ -41,10 +41,6 @@
   },
   "devDependencies": {
     "@babel/core": "7.28.4",
-    "@deveco-codegenie/mcp-bridge": "1.1.5",
-    "@deveco-codegenie/mcp-bridge-darwin-arm64": "1.1.5",
-    "@deveco-codegenie/mcp-bridge-darwin-x64": "1.1.5",
-    "@deveco-codegenie/mcp-bridge-win32-x64": "1.1.5",
     "@octokit/webhooks-types": "7.6.1",
     "@opencode-ai/script": "workspace:*",
     "@opencode-ai/core": "workspace:*",
