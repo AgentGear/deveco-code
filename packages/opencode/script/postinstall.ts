@@ -155,7 +155,6 @@ async function downloadMcpBridge(platform: string) {
   const cachedPkgJson = path.join(cacheSubDir, "package.json")
 
   if (fs.existsSync(cachedNode) && fs.existsSync(cachedPkgJson)) {
-    console.log(`  mcp-bridge for ${platform} already cached`)
     return
   }
 
@@ -196,8 +195,8 @@ async function downloadMcpBridge(platform: string) {
 const platforms = Array.from(supportedPlatforms)
 
 console.log(`Downloading vendored binaries... (${platforms.join(", ")})`)
-await Promise.all(platforms.flatMap((platform) => [
-  downloadRipgrep(platform).catch((e) => console.log(`  Failed to download rg for ${platform}: ${e.message}`)),
-  downloadMcpBridge(platform).catch((e) => console.log(`  Failed to download mcp-bridge for ${platform}: ${e.message}`)),
-]))
+for (const platform of platforms) {
+  await downloadRipgrep(platform).catch((e) => console.log(`  Failed to download rg for ${platform}: ${e.message}`))
+  await downloadMcpBridge(platform).catch((e) => console.log(`  Failed to download mcp-bridge for ${platform}: ${e.message}`))
+}
 console.log("Done.")

@@ -5,13 +5,21 @@ import { iife } from "@/util/iife"
 
 export type Err = ReturnType<NamedError["toObject"]>
 
-// Queue polling constants
-export const QUEUE_DELAY_STEP = 2000 // 2 seconds base step
-export const QUEUE_DELAY_MAX = 10000 // 10 seconds max delay
+export const GO_UPSELL_MESSAGE = "Free usage exceeded, subscribe to Go"
+export const GO_UPSELL_URL = "https://opencode.ai/go"
+export type RetryReason = "free_tier_limit" | "account_rate_limit" | (string & {})
 
-// This exported message is shared with the TUI upsell detector. Matching on a
-// literal error string kind of sucks, but it is the simplest for now.
-export const GO_UPSELL_MESSAGE = "Free usage exceeded, subscribe to Go https://opencode.ai/go"
+export type Retryable = {
+  message: string
+  action?: {
+    reason: RetryReason
+    provider: string
+    title: string
+    message: string
+    label: string
+    link?: string
+  }
+}
 
 export const RETRY_INITIAL_DELAY = 2000
 export const RETRY_BACKOFF_FACTOR = 2
@@ -55,7 +63,7 @@ export function delay(attempt: number, error?: MessageV2.APIError) {
   return cap(Math.min(RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1), RETRY_MAX_DELAY_NO_HEADERS))
 }
 
-export function retryable(error: Err) {
+export function retryable(error: Err, provider: string) {
   // context overflow errors should not be retried
   if (MessageV2.ContextOverflowError.isInstance(error)) return undefined
   if (MessageV2.APIError.isInstance(error)) {
@@ -63,8 +71,53 @@ export function retryable(error: Err) {
     // 5xx errors are transient server failures and should always be retried,
     // even when the provider SDK doesn't explicitly mark them as retryable.
     if (!error.data.isRetryable && !(status !== undefined && status >= 500)) return undefined
-    if (error.data.responseBody?.includes("FreeUsageLimitError")) return GO_UPSELL_MESSAGE
-    return error.data.message.includes("Overloaded") ? "Provider is overloaded" : error.data.message
+    if (error.data.responseBody?.includes("FreeUsageLimitError")) {
+      return {
+        message: GO_UPSELL_MESSAGE,
+        action: {
+          reason: "free_tier_limit",
+          provider,
+          title: "Free limit reached",
+          message: "Subscribe to OpenCode Go for reliable access to the best open-source models, starting at $5/month.",
+          label: "subscribe",
+          link: GO_UPSELL_URL,
+        },
+      }
+    }
+    if (error.data.responseBody?.includes("GoUsageLimitError")) {
+      const body = parseJSON(error.data.responseBody)
+      const workspace = str(body?.metadata?.workspace)
+      const limitName = str(body?.metadata?.limitName)
+      const retryAfter = num(error.data.responseHeaders?.["retry-after"])
+      const resetIn = iife(() => {
+        if (retryAfter === undefined) return ""
+        const seconds = Math.max(0, Math.ceil(retryAfter))
+        const days = Math.floor(seconds / 86_400)
+        const hours = Math.floor((seconds % 86_400) / 3_600)
+        const minutes = Math.ceil((seconds % 3_600) / 60)
+        const unit = (value: number, name: string) => `${value} ${name}${value === 1 ? "" : "s"}`
+
+        if (days > 0) return hours > 0 ? `${unit(days, "day")} ${unit(hours, "hour")}` : unit(days, "day")
+        if (hours > 0) return minutes > 0 ? `${unit(hours, "hour")} ${unit(minutes, "minute")}` : unit(hours, "hour")
+        return minutes > 0 ? unit(minutes, "minute") : "less than a minute"
+      })
+
+      const message = `${limitName ? `${limitName} usage limit` : "Usage limit"} reached. It will reset in ${resetIn}. To continue using this model now, enable usage from your available balance`
+
+      const link = `https://opencode.ai/workspace/${workspace}/go`
+      return {
+        message: `${message} - ${link}`,
+        action: {
+          reason: "account_rate_limit",
+          provider,
+          title: "Go limit reached",
+          message,
+          label: "open settings",
+          link,
+        },
+      }
+    }
+    return { message: error.data.message.includes("Overloaded") ? "Provider is overloaded" : error.data.message }
   }
 
   // Check for rate limit patterns in plain text error messages
@@ -76,95 +129,67 @@ export function retryable(error: Err) {
       lower.includes("rate limit") ||
       lower.includes("too many requests")
     ) {
-      return msg
+      return { message: msg }
     }
   }
 
-  const json = iife(() => {
-    try {
-      if (typeof error.data?.message === "string") {
-        const parsed = JSON.parse(error.data.message)
-        return parsed
-      }
-
-      return JSON.parse(error.data.message)
-    } catch {
-      return undefined
-    }
-  })
+  const json = parseJSON(error.data?.message)
   if (!json || typeof json !== "object") return undefined
   const code = typeof json.code === "string" ? json.code : ""
 
   if (json.type === "error" && json.error?.type === "too_many_requests") {
-    return "Too Many Requests"
+    return { message: "Too Many Requests" }
   }
   if (code.includes("exhausted") || code.includes("unavailable")) {
-    return "Provider is overloaded"
+    return { message: "Provider is overloaded" }
   }
   if (json.type === "error" && typeof json.error?.code === "string" && json.error.code.includes("rate_limit")) {
-    return "Rate Limited"
+    return { message: "Rate Limited" }
   }
   return undefined
+}
+
+function str(value: unknown) {
+  if (value === undefined || value === null) return ""
+  return String(value)
+}
+
+function num(value: unknown) {
+  const parsed = Number.parseFloat(str(value))
+  if (Number.isNaN(parsed)) return undefined
+  return parsed
+}
+
+function parseJSON(value: unknown) {
+  return iife(() => {
+    try {
+      if (typeof value !== "string") return undefined
+      return JSON.parse(value)
+    } catch {
+      return undefined
+    }
+  })
 }
 
 export function policy(opts: {
+  provider: string
   parse: (error: unknown) => Err
-  set: (input: { attempt: number; message: string; next: number }) => Effect.Effect<void>
+  set: (input: { attempt: number; message: string; action?: Retryable["action"]; next: number }) => Effect.Effect<void>
 }) {
   return Schedule.fromStepWithMetadata(
     Effect.succeed((meta: Schedule.InputMetadata<unknown>) => {
       const error = opts.parse(meta.input)
-      const message = retryable(error)
-      if (!message) return Cause.done(meta.attempt)
+      const retry = retryable(error, opts.provider)
+      if (!retry) return Cause.done(meta.attempt)
       return Effect.gen(function* () {
         const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined)
         const now = yield* Clock.currentTimeMillis
-        yield* opts.set({ attempt: meta.attempt, message, next: now + wait })
-        return [meta.attempt, Duration.millis(wait)] as [number, Duration.Duration]
-      })
-    }),
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Queue polling retry policy (fixed-step delays)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Fixed-step delay for queue polling: 2→4→6→8→10→10→10... seconds
- */
-export function queueDelay(attempt: number): number {
-  // min(2000 + 2000*(attempt-1), 10000) = min(2s + 2s*attempt, 10s)
-  return Math.min(QUEUE_DELAY_STEP + QUEUE_DELAY_STEP * (attempt - 1), QUEUE_DELAY_MAX)
-}
-
-/**
- * Check if error is a queue error and return position
- */
-export function queueable(error: Err): number | undefined {
-  if (MessageV2.QueueError.isInstance(error)) {
-    return error.data.position
-  }
-  return undefined
-}
-
-/**
- * Queue retry policy with fixed-step delays
- */
-export function queuePolicy(opts: {
-  parse: (error: unknown) => Err
-  set: (input: { attempt: number; position: number; message: string; next: number }) => Effect.Effect<void>
-}) {
-  return Schedule.fromStepWithMetadata(
-    Effect.succeed((meta: Schedule.InputMetadata<unknown>) => {
-      const error = opts.parse(meta.input)
-      const position = queueable(error)
-      if (position === undefined) return Cause.done(meta.attempt)
-      return Effect.gen(function* () {
-        const wait = queueDelay(meta.attempt)
-        const now = yield* Clock.currentTimeMillis
-        const message = MessageV2.QueueError.isInstance(error) ? error.data.message : "排队等待中..."
-        yield* opts.set({ attempt: meta.attempt, position, message, next: now + wait })
+        yield* opts.set({
+          attempt: meta.attempt,
+          message: retry.message,
+          action: retry.action,
+          next: now + wait,
+        })
         return [meta.attempt, Duration.millis(wait)] as [number, Duration.Duration]
       })
     }),

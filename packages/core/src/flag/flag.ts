@@ -1,5 +1,4 @@
 import { Config } from "effect"
-import { InstallationChannel } from "../installation/version"
 
 function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
@@ -11,10 +10,6 @@ function falsy(key: string) {
   return value === "false" || value === "0"
 }
 
-// Channels that default to the new effect-httpapi server backend. The legacy
-// hono backend remains the default for stable (`prod`/`latest`) installs.
-const HTTPAPI_DEFAULT_ON_CHANNELS = new Set(["dev", "beta", "local"])
-
 function number(key: string) {
   const value = process.env[key]
   if (!value) return undefined
@@ -23,8 +18,7 @@ function number(key: string) {
 }
 
 const CODEGENIE_EXPERIMENTAL = truthy("CODEGENIE_EXPERIMENTAL")
-// Claude Code inheritance: default DISABLED (true), set CODEGENIE_DISABLE_CLAUDE_CODE=0 or false to ENABLE
-const CODEGENIE_DISABLE_CLAUDE_CODE = !falsy("CODEGENIE_DISABLE_CLAUDE_CODE")
+const CODEGENIE_DISABLE_CLAUDE_CODE = truthy("CODEGENIE_DISABLE_CLAUDE_CODE")
 const CODEGENIE_DISABLE_CLAUDE_CODE_SKILLS =
   CODEGENIE_DISABLE_CLAUDE_CODE || truthy("CODEGENIE_DISABLE_CLAUDE_CODE_SKILLS")
 const copy = process.env["CODEGENIE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT"]
@@ -53,7 +47,6 @@ export const Flag = {
   CODEGENIE_DISABLE_CLAUDE_CODE,
   CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT: CODEGENIE_DISABLE_CLAUDE_CODE || truthy("CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT"),
   CODEGENIE_DISABLE_CLAUDE_CODE_SKILLS,
-  CODEGENIE_DISABLE_DEFAULT_SKILLS: truthy("CODEGENIE_DISABLE_DEFAULT_SKILLS"),
   CODEGENIE_DISABLE_EXTERNAL_SKILLS: truthy("CODEGENIE_DISABLE_EXTERNAL_SKILLS"),
   CODEGENIE_FAKE_VCS: process.env["CODEGENIE_FAKE_VCS"],
   CODEGENIE_SERVER_PASSWORD: process.env["CODEGENIE_SERVER_PASSWORD"],
@@ -78,7 +71,9 @@ export const Flag = {
   CODEGENIE_EXPERIMENTAL_LSP_TY: truthy("CODEGENIE_EXPERIMENTAL_LSP_TY"),
   CODEGENIE_EXPERIMENTAL_LSP_TOOL: CODEGENIE_EXPERIMENTAL || truthy("CODEGENIE_EXPERIMENTAL_LSP_TOOL"),
   CODEGENIE_EXPERIMENTAL_PLAN_MODE: CODEGENIE_EXPERIMENTAL || truthy("CODEGENIE_EXPERIMENTAL_PLAN_MODE"),
+  CODEGENIE_EXPERIMENTAL_SCOUT: CODEGENIE_EXPERIMENTAL || truthy("CODEGENIE_EXPERIMENTAL_SCOUT"),
   CODEGENIE_EXPERIMENTAL_MARKDOWN: !falsy("CODEGENIE_EXPERIMENTAL_MARKDOWN"),
+  CODEGENIE_ENABLE_PARALLEL: truthy("CODEGENIE_ENABLE_PARALLEL") || truthy("CODEGENIE_EXPERIMENTAL_PARALLEL"),
   CODEGENIE_MODELS_URL: process.env["CODEGENIE_MODELS_URL"],
   CODEGENIE_MODELS_PATH: process.env["CODEGENIE_MODELS_PATH"],
   CODEGENIE_DISABLE_EMBEDDED_WEB_UI: truthy("CODEGENIE_DISABLE_EMBEDDED_WEB_UI"),
@@ -88,14 +83,6 @@ export const Flag = {
   CODEGENIE_STRICT_CONFIG_DEPS: truthy("CODEGENIE_STRICT_CONFIG_DEPS"),
 
   CODEGENIE_WORKSPACE_ID: process.env["CODEGENIE_WORKSPACE_ID"],
-  // Defaults to true on dev/beta/local channels so internal users exercise the
-  // new effect-httpapi server backend. Stable (`prod`/`latest`) installs stay
-  // on the legacy hono backend until the rollout is complete. An explicit env
-  // var ("true"/"1" or "false"/"0") always wins, providing an opt-in for
-  // stable users and an escape hatch for dev/beta users.
-  CODEGENIE_EXPERIMENTAL_HTTPAPI:
-    truthy("CODEGENIE_EXPERIMENTAL_HTTPAPI") ||
-    (!falsy("CODEGENIE_EXPERIMENTAL_HTTPAPI") && HTTPAPI_DEFAULT_ON_CHANNELS.has(InstallationChannel)),
   CODEGENIE_EXPERIMENTAL_WORKSPACES: CODEGENIE_EXPERIMENTAL || truthy("CODEGENIE_EXPERIMENTAL_WORKSPACES"),
   CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM: CODEGENIE_EXPERIMENTAL || truthy("CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM"),
 

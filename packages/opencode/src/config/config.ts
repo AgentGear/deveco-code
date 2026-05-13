@@ -40,6 +40,7 @@ import { ConfigPaths } from "./paths"
 import { ConfigPermission } from "./permission"
 import { ConfigPlugin } from "./plugin"
 import { ConfigProvider } from "./provider"
+import { ConfigReference } from "./reference"
 import { ConfigServer } from "./server"
 import { ConfigSkills } from "./skills"
 import { ConfigVariable } from "./variable"
@@ -123,12 +124,12 @@ const LogLevelRef = Schema.Literals(["DEBUG", "INFO", "WARN", "ERROR"]).annotate
 })
 
 // The Effect Schema is the canonical source of truth. The `.zod` compatibility
-// surface is derived so existing Hono validators keep working without a parallel
-// Zod definition.
+// surface is derived from it so plugin/SDK Zod consumers keep working without
+// a parallel hand-maintained Zod definition.
 //
 // The walker emits `z.object({...})` which is non-strict by default. Config
 // historically uses `.strict()` (additionalProperties: false in openapi.json),
-// so layer that on after derivation.  Re-apply the Config ref afterward
+// so layer that on after derivation. Re-apply the Config ref afterward
 // since `.strict()` strips the walker's meta annotation.
 export const Info = Schema.Struct({
   $schema: Schema.optional(Schema.String).annotate({
@@ -145,6 +146,9 @@ export const Info = Schema.Struct({
     description: "Command configuration, see https://opencode.ai/docs/commands",
   }),
   skills: Schema.optional(ConfigSkills.Info).annotate({ description: "Additional skill folder paths" }),
+  reference: Schema.optional(ConfigReference.Info).annotate({
+    description: "Named git or local directory references that can be @ mentioned as Scout-backed subagents",
+  }),
   watcher: Schema.optional(
     Schema.Struct({
       ignore: Schema.optional(Schema.mutable(Schema.Array(Schema.String))),
@@ -204,6 +208,7 @@ export const Info = Schema.Struct({
         // subagent
         general: Schema.optional(ConfigAgent.Info),
         explore: Schema.optional(ConfigAgent.Info),
+        scout: Schema.optional(ConfigAgent.Info),
         // specialized
         title: Schema.optional(ConfigAgent.Info),
         summary: Schema.optional(ConfigAgent.Info),
