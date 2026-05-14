@@ -176,6 +176,6 @@ export async function napiBridgeStop(): Promise<void> {
   try {
     await bridge?.stop?.();
   } catch (error) {
-    console.error("Error stopping napi bridge:", error)
+
   }
 }
