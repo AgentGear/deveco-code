@@ -224,7 +224,9 @@ export const TuiThreadCommand = cmd({
       }
 
       setTimeout(() => {
-        client.call("checkUpgrade", { directory: cwd }).catch(() => {})
+        client.call("checkUpgrade", { directory: cwd }).catch((e) => {
+          Log.Default.warn("Upgrade check failed", { error: e instanceof Error ? e.message : String(e) })
+        })
       }, 1000).unref?.()
 
       try {

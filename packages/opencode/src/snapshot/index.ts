@@ -115,13 +115,15 @@ export const layer: Layer.Layer<
             return { code, text, stderr } satisfies GitResult
           },
           Effect.scoped,
-          Effect.catch((err) =>
-            Effect.succeed({
+          Effect.catch((err) => {
+            const errorMsg = err instanceof Error ? err.message : String(err)
+            Log.Default.error("Git command failed", { command: cmd.join(" "), error: errorMsg })
+            return Effect.succeed({
               code: ChildProcessSpawner.ExitCode(1),
               text: "",
-              stderr: err instanceof Error ? err.message : String(err),
-            }),
-          ),
+              stderr: errorMsg,
+            })
+          }),
         )
 
         const ignore = Effect.fnUntraced(function* (files: string[]) {

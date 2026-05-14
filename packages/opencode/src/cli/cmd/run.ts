@@ -25,6 +25,7 @@ import { createOpencodeClient, type OpencodeClient, type ToolPart } from "@openc
 import { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { INTERACTIVE_INPUT_ERROR, resolveInteractiveStdin } from "./run/runtime.stdin"
+import * as Log from "@opencode-ai/core/util/log"
 
 const runtimeTask = import("./run/runtime")
 type ModelInput = Parameters<OpencodeClient["session"]["prompt"]>[0]["model"]
@@ -731,6 +732,7 @@ export const RunCommand = effectCmd({
         if (!args.interactive) {
           const events = await client.event.subscribe()
           loop(client, events).catch((e) => {
+            Log.Default.error("run command failed", { error: e instanceof Error ? e.message : String(e) })
             console.error(e)
             process.exit(1)
           })
