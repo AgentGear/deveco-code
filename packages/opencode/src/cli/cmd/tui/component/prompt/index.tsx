@@ -71,7 +71,6 @@ export type PromptProps = {
   onSubmit?: () => void
   ref?: (ref: PromptRef | undefined) => void
   hint?: JSX.Element
-  notice?: string
   right?: JSX.Element
   showPlaceholder?: boolean
   placeholders?: {
@@ -1779,15 +1778,6 @@ export function Prompt(props: PromptProps) {
                 </Match>
               </Switch>
             </box>
-          </Show>
-          <Show when={props.notice}>
-            {(notice) => (
-              <box position="absolute" left={0} right={0} height={1} alignItems="center">
-                <text fg={theme.textMuted} wrapMode="none">
-                  {notice()}
-                </text>
-              </box>
-            )}
           </Show>
         </box>
       </box>
