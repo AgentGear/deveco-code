@@ -795,13 +795,13 @@ export { ACCESS_TOKEN_EXPIRES_MS }
 export async function requireLogin(): Promise<boolean> {
   if (await codegenieAuth.isLoggedIn()) return true
 
-  prompts.intro("Welcome to CodeGenie")
+  prompts.intro("Welcome to DevEco Code")
 
   const choice = await prompts.select({
     message: "How would you like to continue?",
     options: [
       { label: "Login", value: "login", hint: "Sign in with your Huawei account" },
-      { label: "Don't use", value: "skip", hint: "Exit CodeGenie" },
+      { label: "Don't use", value: "skip", hint: "Exit DevEco Code" },
     ],
   })
 
@@ -849,7 +849,7 @@ export async function requireLogin(): Promise<boolean> {
       })
     }
 
-    prompts.outro("Welcome to CodeGenie!")
+    prompts.outro("Welcome to DevEco Code!")
     return true
   } catch (error) {
     spinner.stop("Login failed")
@@ -919,7 +919,7 @@ export async function CodegenieAuthPlugin(_input: PluginInput): Promise<Hooks> {
               headers.set("authorization", `Bearer ${currentAuth.access}`)
             }
 
-            const sessionId = headers.get("x-codegenie-session") || headers.get("x-session-affinity")
+            const sessionId = headers.get("x-deveco-session") || headers.get("x-session-affinity")
             const chatId = (sessionId && sessionChatIdMap.get(sessionId)) || crypto.randomUUID().replace(/-/g, "")
             headers.set("Chat-Id", chatId)
             if (sessionId) {

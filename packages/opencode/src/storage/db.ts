@@ -16,7 +16,7 @@ import { InstanceState } from "@/effect/instance-state"
 import { iife } from "@/util/iife"
 import { init } from "#db"
 
-declare const CODEGENIE_MIGRATIONS: { sql: string; timestamp: number; name: string }[] | undefined
+declare const DEVECO_MIGRATIONS: { sql: string; timestamp: number; name: string }[] | undefined
 
 export const NotFoundError = NamedError.create(
   "NotFoundError",
@@ -28,16 +28,16 @@ export const NotFoundError = NamedError.create(
 const log = Log.create({ service: "db" })
 
 export function getChannelPath() {
-  if (["latest", "beta", "prod"].includes(InstallationChannel) || Flag.CODEGENIE_DISABLE_CHANNEL_DB)
-    return path.join(Global.Path.data, "codegenie.db")
+  if (["latest", "beta", "prod"].includes(InstallationChannel) || Flag.DEVECO_DISABLE_CHANNEL_DB)
+    return path.join(Global.Path.data, "deveco.db")
   const safe = InstallationChannel.replace(/[^a-zA-Z0-9._-]/g, "-")
-  return path.join(Global.Path.data, `codegenie-${safe}.db`)
+  return path.join(Global.Path.data, `deveco-${safe}.db`)
 }
 
 export const Path = iife(() => {
-  if (Flag.CODEGENIE_DB) {
-    if (Flag.CODEGENIE_DB === ":memory:" || path.isAbsolute(Flag.CODEGENIE_DB)) return Flag.CODEGENIE_DB
-    return path.join(Global.Path.data, Flag.CODEGENIE_DB)
+  if (Flag.DEVECO_DB) {
+    if (Flag.DEVECO_DB === ":memory:" || path.isAbsolute(Flag.DEVECO_DB)) return Flag.DEVECO_DB
+    return path.join(Global.Path.data, Flag.DEVECO_DB)
   }
   return getChannelPath()
 })
@@ -102,15 +102,15 @@ export const Client = lazy(() => {
 
   // Apply schema migrations
   const entries =
-    typeof CODEGENIE_MIGRATIONS !== "undefined"
-      ? CODEGENIE_MIGRATIONS
+    typeof DEVECO_MIGRATIONS !== "undefined"
+      ? DEVECO_MIGRATIONS
       : migrations(path.join(import.meta.dirname, "../../migration"))
   if (entries.length > 0) {
     log.info("applying migrations", {
       count: entries.length,
-      mode: typeof CODEGENIE_MIGRATIONS !== "undefined" ? "bundled" : "dev",
+      mode: typeof DEVECO_MIGRATIONS !== "undefined" ? "bundled" : "dev",
     })
-    if (Flag.CODEGENIE_SKIP_MIGRATIONS) {
+    if (Flag.DEVECO_SKIP_MIGRATIONS) {
       for (const item of entries) {
         item.sql = "select 1;"
       }

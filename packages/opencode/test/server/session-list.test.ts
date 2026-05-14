@@ -13,7 +13,7 @@ import { SessionTable } from "@/session/session.sql"
 import { eq } from "drizzle-orm"
 
 void Log.init({ print: false })
-const originalWorkspaces = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
+const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 
 function run<A, E>(fx: Effect.Effect<A, E, SessionNs.Service>) {
   return Effect.runPromise(fx.pipe(Effect.provide(SessionNs.defaultLayer)))
@@ -30,13 +30,13 @@ const svc = {
 }
 
 afterEach(async () => {
-  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = originalWorkspaces
+  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspaces
   await disposeAllInstances()
 })
 
 describe("session.list", () => {
   test("does not filter by directory when directory is omitted", async () => {
-    Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = false
+    Flag.DEVECO_EXPERIMENTAL_WORKSPACES = false
     await using tmp = await tmpdir({ git: true })
     await mkdir(path.join(tmp.path, "packages", "opencode"), { recursive: true })
     await mkdir(path.join(tmp.path, "packages", "app"), { recursive: true })
@@ -69,7 +69,7 @@ describe("session.list", () => {
   })
 
   test("filters by directory when directory is provided", async () => {
-    Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = false
+    Flag.DEVECO_EXPERIMENTAL_WORKSPACES = false
     await using tmp = await tmpdir({ git: true })
     await mkdir(path.join(tmp.path, "packages", "opencode"), { recursive: true })
     await mkdir(path.join(tmp.path, "packages", "app"), { recursive: true })
@@ -102,7 +102,7 @@ describe("session.list", () => {
   })
 
   test("filters by path and ignores directory when path is provided", async () => {
-    Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = false
+    Flag.DEVECO_EXPERIMENTAL_WORKSPACES = false
     await using tmp = await tmpdir({ git: true })
     await mkdir(path.join(tmp.path, "packages", "opencode", "src", "deep"), { recursive: true })
     await mkdir(path.join(tmp.path, "packages", "app"), { recursive: true })
@@ -142,7 +142,7 @@ describe("session.list", () => {
   })
 
   test("falls back to directory when filtering legacy sessions without path", async () => {
-    Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = false
+    Flag.DEVECO_EXPERIMENTAL_WORKSPACES = false
     await using tmp = await tmpdir({ git: true })
     await mkdir(path.join(tmp.path, "packages", "opencode", "src"), { recursive: true })
     await mkdir(path.join(tmp.path, "packages", "app"), { recursive: true })

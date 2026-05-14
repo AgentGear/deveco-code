@@ -21,12 +21,12 @@ import { testEffect } from "../lib/effect"
 // repeat it.
 const testStateLayer = Layer.effectDiscard(
   Effect.gen(function* () {
-    const originalWorkspaces = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
-    Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+    const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
+    Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
     yield* Effect.promise(() => resetDatabase())
     yield* Effect.addFinalizer(() =>
       Effect.promise(async () => {
-        Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = originalWorkspaces
+        Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspaces
         await resetDatabase()
       }),
     )
@@ -73,11 +73,11 @@ describe("instance HttpApi", () => {
 
   it.live("emits a sync fence header for fixed-workspace mutations", () =>
     Effect.gen(function* () {
-      const originalWorkspaceID = Flag.CODEGENIE_WORKSPACE_ID
-      Flag.CODEGENIE_WORKSPACE_ID = WorkspaceID.ascending()
+      const originalWorkspaceID = Flag.DEVECO_WORKSPACE_ID
+      Flag.DEVECO_WORKSPACE_ID = WorkspaceID.ascending()
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
-          Flag.CODEGENIE_WORKSPACE_ID = originalWorkspaceID
+          Flag.DEVECO_WORKSPACE_ID = originalWorkspaceID
         }),
       )
 
@@ -95,11 +95,11 @@ describe("instance HttpApi", () => {
 
   it.live("does not emit sync fence headers for fixed-workspace reads or no-op mutations", () =>
     Effect.gen(function* () {
-      const originalWorkspaceID = Flag.CODEGENIE_WORKSPACE_ID
-      Flag.CODEGENIE_WORKSPACE_ID = WorkspaceID.ascending()
+      const originalWorkspaceID = Flag.DEVECO_WORKSPACE_ID
+      Flag.DEVECO_WORKSPACE_ID = WorkspaceID.ascending()
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
-          Flag.CODEGENIE_WORKSPACE_ID = originalWorkspaceID
+          Flag.DEVECO_WORKSPACE_ID = originalWorkspaceID
         }),
       )
 

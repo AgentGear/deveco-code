@@ -1,11 +1,11 @@
 import type { ConfigProvider } from "../config/provider"
 
 /**
- * CodeGenie 模型资源定义
- * 当用户通过 CodeGenie OAuth 登录后，这些模型会注入到 provider 系统中
+ * DevEco Code 模型资源定义
+ * 当用户通过 DevEco Code OAuth 登录后，这些模型会注入到 provider 系统中
  */
-export const CODEGENIE_PROVIDER_CONFIG = {
-  name: "CodeGenie",
+export const DEVECO_PROVIDER_CONFIG = {
+  name: "DevEco Code",
   npm: "@ai-sdk/openai-compatible",
   api: "https://cn.devecostudio.huawei.com/sse/codeGenie/maas/v2",
   env: [],

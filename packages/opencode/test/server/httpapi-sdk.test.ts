@@ -22,8 +22,8 @@ import { disposeAllInstances, tmpdir } from "../fixture/fixture"
 import { it } from "../lib/effect"
 
 const original = {
-  CODEGENIE_SERVER_PASSWORD: Flag.CODEGENIE_SERVER_PASSWORD,
-  CODEGENIE_SERVER_USERNAME: Flag.CODEGENIE_SERVER_USERNAME,
+  CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+  CODEGENIE_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
 }
 
 type ServerPath = "default" | "raw"
@@ -34,8 +34,8 @@ type ProjectFixture = { sdk: Sdk; directory: string }
 type LlmProjectFixture = ProjectFixture & { llm: TestLLMServer["Service"] }
 
 function app(serverPath: ServerPath, input?: { password?: string; username?: string }) {
-  Flag.CODEGENIE_SERVER_PASSWORD = input?.password
-  Flag.CODEGENIE_SERVER_USERNAME = input?.username
+  Flag.DEVECO_SERVER_PASSWORD = input?.password
+  Flag.DEVECO_SERVER_USERNAME = input?.username
   if (serverPath === "default") return Server.Default().app
 
   const handler = HttpRouter.toWebHandler(
@@ -304,8 +304,8 @@ function seedMessage(directory: string, sessionID: string) {
 }
 
 afterEach(async () => {
-  Flag.CODEGENIE_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
-  Flag.CODEGENIE_SERVER_USERNAME = original.CODEGENIE_SERVER_USERNAME
+  Flag.DEVECO_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
+  Flag.DEVECO_SERVER_USERNAME = original.CODEGENIE_SERVER_USERNAME
   await disposeAllInstances()
   await resetDatabase()
 })

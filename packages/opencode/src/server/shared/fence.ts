@@ -7,7 +7,7 @@ import * as Log from "@opencode-ai/core/util/log"
 import { AppRuntime } from "@/effect/app-runtime"
 import { Effect } from "effect"
 
-export const HEADER = "x-codegenie-sync"
+export const HEADER = "x-deveco-sync"
 export type State = Record<string, number>
 const log = Log.create({ service: "fence" })
 

@@ -57,7 +57,7 @@ const args = hideBin(process.argv)
 
 function show(out: string) {
   const text = out.trimStart()
-  if (!text.startsWith("codegenie ")) {
+  if (!text.startsWith("deveco ")) {
     process.stderr.write(UI.logo() + EOL + EOL)
     process.stderr.write(text)
     return
@@ -67,7 +67,7 @@ function show(out: string) {
 
 const cli = yargs(args)
   .parserConfiguration({ "populate--": true })
-  .scriptName("codegenie")
+  .scriptName("deveco")
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
@@ -88,7 +88,7 @@ const cli = yargs(args)
   })
   .middleware(async (opts) => {
     if (opts.pure) {
-      process.env.CODEGENIE_PURE = "1"
+      process.env.DEVECO_PURE = "1"
     }
 
     await Log.init({
@@ -104,17 +104,17 @@ const cli = yargs(args)
     Heap.start()
 
     process.env.AGENT = "1"
-    process.env.CODEGENIE = "1"
-    process.env.CODEGENIE_PID = String(process.pid)
+    process.env.DEVECO = "1"
+    process.env.DEVECO_PID = String(process.pid)
 
-    Log.Default.info("codegenie", {
+    Log.Default.info("deveco", {
       version: InstallationVersion,
       args: process.argv.slice(2),
       process_role: processMetadata.processRole,
       run_id: processMetadata.runID,
     })
 
-    const marker = path.join(Global.Path.data, "codegenie.db")
+    const marker = path.join(Global.Path.data, "deveco.db")
     if (!(await Filesystem.exists(marker))) {
       const tty = process.stderr.isTTY
       process.stderr.write("Performing one time database migration, may take a few minutes..." + EOL)

@@ -237,7 +237,7 @@ export const layer = Layer.effect(
       const userMessage = input.messages.findLast((msg) => msg.info.role === "user")
       if (!userMessage) return input.messages
 
-      if (!Flag.CODEGENIE_EXPERIMENTAL_PLAN_MODE) {
+      if (!Flag.DEVECO_EXPERIMENTAL_PLAN_MODE) {
         if (input.agent.name === "plan") {
           userMessage.parts.push({
             id: PartID.ascending(),
@@ -808,7 +808,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
               },
             }
             yield* sessions.updatePart(part)
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Shell.Started.Sync, {
                 sessionID: input.sessionID,
                 timestamp: DateTime.makeUnsafe(started),
@@ -831,7 +831,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                 output += "\n\n" + ["<metadata>", "User aborted the command", "</metadata>"].join("\n")
               }
               const completed = Date.now()
-              if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+              if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
                 yield* sync.run(SessionEvent.Shell.Ended.Sync, {
                   sessionID: input.sessionID,
                   timestamp: DateTime.makeUnsafe(completed),
@@ -1364,7 +1364,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         },
       )
       // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-      if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+      if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
         yield* sync.run(SessionEvent.Prompted.Sync, {
           sessionID: input.sessionID,
           timestamp: DateTime.makeUnsafe(info.time.created),
@@ -1377,7 +1377,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       }
       for (const text of nextPrompt.synthetic) {
         // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-        if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+        if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
           yield* sync.run(SessionEvent.Synthetic.Sync, {
             sessionID: input.sessionID,
             timestamp: DateTime.makeUnsafe(info.time.created),

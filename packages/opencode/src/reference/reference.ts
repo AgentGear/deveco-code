@@ -179,7 +179,7 @@ export const layer = Layer.effect(
         )
 
         const materializeAll = yield* Effect.cached(
-          Flag.CODEGENIE_EXPERIMENTAL_SCOUT
+          Flag.DEVECO_EXPERIMENTAL_SCOUT
             ? Effect.gen(function* () {
                 yield* Effect.forEach(
                   materializeByPath,
@@ -198,7 +198,7 @@ export const layer = Layer.effect(
 
     return Service.of({
       init: Effect.fn("Reference.init")(function* () {
-        if (!Flag.CODEGENIE_EXPERIMENTAL_SCOUT) return
+        if (!Flag.DEVECO_EXPERIMENTAL_SCOUT) return
         yield* InstanceState.useEffect(state, (s) => s.materializeAll).pipe(Effect.forkIn(scope), Effect.asVoid)
       }),
       list: Effect.fn("Reference.list")(function* () {
@@ -208,7 +208,7 @@ export const layer = Layer.effect(
         return yield* InstanceState.use(state, (s) => s.references.find((reference) => reference.name === name))
       }),
       ensure: Effect.fn("Reference.ensure")(function* (target?: string) {
-        if (!Flag.CODEGENIE_EXPERIMENTAL_SCOUT) return
+        if (!Flag.DEVECO_EXPERIMENTAL_SCOUT) return
         const full = normalizedTarget(target)
         if (!full) return yield* InstanceState.useEffect(state, (s) => s.materializeAll)
         return yield* InstanceState.useEffect(
@@ -217,7 +217,7 @@ export const layer = Layer.effect(
         )
       }),
       contains: Effect.fn("Reference.contains")(function* (target?: string) {
-        if (!Flag.CODEGENIE_EXPERIMENTAL_SCOUT) return false
+        if (!Flag.DEVECO_EXPERIMENTAL_SCOUT) return false
         const full = normalizedTarget(target)
         if (!full) return false
         return yield* InstanceState.use(state, (s) =>

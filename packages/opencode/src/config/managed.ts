@@ -33,7 +33,7 @@ function systemManagedConfigDir(): string {
 }
 
 export function managedConfigDir() {
-  return process.env.CODEGENIE_TEST_MANAGED_CONFIG_DIR || systemManagedConfigDir()
+  return process.env.DEVECO_TEST_MANAGED_CONFIG_DIR || systemManagedConfigDir()
 }
 
 export function parseManagedPlist(json: string): string {

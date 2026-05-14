@@ -31,7 +31,7 @@ export type PatchDeps = {
   readText: (file: string) => Promise<string>
   write: (file: string, text: string) => Promise<void>
   exists: (file: string) => Promise<boolean>
-  files: (dir: string, name: "codegenie" | "tui") => string[]
+  files: (dir: string, name: "deveco" | "tui") => string[]
 }
 
 export type PatchInput = {
@@ -334,11 +334,11 @@ function patchDir(input: PatchInput) {
   if (input.global) return input.config ?? Global.Path.config
   const git = input.vcs === "git" && input.worktree !== "/"
   const root = git ? input.worktree : input.directory
-  return path.join(root, ".codegenie")
+  return path.join(root, ".deveco")
 }
 
-function patchName(kind: Kind): "codegenie" | "tui" {
-  if (kind === "server") return "codegenie"
+function patchName(kind: Kind): "deveco" | "tui" {
+  if (kind === "server") return "deveco"
   return "tui"
 }
 

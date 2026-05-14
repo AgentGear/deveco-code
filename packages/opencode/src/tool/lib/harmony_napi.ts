@@ -19,7 +19,7 @@ import os from "node:os"
 import path from "path"
 import { findDevEcoHome } from "./env"
 import * as Log from "@opencode-ai/core/util/log"
-import { CODEGENIE_PROVIDER_CONFIG } from "@/plugin/codegenie-models"
+import { DEVECO_PROVIDER_CONFIG } from "@/plugin/codegenie-models"
 import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/codegenie"
 
 function addon() {
@@ -106,7 +106,7 @@ export async function resolveUIVerifyParams() {
       }
       if (auth instanceof Auth.Oauth && auth.access && auth.expires > Date.now()) {
         return {
-          baseURL: CODEGENIE_PROVIDER_CONFIG.api + "/no-stream",
+          baseURL: DEVECO_PROVIDER_CONFIG.api + "/no-stream",
           apiKey: auth.access,
           modelName: "Qwen2.5-VL-72B",
         }

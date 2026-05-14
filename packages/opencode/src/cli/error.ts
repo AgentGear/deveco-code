@@ -24,7 +24,7 @@ export function FormatError(input: unknown) {
 
   // MCPFailed: { name: string }
   if (NamedError.hasName(input, "MCPFailed")) {
-    return `MCP server "${(input as ErrorLike).data?.name}" failed. Note, codegenie does not support MCP authentication yet.`
+    return `MCP server "${(input as ErrorLike).data?.name}" failed. Note, deveco does not support MCP authentication yet.`
   }
 
   // AccountServiceError, AccountTransportError: TaggedErrorClass
@@ -39,8 +39,8 @@ export function FormatError(input: unknown) {
     return [
       `Model not found: ${data?.providerID}/${data?.modelID}`,
       ...(suggestions.length ? ["Did you mean: " + suggestions.join(", ")] : []),
-      `Try: \`codegenie models\` to list available models`,
-      `Or check your config (codegenie.json) provider/model names`,
+      `Try: \`deveco models\` to list available models`,
+      `Or check your config (deveco.json) provider/model names`,
     ].join("\n")
   }
 

@@ -482,7 +482,7 @@ export const layer = Layer.effect(
     })
 
     const startSync = Effect.fn("Workspace.startSync")(function* (space: Info) {
-      if (!Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES) return
+      if (!Flag.DEVECO_EXPERIMENTAL_WORKSPACES) return
 
       const adapter = getAdapter(space.projectID, space.type)
       const target = yield* EffectBridge.fromPromise(() => adapter.target(space)).pipe(
@@ -573,9 +573,9 @@ export const layer = Layer.effect(
       })
 
       const env = {
-        CODEGENIE_AUTH_CONTENT: JSON.stringify(yield* auth.all()),
-        CODEGENIE_WORKSPACE_ID: config.id,
-        CODEGENIE_EXPERIMENTAL_WORKSPACES: "true",
+        DEVECO_AUTH_CONTENT: JSON.stringify(yield* auth.all()),
+        DEVECO_WORKSPACE_ID: config.id,
+        DEVECO_EXPERIMENTAL_WORKSPACES: "true",
         OTEL_EXPORTER_OTLP_HEADERS: process.env.OTEL_EXPORTER_OTLP_HEADERS,
         OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
         OTEL_RESOURCE_ATTRIBUTES: process.env.OTEL_RESOURCE_ATTRIBUTES,

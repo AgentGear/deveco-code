@@ -23,7 +23,7 @@ import { testEffect } from "../lib/effect"
 
 void Log.init({ print: false })
 
-const originalWorkspaces = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
+const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const workspaceLayer = Workspace.defaultLayer.pipe(
   Layer.provide(InstanceStore.defaultLayer),
   Layer.provide(InstanceBootstrap.defaultLayer),
@@ -158,7 +158,7 @@ function eventStreamResponse() {
 
 afterEach(async () => {
   mock.restore()
-  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = originalWorkspaces
+  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspaces
   await disposeAllInstances()
   await resetDatabase()
 })
@@ -191,7 +191,7 @@ describe("workspace HttpApi", () => {
 
   it.live("serves mutation endpoints", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
       const dir = yield* tmpdirScoped({ git: true })
       const project = yield* Project.use.fromDirectory(dir)
       registerAdapter(project.project.id, "local-test", localAdapter(path.join(dir, ".workspace")))
@@ -225,7 +225,7 @@ describe("workspace HttpApi", () => {
 
   it.live("serves list sync endpoint", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
       const dir = yield* tmpdirScoped({ git: true })
       const project = yield* Project.use.fromDirectory(dir)
       const type = `listed-${Math.random().toString(36).slice(2)}`
@@ -249,7 +249,7 @@ describe("workspace HttpApi", () => {
 
   it.live("creates workspace with the TUI payload shape", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
       const dir = yield* tmpdirScoped({ git: true })
       const project = yield* Project.use.fromDirectory(dir)
       registerAdapter(project.project.id, "local-test", localAdapter(path.join(dir, ".workspace")))
@@ -270,7 +270,7 @@ describe("workspace HttpApi", () => {
 
   it.live("creates a real git worktree workspace via the builtin adapter", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
       const dir = yield* tmpdirScoped({ git: true })
 
       const created = yield* request(WorkspacePaths.list, dir, {
@@ -288,7 +288,7 @@ describe("workspace HttpApi", () => {
 
   it.live("routes local workspace requests through the workspace target directory", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
       const dir = yield* tmpdirScoped({ git: true })
       const workspaceDir = path.join(dir, ".workspace-local")
       const project = yield* Project.use.fromDirectory(dir)
@@ -313,7 +313,7 @@ describe("workspace HttpApi", () => {
 
   it.live("proxies remote workspace HTTP requests with sanitized forwarding", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
       const dir = yield* tmpdirScoped({ git: true })
       const proxied: ProxiedRequest[] = []
       const remote = listenRemoteHttp((request) => {
@@ -398,7 +398,7 @@ describe("workspace HttpApi", () => {
 
   it.live("proxies remote workspace requests selected from session ownership", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
       const dir = yield* tmpdirScoped({ git: true })
       const proxied: ProxiedRequest[] = []
       const remote = listenRemoteHttp((request) => {

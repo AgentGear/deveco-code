@@ -1133,9 +1133,9 @@ export const GithubRunCommand = effectCmd({
           .join("")
         if (type === "schedule" || type === "dispatch") {
           const hex = crypto.randomUUID().slice(0, 6)
-          return `codegenie/${type}-${hex}-${timestamp}`
+          return `deveco/${type}-${hex}-${timestamp}`
         }
-        return `codegenie/${type}${issueId}-${timestamp}`
+        return `deveco/${type}${issueId}-${timestamp}`
       }
 
       async function pushToNewBranch(summary: string, branch: string, commit: boolean, isSchedule: boolean) {

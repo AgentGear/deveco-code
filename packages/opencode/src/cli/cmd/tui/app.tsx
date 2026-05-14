@@ -105,7 +105,7 @@ const appBindingCommands = [
 ] as const
 
 function rendererConfig(_config: TuiConfig.Resolved): CliRendererConfig {
-  const mouseEnabled = !Flag.CODEGENIE_DISABLE_MOUSE && (_config.mouse ?? true)
+  const mouseEnabled = !Flag.DEVECO_DISABLE_MOUSE && (_config.mouse ?? true)
 
   return {
     externalOutputMode: "passthrough",
@@ -301,7 +301,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
   const offSelectionKeys = keymap.intercept(
     "key",
     ({ event }) => {
-      if (!Flag.CODEGENIE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
+      if (!Flag.DEVECO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
       Selection.handleSelectionKey(renderer, toast, event)
     },
     { priority: 1 },
@@ -325,27 +325,27 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
 
   // Update terminal window title based on current route and session
   createEffect(() => {
-    if (!terminalTitleEnabled() || Flag.CODEGENIE_DISABLE_TERMINAL_TITLE) return
+    if (!terminalTitleEnabled() || Flag.DEVECO_DISABLE_TERMINAL_TITLE) return
 
     if (route.data.type === "home") {
-      renderer.setTerminalTitle("CodeGenie")
+      renderer.setTerminalTitle("DevEco Code")
       return
     }
 
     if (route.data.type === "session") {
       const session = sync.session.get(route.data.sessionID)
       if (!session || SessionApi.isDefaultTitle(session.title)) {
-        renderer.setTerminalTitle("CodeGenie")
+        renderer.setTerminalTitle("DevEco Code")
         return
       }
 
       const title = session.title.length > 40 ? session.title.slice(0, 37) + "..." : session.title
-      renderer.setTerminalTitle(`CodeGenie | ${title}`)
+      renderer.setTerminalTitle(`DevEco Code | ${title}`)
       return
     }
 
     if (route.data.type === "plugin") {
-      renderer.setTerminalTitle(`CodeGenie | ${route.data.id}`)
+      renderer.setTerminalTitle(`DevEco Code | ${route.data.id}`)
     }
   })
 
@@ -885,7 +885,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     await DialogAlert.show(
       dialog,
       "Update Complete",
-      `Successfully updated to CodeGenie v${result.data.version}. Please restart the application.`,
+      `Successfully updated to DevEco Code v${result.data.version}. Please restart the application.`,
     )
 
     void exit()
@@ -906,16 +906,16 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       flexDirection="column"
       backgroundColor={theme.background}
       onMouseDown={(evt) => {
-        if (!Flag.CODEGENIE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
+        if (!Flag.DEVECO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
         if (evt.button !== MouseButton.RIGHT) return
 
         if (!Selection.copy(renderer, toast)) return
         evt.preventDefault()
         evt.stopPropagation()
       }}
-      onMouseUp={Flag.CODEGENIE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? undefined : () => Selection.copy(renderer, toast)}
+      onMouseUp={Flag.DEVECO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? undefined : () => Selection.copy(renderer, toast)}
     >
-      <Show when={Flag.CODEGENIE_SHOW_TTFD}>
+      <Show when={Flag.DEVECO_SHOW_TTFD}>
         <TimeToFirstDraw />
       </Show>
       <Show when={ready()}>

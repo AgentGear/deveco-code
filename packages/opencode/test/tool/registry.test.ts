@@ -28,7 +28,7 @@ import { InstanceState } from "@/effect/instance-state"
 import { Reference } from "@/reference/reference"
 
 const node = CrossSpawnSpawner.defaultLayer
-const originalExperimentalScout = Flag.CODEGENIE_EXPERIMENTAL_SCOUT
+const originalExperimentalScout = Flag.DEVECO_EXPERIMENTAL_SCOUT
 const configLayer = TestConfig.layer({
   directories: () => InstanceState.directory.pipe(Effect.map((dir) => [path.join(dir, ".opencode")])),
 })
@@ -58,14 +58,14 @@ const registryLayer = ToolRegistry.layer.pipe(
 const it = testEffect(Layer.mergeAll(registryLayer, node) as unknown as Layer.Layer<ToolRegistry.Service>)
 
 afterEach(async () => {
-  Flag.CODEGENIE_EXPERIMENTAL_SCOUT = originalExperimentalScout
+  Flag.DEVECO_EXPERIMENTAL_SCOUT = originalExperimentalScout
   await disposeAllInstances()
 })
 
 describe("tool.registry", () => {
   it.instance("hides repo research tools unless experimental", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_SCOUT = false
+      Flag.DEVECO_EXPERIMENTAL_SCOUT = false
       const registry = yield* ToolRegistry.Service
       const ids = yield* registry.ids()
 
@@ -77,7 +77,7 @@ describe("tool.registry", () => {
 
   it.instance("shows repo research tools when experimental scout is enabled", () =>
     Effect.gen(function* () {
-      Flag.CODEGENIE_EXPERIMENTAL_SCOUT = true
+      Flag.DEVECO_EXPERIMENTAL_SCOUT = true
       const registry = yield* ToolRegistry.Service
       const ids = yield* registry.ids()
 

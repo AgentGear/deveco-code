@@ -100,10 +100,10 @@ export async function handler(
     const ip = rawIp.includes(":") ? rawIp.split(":").slice(0, 4).join(":") : rawIp
     const rawZenApiKey = opts.parseApiKey(input.request.headers)
     const zenApiKey = rawZenApiKey === "public" ? undefined : rawZenApiKey
-    const sessionId = input.request.headers.get("x-codegenie-session") ?? ""
-    const requestId = input.request.headers.get("x-codegenie-request") ?? ""
-    const projectId = input.request.headers.get("x-codegenie-project") ?? ""
-    const ocClient = input.request.headers.get("x-codegenie-client") ?? ""
+    const sessionId = input.request.headers.get("x-deveco-session") ?? ""
+    const requestId = input.request.headers.get("x-deveco-request") ?? ""
+    const projectId = input.request.headers.get("x-deveco-project") ?? ""
+    const ocClient = input.request.headers.get("x-deveco-client") ?? ""
     const userAgent = input.request.headers.get("user-agent") ?? ""
     logger.metric({
       is_stream: isStream,

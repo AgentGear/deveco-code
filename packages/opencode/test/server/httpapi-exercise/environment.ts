@@ -19,11 +19,11 @@ export const exerciseDatabasePath =
   process.env.CODEGENIE_HTTPAPI_EXERCISE_DB ??
   path.join(process.env.TMPDIR ?? "/tmp", `opencode-httpapi-exercise-${process.pid}.db`)
 process.env.CODEGENIE_DB = exerciseDatabasePath
-Flag.CODEGENIE_DB = exerciseDatabasePath
+Flag.DEVECO_DB = exerciseDatabasePath
 
 export const original = {
-  CODEGENIE_SERVER_PASSWORD: Flag.CODEGENIE_SERVER_PASSWORD,
-  CODEGENIE_SERVER_USERNAME: Flag.CODEGENIE_SERVER_USERNAME,
+  CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+  CODEGENIE_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
 }
 
 export const cleanupExercisePaths = Effect.promise(async () => {

@@ -42,7 +42,7 @@ const testServerLayer = Layer.mergeAll(
 )
 const it = testEffect(testServerLayer)
 
-const originalWorkspacesFlag = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
+const originalWorkspacesFlag = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const originalEnv = {
   CODEGENIE_AUTH_CONTENT: process.env.CODEGENIE_AUTH_CONTENT,
   OTEL_EXPORTER_OTLP_HEADERS: process.env.OTEL_EXPORTER_OTLP_HEADERS,
@@ -91,14 +91,14 @@ function restoreEnv() {
 
 beforeEach(() => {
   Database.close()
-  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
   restoreEnv()
 })
 
 afterEach(async () => {
   mock.restore()
   await disposeAllInstances()
-  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = originalWorkspacesFlag
+  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspacesFlag
   restoreEnv()
   await resetDatabase()
 })
@@ -979,7 +979,7 @@ describe("workspace CRUD", () => {
 describe("workspace sync state", () => {
   test("startWorkspaceSyncing is disabled by the experimental workspace flag", async () => {
     await withInstance(async (dir) => {
-      Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = false
+      Flag.DEVECO_EXPERIMENTAL_WORKSPACES = false
       const type = unique("flag-disabled")
       const info = workspaceInfo(Instance.project.id, type)
       const session = await AppRuntime.runPromise(SessionNs.Service.use((svc) => svc.create({})))

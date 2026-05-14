@@ -397,16 +397,16 @@ const live: Layer.Layer<
         headers: {
           ...(input.model.providerID.startsWith("opencode")
             ? {
-                "x-codegenie-project": opencodeProjectID,
-                "x-codegenie-session": input.sessionID,
-                "x-codegenie-request": input.user.id,
-                "x-codegenie-client": Flag.CODEGENIE_CLIENT,
-                "User-Agent": `codegenie/${InstallationVersion}`,
+                "x-deveco-project": opencodeProjectID,
+                "x-deveco-session": input.sessionID,
+                "x-deveco-request": input.user.id,
+                "x-deveco-client": Flag.DEVECO_CLIENT,
+                "User-Agent": `deveco/${InstallationVersion}`,
               }
             : {
                 "x-session-affinity": input.sessionID,
                 ...(input.parentSessionID ? { "x-parent-session-id": input.parentSessionID } : {}),
-                "User-Agent": `codegenie/${InstallationVersion}`,
+                "User-Agent": `deveco/${InstallationVersion}`,
               }),
           ...input.model.headers,
           ...headers,

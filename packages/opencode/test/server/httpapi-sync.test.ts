@@ -13,7 +13,7 @@ import { disposeAllInstances, tmpdir } from "../fixture/fixture"
 
 void Log.init({ print: false })
 
-const originalWorkspaces = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
+const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const context = Context.empty() as Context.Context<unknown>
 
 function app() {
@@ -26,14 +26,14 @@ function runSession<A, E>(fx: Effect.Effect<A, E, Session.Service>) {
 
 afterEach(async () => {
   mock.restore()
-  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = originalWorkspaces
+  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspaces
   await disposeAllInstances()
   await resetDatabase()
 })
 
 describe("sync HttpApi", () => {
   test("serves sync routes", async () => {
-    Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+    Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
     const headers = { "x-opencode-directory": tmp.path, "content-type": "application/json" }
     const info = spyOn(Log.create({ service: "server.sync" }), "info")

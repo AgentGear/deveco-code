@@ -29,5 +29,5 @@ export const INTERNAL_TUI_PLUGINS: InternalTuiPlugin[] = [
   SidebarFooter,
   PluginManager,
   WhichKey,
-  ...(Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM ? [SessionV2Debug] : []),
+  ...(Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM ? [SessionV2Debug] : []),
 ]

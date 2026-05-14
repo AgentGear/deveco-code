@@ -32,7 +32,7 @@ export function WorkspaceRouterMiddleware(upgrade: UpgradeWebSocket): Middleware
     const sessionWorkspaceID = await getSessionWorkspace(url)
     const workspaceID = sessionWorkspaceID || url.searchParams.get("workspace")
 
-    if (!workspaceID || url.pathname.startsWith("/console") || Flag.CODEGENIE_WORKSPACE_ID) {
+    if (!workspaceID || url.pathname.startsWith("/console") || Flag.DEVECO_WORKSPACE_ID) {
       return next()
     }
 
@@ -85,7 +85,7 @@ export function WorkspaceRouterMiddleware(upgrade: UpgradeWebSocket): Middleware
     }
 
     const headers = new Headers(c.req.raw.headers)
-    headers.delete("x-codegenie-workspace")
+    headers.delete("x-deveco-workspace")
 
     const req = new Request(c.req.raw, { headers })
     return ServerProxy.http(proxyURL, target.headers, req, workspace.id)

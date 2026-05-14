@@ -23,7 +23,7 @@ const log = Log.create({ service: "skill" })
 const CLAUDE_EXTERNAL_DIR = ".claude"
 const AGENTS_EXTERNAL_DIR = ".agents"
 const EXTERNAL_SKILL_PATTERN = "skills/**/SKILL.md"
-const CODEGENIE_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"
+const DEVECO_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"
 const SKILL_PATTERN = "**/SKILL.md"
 
 // Built-in skill that ships with opencode. The model's intuition for what an
@@ -164,8 +164,8 @@ const discoverSkills = Effect.fnUntraced(function* (
   const state: ScanState = { matches: new Set(), dirs: new Set() }
 
   const externalDirs: string[] = []
-  if (!Flag.CODEGENIE_DISABLE_EXTERNAL_SKILLS) {
-    if (!Flag.CODEGENIE_DISABLE_CLAUDE_CODE_SKILLS) externalDirs.push(CLAUDE_EXTERNAL_DIR)
+  if (!Flag.DEVECO_DISABLE_EXTERNAL_SKILLS) {
+    if (!Flag.DEVECO_DISABLE_CLAUDE_CODE_SKILLS) externalDirs.push(CLAUDE_EXTERNAL_DIR)
     externalDirs.push(AGENTS_EXTERNAL_DIR)
 
     for (const dir of externalDirs) {
@@ -185,7 +185,7 @@ const discoverSkills = Effect.fnUntraced(function* (
 
   const configDirs = yield* config.directories()
   for (const dir of configDirs) {
-    yield* scan(state, dir, CODEGENIE_SKILL_PATTERN)
+    yield* scan(state, dir, DEVECO_SKILL_PATTERN)
   }
 
   const cfg = yield* config.get()
@@ -242,7 +242,7 @@ export const layer = Layer.effect(
         const s: State = { skills: {}, dirs: new Set() }
         // Register the built-in skill BEFORE disk discovery so a user-disk
         // skill with the same name can override it.
-        if (Flag.CODEGENIE_EXPERIMENTAL_CUSTOMIZE_SKILL) {
+        if (Flag.DEVECO_EXPERIMENTAL_CUSTOMIZE_SKILL) {
           s.skills[CUSTOMIZE_OPENCODE_SKILL_NAME] = {
             name: CUSTOMIZE_OPENCODE_SKILL_NAME,
             description: CUSTOMIZE_OPENCODE_SKILL_DESCRIPTION,
