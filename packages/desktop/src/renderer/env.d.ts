@@ -3,7 +3,7 @@ import type { ElectronAPI } from "../preload/types"
 declare global {
   interface Window {
     api: ElectronAPI
-    __CODEGENIE__?: {
+    __DEVECO__?: {
       deepLinks?: string[]
     }
   }

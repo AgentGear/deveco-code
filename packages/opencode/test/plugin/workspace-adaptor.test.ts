@@ -21,9 +21,9 @@ const workspaceLayer = Workspace.defaultLayer.pipe(
 )
 const it = testEffect(Layer.mergeAll(Plugin.defaultLayer, workspaceLayer, CrossSpawnSpawner.defaultLayer))
 
-const experimental = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
+const experimental = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 
-Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
 
 afterEach(async () => {
   await disposeAllInstances()
@@ -36,7 +36,7 @@ afterAll(() => {
     process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS = disableDefault
   }
 
-  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = experimental
+  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = experimental
 })
 
 describe("plugin.workspace", () => {

@@ -7,7 +7,7 @@ import { Process } from "@/util/process"
 
 export const PrCommand = effectCmd({
   command: "pr <number>",
-  describe: "fetch and checkout a GitHub PR branch, then run codegenie",
+  describe: "fetch and checkout a GitHub PR branch, then run deveco",
   builder: (yargs) =>
     yargs.positional("number", {
       type: "number",
@@ -80,7 +80,7 @@ export const PrCommand = effectCmd({
           UI.println(`Importing session...`)
 
           const importResult = yield* Effect.promise(() =>
-            Process.text(["codegenie", "import", sessionUrl], { nothrow: true }),
+            Process.text(["deveco", "import", sessionUrl], { nothrow: true }),
           )
           if (importResult.code === 0) {
             const sessionIdMatch = importResult.text.trim().match(/Imported session: ([a-zA-Z0-9_-]+)/)
@@ -101,7 +101,7 @@ export const PrCommand = effectCmd({
     const opencodeArgs = sessionId ? ["-s", sessionId] : []
     const code = yield* Effect.promise(
       () =>
-        Process.spawn(["codegenie", ...opencodeArgs], {
+        Process.spawn(["deveco", ...opencodeArgs], {
           stdin: "inherit",
           stdout: "inherit",
           stderr: "inherit",
@@ -110,6 +110,6 @@ export const PrCommand = effectCmd({
     )
     // Match legacy throw semantics — propagate as a defect so the top-level
     // index.ts catch handles it identically (exit 1, "Unexpected error" banner).
-    if (code !== 0) return yield* Effect.die(new Error(`codegenie exited with code ${code}`))
+    if (code !== 0) return yield* Effect.die(new Error(`deveco exited with code ${code}`))
   }),
 })

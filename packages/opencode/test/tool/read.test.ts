@@ -87,14 +87,14 @@ const glob = (p: string) =>
 const experimentalScout = <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.acquireUseRelease(
     Effect.sync(() => {
-      const previous = Flag.CODEGENIE_EXPERIMENTAL_SCOUT
-      Flag.CODEGENIE_EXPERIMENTAL_SCOUT = true
+      const previous = Flag.DEVECO_EXPERIMENTAL_SCOUT
+      Flag.DEVECO_EXPERIMENTAL_SCOUT = true
       return previous
     }),
     () => self,
     (previous) =>
       Effect.sync(() => {
-        Flag.CODEGENIE_EXPERIMENTAL_SCOUT = previous
+        Flag.DEVECO_EXPERIMENTAL_SCOUT = previous
       }),
   )
 const githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>

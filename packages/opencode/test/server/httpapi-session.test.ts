@@ -30,7 +30,7 @@ import { it } from "../lib/effect"
 
 void Log.init({ print: false })
 
-const originalWorkspaces = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
+const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const workspaceLayer = Workspace.defaultLayer.pipe(
   Layer.provide(InstanceStore.defaultLayer),
   Layer.provide(InstanceBootstrap.defaultLayer),
@@ -143,7 +143,7 @@ function withTmp<A, E, R>(
 }
 
 afterEach(async () => {
-  Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = originalWorkspaces
+  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspaces
   await disposeAllInstances()
   await resetDatabase()
 })
@@ -381,7 +381,7 @@ describe("session HttpApi", () => {
     "persists selected workspace id when creating a session",
     withTmp({ git: true, config: { formatter: false, lsp: false, share: "disabled" } }, (tmp) =>
       Effect.gen(function* () {
-        Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+        Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
         const project = yield* Project.use.fromDirectory(tmp.path).pipe(Effect.provide(Project.defaultLayer))
         const workspace = yield* createLocalWorkspace({
           projectID: project.project.id,

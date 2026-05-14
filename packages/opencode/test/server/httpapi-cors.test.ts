@@ -13,13 +13,13 @@ import { testEffect } from "../lib/effect"
 const testStateLayer = Layer.effectDiscard(
   Effect.gen(function* () {
     const original = {
-      CODEGENIE_SERVER_PASSWORD: Flag.CODEGENIE_SERVER_PASSWORD,
+      CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
     }
-    Flag.CODEGENIE_SERVER_PASSWORD = "secret"
+    Flag.DEVECO_SERVER_PASSWORD = "secret"
     yield* Effect.promise(() => resetDatabase())
     yield* Effect.addFinalizer(() =>
       Effect.promise(async () => {
-        Flag.CODEGENIE_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
+        Flag.DEVECO_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
         await resetDatabase()
       }),
     )

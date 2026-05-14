@@ -44,7 +44,7 @@ export function ide() {
 }
 
 export function alreadyInstalled() {
-  return process.env["CODEGENIE_CALLER"] === "vscode" || process.env["CODEGENIE_CALLER"] === "vscode-insiders"
+  return process.env["DEVECO_CALLER"] === "vscode" || process.env["DEVECO_CALLER"] === "vscode-insiders"
 }
 
 export async function install(ide: (typeof SUPPORTED_IDES)[number]["name"]) {

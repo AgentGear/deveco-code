@@ -1037,8 +1037,8 @@ async function load(input: { api: Api; config: TuiConfig.Resolved }) {
     await WithInstance.provide({
       directory: cwd,
       fn: async () => {
-        const records = Flag.CODEGENIE_PURE ? [] : (config.plugin_origins ?? [])
-        if (Flag.CODEGENIE_PURE && config.plugin_origins?.length) {
+        const records = Flag.DEVECO_PURE ? [] : (config.plugin_origins ?? [])
+        if (Flag.DEVECO_PURE && config.plugin_origins?.length) {
           log.info("skipping external tui plugins in pure mode", { count: config.plugin_origins.length })
         }
 

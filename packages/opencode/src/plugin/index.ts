@@ -163,8 +163,8 @@ export const layer = Layer.effect(
           if (init._tag === "Some") hooks.push(init.value)
         }
 
-        const plugins = Flag.CODEGENIE_PURE ? [] : (cfg.plugin_origins ?? [])
-        if (Flag.CODEGENIE_PURE && cfg.plugin_origins?.length) {
+        const plugins = Flag.DEVECO_PURE ? [] : (cfg.plugin_origins ?? [])
+        if (Flag.DEVECO_PURE && cfg.plugin_origins?.length) {
           log.info("skipping external plugins in pure mode", { count: cfg.plugin_origins.length })
         }
         if (plugins.length) yield* config.waitForDependencies()

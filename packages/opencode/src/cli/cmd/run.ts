@@ -121,7 +121,7 @@ async function toolError(part: ToolPart) {
 
 export const RunCommand = effectCmd({
   command: "run [message..]",
-  describe: "run codegenie with a message",
+  describe: "run deveco with a message",
   // --attach connects to a remote server (no local instance needed); the
   // default path runs an in-process server and needs the project instance.
   instance: (args) => !args.attach,
@@ -185,17 +185,17 @@ export const RunCommand = effectCmd({
       })
       .option("attach", {
         type: "string",
-        describe: "attach to a running codegenie server (e.g., http://localhost:4096)",
+        describe: "attach to a running deveco server (e.g., http://localhost:4096)",
       })
       .option("password", {
         alias: ["p"],
         type: "string",
-        describe: "basic auth password (defaults to CODEGENIE_SERVER_PASSWORD)",
+        describe: "basic auth password (defaults to DEVECO_SERVER_PASSWORD)",
       })
       .option("username", {
         alias: ["u"],
         type: "string",
-        describe: "basic auth username (defaults to CODEGENIE_SERVER_USERNAME or 'codegenie')",
+        describe: "basic auth username (defaults to DEVECO_SERVER_USERNAME or 'deveco')",
       })
       .option("dir", {
         type: "string",
@@ -442,7 +442,7 @@ export const RunCommand = effectCmd({
       async function share(sdk: OpencodeClient, sessionID: string) {
         const cfg = await sdk.config.get()
         if (!cfg.data) return
-        if (cfg.data.share !== "auto" && !Flag.CODEGENIE_AUTO_SHARE && !args.share) return
+        if (cfg.data.share !== "auto" && !Flag.DEVECO_AUTO_SHARE && !args.share) return
         const res = await sdk.session.share({ sessionID }).catch((error) => {
           if (error instanceof Error && error.message.includes("disabled")) {
             UI.println(UI.Style.TEXT_DANGER_BOLD + "!  " + error.message)

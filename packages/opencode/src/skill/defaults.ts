@@ -7,7 +7,7 @@ import * as Log from "@opencode-ai/core/util/log"
 
 type EmbeddedSkillFile = string | { encoding: "base64"; content: string }
 
-declare const CODEGENIE_DEFAULT_SKILLS: Record<string, Record<string, EmbeddedSkillFile>> | undefined
+declare const DEVECO_DEFAULT_SKILLS: Record<string, Record<string, EmbeddedSkillFile>> | undefined
 
 export namespace Defaults {
   const log = Log.create({ service: "skill-defaults" })
@@ -56,7 +56,7 @@ export namespace Defaults {
     )
 
     // Clean up built-in skill subdirectories only, preserving user skills
-    const data = typeof CODEGENIE_DEFAULT_SKILLS !== "undefined" ? CODEGENIE_DEFAULT_SKILLS : {}
+    const data = typeof DEVECO_DEFAULT_SKILLS !== "undefined" ? DEVECO_DEFAULT_SKILLS : {}
 
     yield* Effect.tryPromise(() =>
       fs.readdir(dir, { withFileTypes: true }),
@@ -80,6 +80,7 @@ export namespace Defaults {
     )
 
     // Extract from embedded data
+
     for (const [skillName, files] of Object.entries(data)) {
       yield* fsys.writeWithDirs(path.join(dir, skillName, ".version"), skillName)
       for (const [fileName, content] of Object.entries(files)) {

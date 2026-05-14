@@ -14,15 +14,15 @@ import path from "path"
 // cache themselves and silence the eager refresh fork. Save/restore around
 // the suite — never leak the mutation to subsequent test files in the same
 // bun process.
-const ORIGINAL_MODELS_PATH = Flag.CODEGENIE_MODELS_PATH
-const ORIGINAL_DISABLE_FETCH = Flag.CODEGENIE_DISABLE_MODELS_FETCH
+const ORIGINAL_MODELS_PATH = Flag.DEVECO_MODELS_PATH
+const ORIGINAL_DISABLE_FETCH = Flag.DEVECO_DISABLE_MODELS_FETCH
 beforeAll(() => {
-  Flag.CODEGENIE_MODELS_PATH = undefined
-  Flag.CODEGENIE_DISABLE_MODELS_FETCH = true
+  Flag.DEVECO_MODELS_PATH = undefined
+  Flag.DEVECO_DISABLE_MODELS_FETCH = true
 })
 afterAll(() => {
-  Flag.CODEGENIE_MODELS_PATH = ORIGINAL_MODELS_PATH
-  Flag.CODEGENIE_DISABLE_MODELS_FETCH = ORIGINAL_DISABLE_FETCH
+  Flag.DEVECO_MODELS_PATH = ORIGINAL_MODELS_PATH
+  Flag.DEVECO_DISABLE_MODELS_FETCH = ORIGINAL_DISABLE_FETCH
 })
 
 const cacheFile = path.join(Global.Path.cache, "models.json")

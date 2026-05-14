@@ -1,7 +1,7 @@
 interface ImportMetaEnv {
-  readonly VITE_CODEGENIE_SERVER_HOST: string
-  readonly VITE_CODEGENIE_SERVER_PORT: string
-  readonly VITE_CODEGENIE_CHANNEL?: "dev" | "beta" | "prod"
+  readonly VITE_DEVECO_SERVER_HOST: string
+  readonly VITE_DEVECO_SERVER_PORT: string
+  readonly VITE_DEVECO_CHANNEL?: "dev" | "beta" | "prod"
 
   readonly VITE_SENTRY_DSN?: string
   readonly VITE_SENTRY_ENVIRONMENT?: string

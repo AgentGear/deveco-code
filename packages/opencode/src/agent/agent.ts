@@ -196,7 +196,7 @@ export const layer = Layer.effect(
             mode: "subagent",
             native: true,
           },
-          ...(Flag.CODEGENIE_EXPERIMENTAL_SCOUT
+          ...(Flag.DEVECO_EXPERIMENTAL_SCOUT
             ? {
                 scout: {
                   name: "scout",
@@ -340,7 +340,7 @@ export const layer = Layer.effect(
           return `Invalid Scout reference for repository ${reference.repository}`
         }
 
-        if (Flag.CODEGENIE_EXPERIMENTAL_SCOUT) {
+        if (Flag.DEVECO_EXPERIMENTAL_SCOUT) {
           const resolvedReferences = Reference.resolveAll({
             references: cfg.reference ?? {},
             directory: ctx.directory,

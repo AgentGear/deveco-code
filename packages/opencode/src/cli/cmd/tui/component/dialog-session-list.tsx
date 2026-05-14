@@ -146,7 +146,7 @@ export function DialogSessionList() {
         const workspace = x.workspaceID ? project.workspace.get(x.workspaceID) : undefined
 
         let footer: JSX.Element | string = ""
-        if (Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES) {
+        if (Flag.DEVECO_EXPERIMENTAL_WORKSPACES) {
           if (x.workspaceID) {
             footer = workspace ? (
               <WorkspaceLabel

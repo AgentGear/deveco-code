@@ -53,7 +53,7 @@ export const Info = z
   })
 export type Info = z.infer<typeof Info>
 
-export const USER_AGENT = `codegenie/${InstallationChannel}/${InstallationVersion}/${Flag.CODEGENIE_CLIENT}`
+export const USER_AGENT = `deveco/${InstallationChannel}/${InstallationVersion}/${Flag.DEVECO_CLIENT}`
 
 export function isPreview() {
   return InstallationChannel !== "latest"

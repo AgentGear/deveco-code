@@ -20,8 +20,8 @@ const options = {
   },
   "mdns-domain": {
     type: "string" as const,
-    describe: "custom domain name for mDNS service (default: codegenie.local)",
-    default: "codegenie.local",
+    describe: "custom domain name for mDNS service (default: deveco.local)",
+    default: "deveco.local",
   },
   cors: {
     type: "string" as const,

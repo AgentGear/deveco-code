@@ -59,9 +59,9 @@ const deepLinkEvent = "opencode:deep-link"
 
 const emitDeepLinks = (urls: string[]) => {
   if (urls.length === 0) return
-  window.__CODEGENIE__ ??= {}
-  const pending = window.__CODEGENIE__.deepLinks ?? []
-  window.__CODEGENIE__.deepLinks = [...pending, ...urls]
+  window.__DEVECO__ ??= {}
+  const pending = window.__DEVECO__.deepLinks ?? []
+  window.__DEVECO__.deepLinks = [...pending, ...urls]
   window.dispatchEvent(new CustomEvent(deepLinkEvent, { detail: { urls } }))
 }
 

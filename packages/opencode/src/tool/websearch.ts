@@ -29,9 +29,9 @@ export type WebSearchProvider = Schema.Schema.Type<typeof WebSearchProviderSchem
 
 export function selectWebSearchProvider(
   sessionID: string,
-  flags = { exa: Flag.CODEGENIE_ENABLE_EXA, parallel: Flag.CODEGENIE_ENABLE_PARALLEL },
+  flags = { exa: Flag.DEVECO_ENABLE_EXA, parallel: Flag.DEVECO_ENABLE_PARALLEL },
 ): WebSearchProvider {
-  const override = process.env.CODEGENIE_WEBSEARCH_PROVIDER
+  const override = process.env.DEVECO_WEBSEARCH_PROVIDER
   if (override === "exa" || override === "parallel") return override
   if (flags.parallel) return "parallel"
   if (flags.exa) return "exa"

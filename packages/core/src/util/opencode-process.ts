@@ -1,12 +1,12 @@
-export const CODEGENIE_RUN_ID = "CODEGENIE_RUN_ID"
-export const CODEGENIE_PROCESS_ROLE = "CODEGENIE_PROCESS_ROLE"
+export const DEVECO_RUN_ID = "DEVECO_RUN_ID"
+export const DEVECO_PROCESS_ROLE = "DEVECO_PROCESS_ROLE"
 
 export function ensureRunID() {
-  return (process.env[CODEGENIE_RUN_ID] ??= crypto.randomUUID())
+  return (process.env[DEVECO_RUN_ID] ??= crypto.randomUUID())
 }
 
 export function ensureProcessRole(fallback: "main" | "worker") {
-  return (process.env[CODEGENIE_PROCESS_ROLE] ??= fallback)
+  return (process.env[DEVECO_PROCESS_ROLE] ??= fallback)
 }
 
 export function ensureProcessMetadata(fallback: "main" | "worker") {

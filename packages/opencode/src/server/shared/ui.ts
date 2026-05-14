@@ -5,7 +5,7 @@ import { HttpBody, HttpClient, HttpClientRequest, HttpServerRequest, HttpServerR
 import { createHash } from "node:crypto"
 import { ProxyUtil } from "../proxy-util"
 
-const embeddedUIPromise = Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI
+const embeddedUIPromise = Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI
   ? Promise.resolve(null)
   : // @ts-expect-error - generated file at build time
     import("opencode-web-ui.gen.ts").then((module) => module.default as Record<string, string>).catch(() => null)
@@ -46,7 +46,7 @@ export function upstreamURL(path: string) {
 }
 
 export function embeddedUI() {
-  if (Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI) return Promise.resolve(null)
+  if (Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI) return Promise.resolve(null)
   return embeddedUIPromise
 }
 

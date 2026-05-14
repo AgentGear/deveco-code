@@ -12,7 +12,7 @@ import type { MessageID } from "./schema"
 
 const FILES = [
   "AGENTS.md",
-  ...(Flag.CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT ? [] : ["CLAUDE.md"]),
+  ...(Flag.DEVECO_DISABLE_CLAUDE_CODE_PROMPT ? [] : ["CLAUDE.md"]),
   "CONTEXT.md", // deprecated
 ]
 
@@ -60,7 +60,7 @@ export const layer: Layer.Layer<
     const http = HttpClient.filterStatusOk(withTransientReadRetry(yield* HttpClient.HttpClient))
     const globalFiles = [
       path.join(global.config, "AGENTS.md"),
-      ...(!Flag.CODEGENIE_DISABLE_CLAUDE_CODE_PROMPT ? [path.join(global.home, ".claude", "CLAUDE.md")] : []),
+      ...(!Flag.DEVECO_DISABLE_CLAUDE_CODE_PROMPT ? [path.join(global.home, ".claude", "CLAUDE.md")] : []),
     ]
 
     const state = yield* InstanceState.make(
@@ -74,7 +74,7 @@ export const layer: Layer.Layer<
 
 const relative = Effect.fnUntraced(function* (instruction: string) {
       const ctx = yield* InstanceState.context
-      if (!Flag.CODEGENIE_DISABLE_PROJECT_CONFIG) {
+      if (!Flag.DEVECO_DISABLE_PROJECT_CONFIG) {
         return yield* fs
           .globUp(instruction, ctx.directory, ctx.worktree)
           .pipe(Effect.catch(() => Effect.succeed([] as string[])))
@@ -116,7 +116,7 @@ const relative = Effect.fnUntraced(function* (instruction: string) {
       }
 
       // The first project-level match wins so we don't stack AGENTS.md/CLAUDE.md from every ancestor.
-      if (!Flag.CODEGENIE_DISABLE_PROJECT_CONFIG) {
+      if (!Flag.DEVECO_DISABLE_PROJECT_CONFIG) {
         for (const file of FILES) {
           const matches = yield* fs.findUp(file, ctx.directory, ctx.worktree)
           if (matches.length > 0) {

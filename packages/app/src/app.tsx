@@ -71,7 +71,7 @@ function UiI18nBridge(props: ParentProps) {
 
 declare global {
   interface Window {
-    __CODEGENIE__?: {
+    __DEVECO__?: {
       updaterEnabled?: boolean
       deepLinks?: string[]
       wsl?: boolean

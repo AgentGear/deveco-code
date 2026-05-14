@@ -24,19 +24,19 @@ export const directories = Effect.fn("ConfigPaths.directories")(function* (direc
   const afs = yield* AppFileSystem.Service
   return unique([
     Global.Path.config,
-    ...(!Flag.CODEGENIE_DISABLE_PROJECT_CONFIG
+    ...(!Flag.DEVECO_DISABLE_PROJECT_CONFIG
       ? yield* afs.up({
-          targets: [".codegenie"],
+          targets: [".deveco"],
           start: directory,
           stop: worktree,
         })
       : []),
     ...(yield* afs.up({
-      targets: [".codegenie"],
+      targets: [".deveco"],
       start: Global.Path.home,
       stop: Global.Path.home,
     })),
-    ...(Flag.CODEGENIE_CONFIG_DIR ? [Flag.CODEGENIE_CONFIG_DIR] : []),
+    ...(Flag.DEVECO_CONFIG_DIR ? [Flag.DEVECO_CONFIG_DIR] : []),
   ])
 })
 

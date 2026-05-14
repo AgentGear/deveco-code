@@ -232,7 +232,7 @@ export const layer: Layer.Layer<
           case "reasoning-start":
             if (value.id in ctx.reasoningMap) return
             // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Reasoning.Started.Sync, {
                 sessionID: ctx.sessionID,
                 reasoningID: value.id,
@@ -267,7 +267,7 @@ export const layer: Layer.Layer<
           case "reasoning-end":
             if (!(value.id in ctx.reasoningMap)) return
             // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Reasoning.Ended.Sync, {
                 sessionID: ctx.sessionID,
                 reasoningID: value.id,
@@ -288,7 +288,7 @@ export const layer: Layer.Layer<
               throw new Error(`Tool call not allowed while generating summary: ${value.toolName}`)
             }
             // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Tool.Input.Started.Sync, {
                 sessionID: ctx.sessionID,
                 callID: value.id,
@@ -319,7 +319,7 @@ export const layer: Layer.Layer<
 
           case "tool-input-end": {
             // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Tool.Input.Ended.Sync, {
                 sessionID: ctx.sessionID,
                 callID: value.id,
@@ -336,7 +336,7 @@ export const layer: Layer.Layer<
             }
             const toolCall = yield* readToolCall(value.toolCallId)
             // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Tool.Called.Sync, {
                 sessionID: ctx.sessionID,
                 callID: value.toolCallId,
@@ -418,7 +418,7 @@ export const layer: Layer.Layer<
               attachments: attachments?.length ? attachments : undefined,
             }
             // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Tool.Success.Sync, {
                 sessionID: ctx.sessionID,
                 callID: value.toolCallId,
@@ -448,7 +448,7 @@ export const layer: Layer.Layer<
           case "tool-error": {
             const toolCall = yield* readToolCall(value.toolCallId)
             // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-            if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+            if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
               yield* sync.run(SessionEvent.Tool.Failed.Sync, {
                 sessionID: ctx.sessionID,
                 callID: value.toolCallId,
@@ -473,7 +473,7 @@ export const layer: Layer.Layer<
             if (!ctx.snapshot) ctx.snapshot = yield* snapshot.track()
             if (!ctx.assistantMessage.summary) {
               // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-              if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+              if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
                 yield* sync.run(SessionEvent.Step.Started.Sync, {
                   sessionID: ctx.sessionID,
                   agent: input.assistantMessage.agent,
@@ -505,7 +505,7 @@ export const layer: Layer.Layer<
             })
             if (!ctx.assistantMessage.summary) {
               // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-              if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+              if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
                 yield* sync.run(SessionEvent.Step.Ended.Sync, {
                   sessionID: ctx.sessionID,
                   finish: value.finishReason,
@@ -562,7 +562,7 @@ export const layer: Layer.Layer<
           case "text-start":
             if (!ctx.assistantMessage.summary) {
               // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-              if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+              if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
                 yield* sync.run(SessionEvent.Text.Started.Sync, {
                   sessionID: ctx.sessionID,
                   timestamp: DateTime.makeUnsafe(Date.now()),
@@ -609,7 +609,7 @@ export const layer: Layer.Layer<
             )).text
             if (!ctx.assistantMessage.summary) {
               // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-              if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+              if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
                 yield* sync.run(SessionEvent.Text.Ended.Sync, {
                   sessionID: ctx.sessionID,
                   text: ctx.currentText.text,
@@ -705,7 +705,7 @@ export const layer: Layer.Layer<
         }
         if (!ctx.assistantMessage.summary) {
           // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-          if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+          if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
             yield* sync.run(SessionEvent.Step.Failed.Sync, {
               sessionID: ctx.sessionID,
               error: {
@@ -759,7 +759,7 @@ export const layer: Layer.Layer<
                 parse,
                 set: (info) => {
                   // TODO(v2): Temporary dual-write while migrating session messages to v2 events.
-                  const event = Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM
+                  const event = Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM
                     ? sync.run(SessionEvent.Retried.Sync, {
                         sessionID: ctx.sessionID,
                         attempt: info.attempt,

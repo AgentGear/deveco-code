@@ -19,12 +19,12 @@ function load<A>(dir: string, fn: (svc: Agent.Interface) => Effect.Effect<A>) {
 }
 
 async function withExperimentalScout(enabled: boolean, fn: () => Promise<void>) {
-  const original = Flag.CODEGENIE_EXPERIMENTAL_SCOUT
-  Flag.CODEGENIE_EXPERIMENTAL_SCOUT = enabled
+  const original = Flag.DEVECO_EXPERIMENTAL_SCOUT
+  Flag.DEVECO_EXPERIMENTAL_SCOUT = enabled
   try {
     await fn()
   } finally {
-    Flag.CODEGENIE_EXPERIMENTAL_SCOUT = original
+    Flag.DEVECO_EXPERIMENTAL_SCOUT = original
   }
 }
 

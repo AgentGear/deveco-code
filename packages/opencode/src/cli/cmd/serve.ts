@@ -7,17 +7,17 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 export const ServeCommand = effectCmd({
   command: "serve",
   builder: (yargs) => withNetworkOptions(yargs),
-  describe: "starts a headless codegenie server",
+  describe: "starts a headless deveco server",
   // Server loads instances per-request via x-opencode-directory header — no
   // need for an ambient project InstanceContext at startup.
   instance: false,
   handler: Effect.fn("Cli.serve")(function* (args) {
-    if (!Flag.CODEGENIE_SERVER_PASSWORD) {
-      console.log("Warning: CODEGENIE_SERVER_PASSWORD is not set; server is unsecured.")
+    if (!Flag.DEVECO_SERVER_PASSWORD) {
+      console.log("Warning: DEVECO_SERVER_PASSWORD is not set; server is unsecured.")
     }
     const opts = yield* resolveNetworkOptions(args)
     const server = yield* Effect.promise(() => Server.listen(opts))
-    console.log(`codegenie server listening on http://${server.hostname}:${server.port}`)
+    console.log(`deveco server listening on http://${server.hostname}:${server.port}`)
 
     yield* Effect.never
   }),

@@ -24,7 +24,7 @@ interface RemovalTargets {
 
 export const UninstallCommand = {
   command: "uninstall",
-  describe: "uninstall codegenie and remove all related files",
+  describe: "uninstall deveco and remove all related files",
   builder: (yargs: Argv) =>
     yargs
       .option("keep-config", {
@@ -55,7 +55,7 @@ export const UninstallCommand = {
     UI.empty()
     UI.println(UI.logo("  "))
     UI.empty()
-    prompts.intro("Uninstall CodeGenie")
+    prompts.intro("Uninstall DevEco Code")
 
     const method = await Installation.method()
     prompts.log.info(`Installation method: ${method}`)
@@ -189,7 +189,7 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
   }
 
   UI.empty()
-  prompts.log.success("Thank you for using CodeGenie!")
+  prompts.log.success("Thank you for using DevEco Code!")
 }
 
 async function getDirectorySize(dir: string): Promise<number> {

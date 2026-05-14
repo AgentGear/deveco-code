@@ -1,4 +1,4 @@
-// CodeGenie Logo - Three G gradient design
+// DevEco Code Logo - Three G gradient design
 // ░ ▒ █ are mapped to ▮ (U+25AE) at render time with different opacities
 const CG_LEFT = [
   "  ░░░░░░░░░           ",
@@ -15,11 +15,11 @@ const CG_LEFT = [
 ]
 
 const CG_RIGHT = [
-  "  ＣＯＤＥ  ＧＥＮＩＥ",
+  "  ＤＥＶＥＣＯ  ＣＯＤＥ",
   "                                                        ",
   "",
   "",
-  "  {muted}Collaborate with {/muted}{link}CodeGenie{/link}", // {link} → theme.info in renderLogoRightRow
+  "  {muted}Collaborate with {/muted}{link}DevEco Code{/link}", // {link} → theme.info in renderLogoRightRow
   "  AI copilot for HarmonyOS application development",
   "  Powered by BITFUN & OpenCode",
   "",

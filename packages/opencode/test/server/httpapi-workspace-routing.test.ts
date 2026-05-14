@@ -36,12 +36,12 @@ import { testEffect } from "../lib/effect"
 
 const testStateLayer = Layer.effectDiscard(
   Effect.gen(function* () {
-    const originalWorkspaces = Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES
+    const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
     yield* Effect.promise(() => resetDatabase())
-    Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = true
+    Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
     yield* Effect.addFinalizer(() =>
       Effect.promise(async () => {
-        Flag.CODEGENIE_EXPERIMENTAL_WORKSPACES = originalWorkspaces
+        Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspaces
         await resetDatabase()
       }),
     )

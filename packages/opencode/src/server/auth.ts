@@ -15,8 +15,8 @@ export type DecodedCredentials = {
 }
 
 export class Config extends ConfigService.Service<Config>()("@opencode/ServerAuthConfig", {
-  password: EffectConfig.string("CODEGENIE_SERVER_PASSWORD").pipe(EffectConfig.option),
-  username: EffectConfig.string("CODEGENIE_SERVER_USERNAME").pipe(EffectConfig.withDefault("codegenie")),
+  password: EffectConfig.string("DEVECO_SERVER_PASSWORD").pipe(EffectConfig.option),
+  username: EffectConfig.string("DEVECO_SERVER_USERNAME").pipe(EffectConfig.withDefault("deveco")),
 }) {}
 
 export type Info = Context.Service.Shape<typeof Config>
@@ -34,10 +34,10 @@ export function authorized(credentials: DecodedCredentials, config: Info) {
 }
 
 export function header(credentials?: Credentials) {
-  const password = credentials?.password ?? Flag.CODEGENIE_SERVER_PASSWORD
+  const password = credentials?.password ?? Flag.DEVECO_SERVER_PASSWORD
   if (!password) return undefined
 
-  const username = credentials?.username ?? Flag.CODEGENIE_SERVER_USERNAME ?? "opencode"
+  const username = credentials?.username ?? Flag.DEVECO_SERVER_USERNAME ?? "opencode"
   return `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`
 }
 

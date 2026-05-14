@@ -22,17 +22,17 @@ import { Server } from "../../src/server/server"
 void Log.init({ print: false })
 
 const original = {
-  CODEGENIE_DISABLE_EMBEDDED_WEB_UI: Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI,
-  CODEGENIE_SERVER_PASSWORD: Flag.CODEGENIE_SERVER_PASSWORD,
-  CODEGENIE_SERVER_USERNAME: Flag.CODEGENIE_SERVER_USERNAME,
+  CODEGENIE_DISABLE_EMBEDDED_WEB_UI: Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI,
+  CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+  CODEGENIE_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
   envPassword: process.env.CODEGENIE_SERVER_PASSWORD,
   envUsername: process.env.CODEGENIE_SERVER_USERNAME,
 }
 
 afterEach(() => {
-  Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = original.CODEGENIE_DISABLE_EMBEDDED_WEB_UI
-  Flag.CODEGENIE_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
-  Flag.CODEGENIE_SERVER_USERNAME = original.CODEGENIE_SERVER_USERNAME
+  Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = original.CODEGENIE_DISABLE_EMBEDDED_WEB_UI
+  Flag.DEVECO_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
+  Flag.DEVECO_SERVER_USERNAME = original.CODEGENIE_SERVER_USERNAME
   restoreEnv("CODEGENIE_SERVER_PASSWORD", original.envPassword)
   restoreEnv("CODEGENIE_SERVER_USERNAME", original.envUsername)
 })
@@ -115,7 +115,7 @@ function httpClient(response: Response, onRequest?: (request: HttpClientRequest.
 
 describe("HttpApi UI fallback", () => {
   test("serves the web UI through the experimental backend", async () => {
-    Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = true
+    Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = true
     let proxiedUrl: string | undefined
 
     const response = await uiApp({
@@ -134,7 +134,7 @@ describe("HttpApi UI fallback", () => {
   })
 
   test("strips upstream transfer encoding headers from proxied assets", async () => {
-    Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = true
+    Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = true
     let proxiedUrl: string | undefined
 
     const response = await Effect.runPromise(
@@ -185,7 +185,7 @@ describe("HttpApi UI fallback", () => {
   // forwarded through the proxy while the proxy itself re-frames the body,
   // causing browsers to fail with `ERR_INVALID_CHUNKED_ENCODING`.
   test("strips upstream transfer-encoding header from proxied assets", async () => {
-    Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = true
+    Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = true
 
     const response = await Effect.runPromise(
       Effect.gen(function* () {
@@ -293,7 +293,7 @@ describe("HttpApi UI fallback", () => {
   })
 
   test("requires server password for the web UI", async () => {
-    Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = true
+    Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = true
 
     const response = await uiApp({ password: "secret", username: "opencode" }).request("/")
 
@@ -302,7 +302,7 @@ describe("HttpApi UI fallback", () => {
   })
 
   test("accepts auth token for the web UI", async () => {
-    Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = true
+    Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = true
 
     const response = await uiApp({
       password: "secret",
@@ -315,7 +315,7 @@ describe("HttpApi UI fallback", () => {
   })
 
   test("accepts basic auth for the web UI", async () => {
-    Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = true
+    Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = true
 
     const response = await uiApp({ password: "secret", username: "opencode" }).request("/", {
       headers: { authorization: `Basic ${btoa("opencode:secret")}` },
@@ -330,7 +330,7 @@ describe("HttpApi UI fallback", () => {
   // server returning 401 breaks PWA install. These specific public assets
   // should bypass auth.
   test("serves the PWA manifest without auth even when a server password is set", async () => {
-    Flag.CODEGENIE_DISABLE_EMBEDDED_WEB_UI = true
+    Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = true
 
     for (const path of ["/site.webmanifest", "/web-app-manifest-192x192.png", "/web-app-manifest-512x512.png"]) {
       const response = await uiApp({

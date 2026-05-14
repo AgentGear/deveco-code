@@ -111,9 +111,9 @@ const kinds = [
 ]
 
 const filterExperimentalServers = (servers: Record<string, LSPServer.Info>) => {
-  if (Flag.CODEGENIE_EXPERIMENTAL_LSP_TY) {
+  if (Flag.DEVECO_EXPERIMENTAL_LSP_TY) {
     if (servers["pyright"]) {
-      log.info("LSP server pyright is disabled because CODEGENIE_EXPERIMENTAL_LSP_TY is enabled")
+      log.info("LSP server pyright is disabled because DEVECO_EXPERIMENTAL_LSP_TY is enabled")
       delete servers["pyright"]
     }
   } else {

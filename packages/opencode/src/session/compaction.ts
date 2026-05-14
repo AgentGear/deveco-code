@@ -570,7 +570,7 @@ export const layer: Layer.Layer<
             parts: [],
           },
         )
-        if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+        if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
           yield* sync.run(SessionEvent.Compaction.Ended.Sync, {
             sessionID: input.sessionID,
             timestamp: DateTime.makeUnsafe(Date.now()),
@@ -606,7 +606,7 @@ export const layer: Layer.Layer<
         auto: input.auto,
         overflow: input.overflow,
       })
-      if (Flag.CODEGENIE_EXPERIMENTAL_EVENT_SYSTEM) {
+      if (Flag.DEVECO_EXPERIMENTAL_EVENT_SYSTEM) {
         yield* sync.run(SessionEvent.Compaction.Started.Sync, {
           sessionID: input.sessionID,
           timestamp: DateTime.makeUnsafe(Date.now()),
