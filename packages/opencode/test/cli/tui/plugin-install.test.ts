@@ -50,7 +50,7 @@ test("installs plugin without loading it", async () => {
     },
   })
 
-  process.env.CODEGENIE_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
+  process.env.DEVECO_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
   const config = createTuiResolvedConfig({
     plugin: [],
   })
@@ -82,6 +82,6 @@ test("installs plugin without loading it", async () => {
     await TuiPluginRuntime.dispose()
     cwd.mockRestore()
     wait.mockRestore()
-    delete process.env.CODEGENIE_PLUGIN_META_FILE
+    delete process.env.DEVECO_PLUGIN_META_FILE
   }
 })

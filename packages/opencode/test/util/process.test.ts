@@ -69,9 +69,9 @@ describe("util.process", () => {
   })
 
   test("merges environment overrides", async () => {
-    const out = await Process.run(node('process.stdout.write(process.env.CODEGENIE_TEST ?? "")'), {
+    const out = await Process.run(node('process.stdout.write(process.env.DEVECO_TEST ?? "")'), {
       env: {
-        CODEGENIE_TEST: "set",
+        DEVECO_TEST: "set",
       },
     })
     expect(out.stdout.toString()).toBe("set")
@@ -80,15 +80,15 @@ describe("util.process", () => {
   test("uses shell in run on Windows", async () => {
     if (process.platform !== "win32") return
 
-    const out = await Process.run(["set", "CODEGENIE_TEST_SHELL"], {
+    const out = await Process.run(["set", "DEVECO_TEST_SHELL"], {
       shell: true,
       env: {
-        CODEGENIE_TEST_SHELL: "ok",
+        DEVECO_TEST_SHELL: "ok",
       },
     })
 
     expect(out.code).toBe(0)
-    expect(out.stdout.toString()).toContain("CODEGENIE_TEST_SHELL=ok")
+    expect(out.stdout.toString()).toContain("DEVECO_TEST_SHELL=ok")
   })
 
   test("runs cmd scripts with spaces on Windows without shell", async () => {

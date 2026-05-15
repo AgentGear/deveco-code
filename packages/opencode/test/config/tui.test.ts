@@ -44,8 +44,8 @@ async function withPlatform<Value>(platform: typeof process.platform, fn: () => 
 }
 
 afterEach(async () => {
-  delete process.env.CODEGENIE_CONFIG
-  delete process.env.CODEGENIE_TUI_CONFIG
+  delete process.env.DEVECO_CONFIG
+  delete process.env.DEVECO_TUI_CONFIG
   await fs.rm(path.join(Global.Path.config, "opencode.json"), { force: true }).catch(() => {})
   await fs.rm(path.join(Global.Path.config, "opencode.jsonc"), { force: true }).catch(() => {})
   await fs.rm(path.join(Global.Path.config, "tui.json"), { force: true }).catch(() => {})
@@ -373,13 +373,13 @@ test("top-level keys in tui.json take precedence over nested tui key", async () 
   expect(config.scroll_speed).toBe(2)
 })
 
-test("project config takes precedence over CODEGENIE_TUI_CONFIG (matches CODEGENIE_CONFIG)", async () => {
+test("project config takes precedence over DEVECO_TUI_CONFIG (matches DEVECO_CONFIG)", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       await Bun.write(path.join(dir, "tui.json"), JSON.stringify({ theme: "project", diff_style: "auto" }))
       const custom = path.join(dir, "custom-tui.json")
       await Bun.write(custom, JSON.stringify({ theme: "custom", diff_style: "stacked" }))
-      process.env.CODEGENIE_TUI_CONFIG = custom
+      process.env.DEVECO_TUI_CONFIG = custom
     },
   })
 
@@ -556,12 +556,12 @@ test("keeps explicit configured keybind input undo on Windows", async () => {
   })
 })
 
-test("CODEGENIE_TUI_CONFIG provides settings when no project config exists", async () => {
+test("DEVECO_TUI_CONFIG provides settings when no project config exists", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       const custom = path.join(dir, "custom-tui.json")
       await Bun.write(custom, JSON.stringify({ theme: "from-env", diff_style: "stacked" }))
-      process.env.CODEGENIE_TUI_CONFIG = custom
+      process.env.DEVECO_TUI_CONFIG = custom
     },
   })
   const config = await getTuiConfig(tmp.path)
@@ -569,14 +569,14 @@ test("CODEGENIE_TUI_CONFIG provides settings when no project config exists", asy
   expect(config.diff_style).toBe("stacked")
 })
 
-test("does not derive tui path from CODEGENIE_CONFIG", async () => {
+test("does not derive tui path from DEVECO_CONFIG", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
       const customDir = path.join(dir, "custom")
       await fs.mkdir(customDir, { recursive: true })
       await Bun.write(path.join(customDir, "opencode.json"), JSON.stringify({ model: "test/model" }))
       await Bun.write(path.join(customDir, "tui.json"), JSON.stringify({ theme: "should-not-load" }))
-      process.env.CODEGENIE_CONFIG = path.join(customDir, "opencode.json")
+      process.env.DEVECO_CONFIG = path.join(customDir, "opencode.json")
     },
   })
   const config = await getTuiConfig(tmp.path)

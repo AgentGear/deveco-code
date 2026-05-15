@@ -209,8 +209,8 @@ function generateNotice(deps: Map<string, PkgInfo>): string {
 
   lines.push("NOTICE")
   lines.push("")
-  lines.push("CodeGenie CLI")
-  lines.push("Copyright (c) 2025-present devEco CodeGenie Contributors")
+  lines.push("DevEco Code CLI")
+  lines.push("Copyright (c) 2025-present DevEco Code Contributors")
   lines.push("")
   lines.push("This project is licensed under the MIT License.")
   lines.push("")

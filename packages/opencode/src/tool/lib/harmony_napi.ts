@@ -19,8 +19,8 @@ import os from "node:os"
 import path from "path"
 import { findDevEcoHome } from "./env"
 import * as Log from "@opencode-ai/core/util/log"
-import { DEVECO_PROVIDER_CONFIG } from "@/plugin/codegenie-models"
-import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/codegenie"
+import { DEVECO_PROVIDER_CONFIG } from "@/plugin/deveco-models"
+import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/deveco"
 
 function addon() {
   const execDir = path.dirname(process.execPath)
@@ -81,20 +81,20 @@ export async function resolveUIVerifyParams() {
     }
   }
 
-  // fallback 2: codegenie 登录态内置模型
+  // fallback 2: deveco 登录态内置模型
   try {
     const { Effect } = await import("effect")
     const { AppRuntime } = await import("@/effect/app-runtime")
     const { Auth } = await import("@/auth")
-    const getAuth = () => AppRuntime.runPromise(Effect.gen(function* () { const svc = yield* Auth.Service; return yield* svc.get("codegenie") })).catch(() => undefined)
+    const getAuth = () => AppRuntime.runPromise(Effect.gen(function* () { const svc = yield* Auth.Service; return yield* svc.get("deveco") })).catch(() => undefined)
     let auth = await getAuth()
     if (auth instanceof Auth.Oauth && auth.access) {
       if (!auth.access || auth.expires < Date.now()) {
-        const tokens = await codegenieAuth.refreshToken()
+        const tokens = await devecoAuth.refreshToken()
         if (tokens) {
           await AppRuntime.runPromise(Effect.gen(function* () {
             const svc = yield* Auth.Service
-            yield* svc.set("codegenie", new Auth.Oauth({
+            yield* svc.set("deveco", new Auth.Oauth({
               type: "oauth",
               access: tokens.accessToken,
               refresh: tokens.refreshToken,
@@ -126,21 +126,21 @@ async function runInit(worktree: string) {
   if (!devecoHome) {
     throw new Error("DevEco Studio not found. Please set DEVECO_HOME to your DevEco installation directory.")
   }
-  const logDir = path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share', 'codegenie'), 'log', 'deveco-mcp')
+  const logDir = path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share', 'deveco'), 'log', 'deveco-mcp')
   fs.mkdirSync(logDir, { recursive: true })
   const { baseURL, apiKey, modelName } = await resolveUIVerifyParams()
   log.info("ui_verification model", { baseURL, modelName })
   await bridge.init(logDir, worktree, devecoHome, baseURL, apiKey, modelName)
 }
 
-/** Re-runs native bridge init when worktree changes or codegenie token expires. */
+/** Re-runs native bridge init when worktree changes or deveco token expires. */
 export async function ensureInitialized(worktree: string): Promise<void> {
   gate = gate.then(async () => {
     if (bound === worktree) {
       const { Effect } = await import("effect")
       const { AppRuntime } = await import("@/effect/app-runtime")
       const { Auth } = await import("@/auth")
-      const auth = await AppRuntime.runPromise(Effect.gen(function* () { const svc = yield* Auth.Service; return yield* svc.get("codegenie") })).catch(() => undefined)
+      const auth = await AppRuntime.runPromise(Effect.gen(function* () { const svc = yield* Auth.Service; return yield* svc.get("deveco") })).catch(() => undefined)
       if (!(auth instanceof Auth.Oauth) || auth.expires > Date.now()) return
     }
     bound = worktree

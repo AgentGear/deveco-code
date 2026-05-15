@@ -1,5 +1,5 @@
 interface ImportMetaEnv {
-  readonly CODEGENIE_CHANNEL: string
+  readonly DEVECO_CHANNEL: string
 }
 
 interface ImportMeta {

@@ -165,7 +165,7 @@ function renderPage(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CodeGenie Analytics - Mock Trace Server</title>
+  <title>DevEco Code Analytics - Mock Trace Server</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0a0a0a; color: #e0e0e0; padding: 20px; }
@@ -193,7 +193,7 @@ function renderPage(): string {
   </style>
 </head>
 <body>
-  <h1>CodeGenie Analytics</h1>
+  <h1>DevEco Code Analytics</h1>
   <div class="stats">
     Total events: <span id="total">0</span> &nbsp;|&nbsp;
     Last received: <span id="last-time">-</span> &nbsp;|&nbsp;

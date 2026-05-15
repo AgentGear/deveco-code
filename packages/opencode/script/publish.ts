@@ -50,7 +50,7 @@ await Bun.file(`./dist/${pkg.name}/LICENSE`).write(await Bun.file("../../LICENSE
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify(
     {
-      name: "@codegenie-ai/codegenie-cli",
+      name: "@deveco/deveco",
       bin: {
         [pkg.name]: `./bin/${pkg.name}`,
       },
@@ -70,4 +70,4 @@ const tasks = Object.entries(binaries).map(async ([name, { version, dir }]) => {
   await publish(`./dist/${dir}`, name, version)
 })
 await Promise.all(tasks)
-await publish(`./dist/${pkg.name}`, "@codegenie-ai/codegenie-cli", version)
+await publish(`./dist/${pkg.name}`, "@deveco/deveco", version)

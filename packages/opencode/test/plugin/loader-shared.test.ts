@@ -6,8 +6,8 @@ import { pathToFileURL } from "url"
 import { disposeAllInstances, provideInstance, tmpdir } from "../fixture/fixture"
 import { Filesystem } from "@/util/filesystem"
 
-const disableDefault = process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS
-process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS = "1"
+const disableDefault = process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
+process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = "1"
 
 const { Plugin } = await import("../../src/plugin/index")
 const { PluginLoader } = await import("../../src/plugin/loader")
@@ -18,10 +18,10 @@ const { TestConfig } = await import("../fixture/config")
 
 afterAll(() => {
   if (disableDefault === undefined) {
-    delete process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS
+    delete process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
     return
   }
-  process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS = disableDefault
+  process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = disableDefault
 })
 
 afterEach(async () => {
@@ -868,8 +868,8 @@ export default {
       },
     })
 
-    const pure = process.env.CODEGENIE_PURE
-    process.env.CODEGENIE_PURE = "1"
+    const pure = process.env.DEVECO_PURE
+    process.env.DEVECO_PURE = "1"
 
     try {
       await load(tmp.path)
@@ -880,9 +880,9 @@ export default {
       expect(called).toBe(false)
     } finally {
       if (pure === undefined) {
-        delete process.env.CODEGENIE_PURE
+        delete process.env.DEVECO_PURE
       } else {
-        process.env.CODEGENIE_PURE = pure
+        process.env.DEVECO_PURE = pure
       }
     }
   })

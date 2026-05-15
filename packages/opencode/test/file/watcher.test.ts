@@ -20,8 +20,8 @@ const describeWatcher = FileWatcher.hasNativeBinding() && !process.env.CI ? desc
 
 const watcherConfigLayer = ConfigProvider.layer(
   ConfigProvider.fromUnknown({
-    CODEGENIE_EXPERIMENTAL_FILEWATCHER: "true",
-    CODEGENIE_EXPERIMENTAL_DISABLE_FILEWATCHER: "false",
+    DEVECO_EXPERIMENTAL_FILEWATCHER: "true",
+    DEVECO_EXPERIMENTAL_DISABLE_FILEWATCHER: "false",
   }),
 )
 

@@ -7,8 +7,8 @@ import { ModelID, ProviderID } from "../../src/provider/schema"
 import { provideTmpdirInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 
-const disableDefault = process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS
-process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS = "1"
+const disableDefault = process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
+process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = "1"
 
 const { Plugin } = await import("../../src/plugin/index")
 const it = testEffect(Layer.mergeAll(Plugin.defaultLayer, CrossSpawnSpawner.defaultLayer))
@@ -16,10 +16,10 @@ const systemHook = "experimental.chat.system.transform"
 
 afterAll(() => {
   if (disableDefault === undefined) {
-    delete process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS
+    delete process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
     return
   }
-  process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS = disableDefault
+  process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = disableDefault
 })
 
 function withProject<A, E, R>(source: string, self: Effect.Effect<A, E, R>) {

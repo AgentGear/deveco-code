@@ -5,6 +5,6 @@ export default defineConfig({
   schema: "./src/**/*.sql.ts",
   out: "./migration",
   dbCredentials: {
-    url: "/home/thdxr/.local/share/opencode/codegenie.db",
+    url: "/home/thdxr/.local/share/opencode/deveco.db",
   },
 })

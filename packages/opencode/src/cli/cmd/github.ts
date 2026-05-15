@@ -141,7 +141,7 @@ type IssueQueryResponse = {
 
 const AGENT_USERNAME = "opencode-agent[bot]"
 const AGENT_REACTION = "eyes"
-const WORKFLOW_FILE = ".github/workflows/codegenie.yml"
+const WORKFLOW_FILE = ".github/workflows/deveco.yml"
 
 // Event categories for routing
 // USER_EVENTS: triggered by user actions, have actor/issueId, support reactions/comments

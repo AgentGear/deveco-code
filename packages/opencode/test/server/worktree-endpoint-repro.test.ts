@@ -13,14 +13,14 @@ import { testEffect } from "../lib/effect"
 const stateLayer = Layer.effectDiscard(
   Effect.gen(function* () {
     const original = {
-      CODEGENIE_EXPERIMENTAL_WORKSPACES: Flag.DEVECO_EXPERIMENTAL_WORKSPACES,
+      DEVECO_EXPERIMENTAL_WORKSPACES: Flag.DEVECO_EXPERIMENTAL_WORKSPACES,
     }
 
     Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
 
     yield* Effect.addFinalizer(() =>
       Effect.promise(async () => {
-        Flag.DEVECO_EXPERIMENTAL_WORKSPACES = original.CODEGENIE_EXPERIMENTAL_WORKSPACES
+        Flag.DEVECO_EXPERIMENTAL_WORKSPACES = original.DEVECO_EXPERIMENTAL_WORKSPACES
         await resetDatabase()
       }),
     )

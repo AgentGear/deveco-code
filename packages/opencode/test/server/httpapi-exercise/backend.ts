@@ -61,7 +61,7 @@ function app(modules: Runtime, backend: Backend, options: CallOptions) {
     modules.ExperimentalHttpApiServer.routes.pipe(
       Layer.provide(
         ConfigProvider.layer(
-          ConfigProvider.fromUnknown({ CODEGENIE_SERVER_PASSWORD: password, CODEGENIE_SERVER_USERNAME: username }),
+          ConfigProvider.fromUnknown({ DEVECO_SERVER_PASSWORD: password, DEVECO_SERVER_USERNAME: username }),
         ),
       ),
     ),

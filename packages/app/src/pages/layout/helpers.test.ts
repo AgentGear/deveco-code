@@ -92,10 +92,10 @@ describe("layout deep links", () => {
 
   test("drains global deep links once", () => {
     const target = {
-      __CODEGENIE__: {
+      __DEVECO__: {
         deepLinks: ["opencode://open-project?directory=/a"],
       },
-    } as unknown as Window & { __CODEGENIE__?: { deepLinks?: string[] } }
+    } as unknown as Window & { __DEVECO__?: { deepLinks?: string[] } }
 
     expect(drainPendingDeepLinks(target)).toEqual(["opencode://open-project?directory=/a"])
     expect(drainPendingDeepLinks(target)).toEqual([])

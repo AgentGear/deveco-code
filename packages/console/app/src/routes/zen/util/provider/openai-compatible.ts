@@ -28,7 +28,7 @@ export const oaCompatHelper: ProviderHelper = ({ adjustCacheUsage }) => ({
   modifyUrl: (providerApi: string) => providerApi + "/chat/completions",
   modifyHeaders: (headers: Headers, body: Record<string, any>, apiKey: string) => {
     headers.set("authorization", `Bearer ${apiKey}`)
-    headers.set("x-session-affinity", headers.get("x-codegenie-session") ?? "")
+    headers.set("x-session-affinity", headers.get("x-deveco-session") ?? "")
   },
   modifyBody: (body: Record<string, any>, _workspaceID?: string) => {
     return {

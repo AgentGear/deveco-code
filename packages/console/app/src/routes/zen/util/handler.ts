@@ -190,10 +190,10 @@ export async function handler(
           })
           headers.delete("host")
           headers.delete("content-length")
-          headers.delete("x-codegenie-request")
-          headers.delete("x-codegenie-session")
-          headers.delete("x-codegenie-project")
-          headers.delete("x-codegenie-client")
+          headers.delete("x-deveco-request")
+          headers.delete("x-deveco-session")
+          headers.delete("x-deveco-project")
+          headers.delete("x-deveco-client")
           return headers
         })(),
         body: reqBody,

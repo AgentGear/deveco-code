@@ -257,7 +257,7 @@ describe("provider HttpApi", () => {
       const fs = yield* FileSystem.FileSystem
       const path = yield* Path.Path
       const dir = yield* fs.makeTempDirectoryScoped({ prefix: "opencode-test-" })
-      const previous = process.env.CODEGENIE_AUTH_CONTENT
+      const previous = process.env.DEVECO_AUTH_CONTENT
 
       yield* fs.writeFileString(
         path.join(dir, "opencode.json"),
@@ -265,14 +265,14 @@ describe("provider HttpApi", () => {
       )
       yield* writeFunctionOptionsPlugin(dir)
       yield* Effect.sync(() => {
-        process.env.CODEGENIE_AUTH_CONTENT = JSON.stringify({
+        process.env.DEVECO_AUTH_CONTENT = JSON.stringify({
           google: { type: "oauth", refresh: "dummy", access: "dummy", expires: 9999999999999 },
         })
       })
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
-          if (previous === undefined) delete process.env.CODEGENIE_AUTH_CONTENT
-          if (previous !== undefined) process.env.CODEGENIE_AUTH_CONTENT = previous
+          if (previous === undefined) delete process.env.DEVECO_AUTH_CONTENT
+          if (previous !== undefined) process.env.DEVECO_AUTH_CONTENT = previous
         }),
       )
       const headers = { "x-opencode-directory": dir }

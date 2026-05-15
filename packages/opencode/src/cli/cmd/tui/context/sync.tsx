@@ -491,7 +491,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         return store.status
       },
       get ready() {
-        if (process.env.CODEGENIE_FAST_BOOT) return true
+        if (process.env.DEVECO_FAST_BOOT) return true
         return store.status !== "loading"
       },
       get path() {

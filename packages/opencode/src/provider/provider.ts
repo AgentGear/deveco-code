@@ -333,7 +333,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           }
 
           // Region resolution precedence (highest to lowest):
-          // 1. options.region from codegenie.json provider config
+          // 1. options.region from deveco.json provider config
           // 2. defaultRegion from AWS_REGION environment variable
           // 3. Default "us-east-1" (baked into defaultRegion)
           const region = options?.region ?? defaultRegion
@@ -834,20 +834,20 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           },
         },
       }),
-    codegenie: Effect.fnUntraced(function* () {
-      const auth = yield* dep.auth("codegenie")
+    deveco: Effect.fnUntraced(function* () {
+      const auth = yield* dep.auth("deveco")
       if (!auth) return { autoload: false }
 
       if (auth.type === "oauth") {
         if (auth.expires && Date.now() >= auth.expires) {
-          log.info("codegenie token expired, attempting refresh")
-          const { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS } = yield* Effect.promise(() => import("@/plugin/codegenie"))
-          const newTokens = yield* Effect.promise(() => codegenieAuth.refreshToken())
+          log.info("deveco token expired, attempting refresh")
+          const { devecoAuth, ACCESS_TOKEN_EXPIRES_MS } = yield* Effect.promise(() => import("@/plugin/deveco"))
+          const newTokens = yield* Effect.promise(() => devecoAuth.refreshToken())
           if (newTokens) {
-            log.info("codegenie token refresh successful")
+            log.info("deveco token refresh successful")
             yield* Effect.promise(() =>
-              import("@/plugin/codegenie").then((m) =>
-                m.saveAuthToDisk("codegenie", {
+              import("@/plugin/deveco").then((m) =>
+                m.saveAuthToDisk("deveco", {
                   type: "oauth",
                   access: newTokens.accessToken,
                   refresh: newTokens.refreshToken,
@@ -862,7 +862,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
               },
             }
           }
-          log.warn("codegenie token refresh failed, user needs to re-login")
+          log.warn("deveco token refresh failed, user needs to re-login")
           return { autoload: false }
         }
 
@@ -1188,10 +1188,10 @@ const layer: Layer.Layer<
         const configProviders = Object.entries(cfg.provider ?? {})
 
         // === DevEco Code: inject provider config if authenticated ===
-        const codegenieAuth = yield* auth.get("codegenie").pipe(Effect.orElseSucceed(() => undefined))
-        if (codegenieAuth) {
-          const { DEVECO_PROVIDER_CONFIG } = yield* Effect.promise(() => import("@/plugin/codegenie-models"))
-          configProviders.push(["codegenie", DEVECO_PROVIDER_CONFIG])
+        const devecoAuth = yield* auth.get("deveco").pipe(Effect.orElseSucceed(() => undefined))
+        if (devecoAuth) {
+          const { DEVECO_PROVIDER_CONFIG } = yield* Effect.promise(() => import("@/plugin/deveco-models"))
+          configProviders.push(["deveco", DEVECO_PROVIDER_CONFIG])
         }
 
         const disabled = new Set(cfg.disabled_providers ?? [])
@@ -1708,7 +1708,7 @@ const layer: Layer.Layer<
       if (providerID.startsWith("opencode")) {
         priority = ["gpt-5-nano"]
       }
-      if (providerID.startsWith("codegenie")) {
+      if (providerID.startsWith("deveco")) {
         priority = ["deepseek-v3.2"]
       }
       if (providerID.startsWith("github-copilot")) {

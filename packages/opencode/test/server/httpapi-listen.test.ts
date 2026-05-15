@@ -10,21 +10,21 @@ import { disposeAllInstances, tmpdir } from "../fixture/fixture"
 void Log.init({ print: false })
 
 const original = {
-  CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
-  CODEGENIE_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
-  envPassword: process.env.CODEGENIE_SERVER_PASSWORD,
-  envUsername: process.env.CODEGENIE_SERVER_USERNAME,
+  DEVECO_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+  DEVECO_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
+  envPassword: process.env.DEVECO_SERVER_PASSWORD,
+  envUsername: process.env.DEVECO_SERVER_USERNAME,
 }
 const auth = { username: "opencode", password: "listen-secret" }
 const testPty = process.platform === "win32" ? test.skip : test
 
 afterEach(async () => {
-  Flag.DEVECO_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
-  Flag.DEVECO_SERVER_USERNAME = original.CODEGENIE_SERVER_USERNAME
-  if (original.envPassword === undefined) delete process.env.CODEGENIE_SERVER_PASSWORD
-  else process.env.CODEGENIE_SERVER_PASSWORD = original.envPassword
-  if (original.envUsername === undefined) delete process.env.CODEGENIE_SERVER_USERNAME
-  else process.env.CODEGENIE_SERVER_USERNAME = original.envUsername
+  Flag.DEVECO_SERVER_PASSWORD = original.DEVECO_SERVER_PASSWORD
+  Flag.DEVECO_SERVER_USERNAME = original.DEVECO_SERVER_USERNAME
+  if (original.envPassword === undefined) delete process.env.DEVECO_SERVER_PASSWORD
+  else process.env.DEVECO_SERVER_PASSWORD = original.envPassword
+  if (original.envUsername === undefined) delete process.env.DEVECO_SERVER_USERNAME
+  else process.env.DEVECO_SERVER_USERNAME = original.envUsername
   await disposeAllInstances()
   await resetDatabase()
 })
@@ -32,16 +32,16 @@ afterEach(async () => {
 async function startListener() {
   Flag.DEVECO_SERVER_PASSWORD = auth.password
   Flag.DEVECO_SERVER_USERNAME = auth.username
-  process.env.CODEGENIE_SERVER_PASSWORD = auth.password
-  process.env.CODEGENIE_SERVER_USERNAME = auth.username
+  process.env.DEVECO_SERVER_PASSWORD = auth.password
+  process.env.DEVECO_SERVER_USERNAME = auth.username
   return Server.listen({ hostname: "127.0.0.1", port: 0 })
 }
 
 async function startNoAuthListener() {
   Flag.DEVECO_SERVER_PASSWORD = undefined
   Flag.DEVECO_SERVER_USERNAME = auth.username
-  delete process.env.CODEGENIE_SERVER_PASSWORD
-  process.env.CODEGENIE_SERVER_USERNAME = auth.username
+  delete process.env.DEVECO_SERVER_PASSWORD
+  process.env.DEVECO_SERVER_USERNAME = auth.username
   return Server.listen({ hostname: "127.0.0.1", port: 0 })
 }
 

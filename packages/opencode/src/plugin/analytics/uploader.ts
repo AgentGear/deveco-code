@@ -3,7 +3,7 @@ import path from "path"
 import type { AnalyticsEvent, AnalyticsConfig, HuaweiTracePayload } from "./types"
 import { DEFAULT_CONFIG } from "./types"
 import { appendPendingEvent, clearPendingEvents, getPendingEvents } from "./storage"
-import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from "../codegenie"
+import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from "../deveco"
 import { Global } from "@opencode-ai/core/global"
 import { LocalCrypto } from "@/security/local-crypto"
 
@@ -113,7 +113,7 @@ export class AnalyticsUploader {
       return { success: true }
     }
 
-    const authInfo = readAuthFromDisk("codegenie")
+    const authInfo = readAuthFromDisk("deveco")
 
     let authToken = ""
     let tokenExpires = 0
@@ -137,9 +137,9 @@ export class AnalyticsUploader {
 
     if (tokenExpires && Date.now() >= tokenExpires) {
       if (refreshToken) {
-        const newTokens = await codegenieAuth.refreshToken()
+        const newTokens = await devecoAuth.refreshToken()
         if (newTokens) {
-          await saveAuthToDisk("codegenie", {
+          await saveAuthToDisk("deveco", {
             type: "oauth",
             access: newTokens.accessToken,
             refresh: newTokens.refreshToken,

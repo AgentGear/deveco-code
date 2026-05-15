@@ -18,7 +18,7 @@ import { CopilotAuthPlugin } from "./github-copilot/copilot"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "opencode-gitlab-auth"
 import { PoeAuthPlugin } from "opencode-poe-auth"
 import { CloudflareAIGatewayAuthPlugin, CloudflareWorkersAuthPlugin } from "./cloudflare"
-import { CodegenieAuthPlugin } from "./codegenie"
+import { DevEcoAuthPlugin } from "./deveco"
 import AnalyticsPlugin from "./analytics/analytics-plugin"
 import HarmonyNapiDynamicToolsPlugin from "./harmony-napi-dynamic-tools"
 import { AzureAuthPlugin } from "./azure"
@@ -66,7 +66,7 @@ const INTERNAL_PLUGINS: PluginInstance[] = [
   PoeAuthPlugin,
   CloudflareWorkersAuthPlugin,
   CloudflareAIGatewayAuthPlugin,
-  CodegenieAuthPlugin,
+  DevEcoAuthPlugin,
   AnalyticsPlugin,
   HarmonyNapiDynamicToolsPlugin,
   AzureAuthPlugin,

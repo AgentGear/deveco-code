@@ -18,21 +18,21 @@ if (!semver.satisfies(process.versions.bun, expectedBunVersionRange)) {
 }
 
 const env = {
-  CODEGENIE_CHANNEL: process.env["CODEGENIE_CHANNEL"],
-  CODEGENIE_BUMP: process.env["CODEGENIE_BUMP"],
-  CODEGENIE_VERSION: process.env["CODEGENIE_VERSION"],
-  CODEGENIE_RELEASE: process.env["CODEGENIE_RELEASE"],
+  DEVECO_CHANNEL: process.env["DEVECO_CHANNEL"],
+  DEVECO_BUMP: process.env["DEVECO_BUMP"],
+  DEVECO_VERSION: process.env["DEVECO_VERSION"],
+  DEVECO_RELEASE: process.env["DEVECO_RELEASE"],
 }
 const CHANNEL = await (async () => {
-  if (env.CODEGENIE_CHANNEL) return env.CODEGENIE_CHANNEL
-  if (env.CODEGENIE_BUMP) return "latest"
-  if (env.CODEGENIE_VERSION && !env.CODEGENIE_VERSION.startsWith("0.0.0-")) return "latest"
+  if (env.DEVECO_CHANNEL) return env.DEVECO_CHANNEL
+  if (env.DEVECO_BUMP) return "latest"
+  if (env.DEVECO_VERSION && !env.DEVECO_VERSION.startsWith("0.0.0-")) return "latest"
   return await $`git branch --show-current`.text().then((x) => x.trim())
 })()
 const IS_PREVIEW = CHANNEL !== "latest"
 
 const VERSION = await (async () => {
-  if (env.CODEGENIE_VERSION) return env.CODEGENIE_VERSION
+  if (env.DEVECO_VERSION) return env.DEVECO_VERSION
   if (IS_PREVIEW) return `0.0.0-${CHANNEL}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
   const version = await fetch("https://registry.npmjs.org/opencode-ai/latest")
     .then((res) => {
@@ -41,13 +41,13 @@ const VERSION = await (async () => {
     })
     .then((data: any) => data.version)
   const [major, minor, patch] = version.split(".").map((x: string) => Number(x) || 0)
-  const t = env.CODEGENIE_BUMP?.toLowerCase()
+  const t = env.DEVECO_BUMP?.toLowerCase()
   if (t === "major") return `${major + 1}.0.0`
   if (t === "minor") return `${major}.${minor + 1}.0`
   return `${major}.${minor}.${patch + 1}`
 })()
 
-const bot = ["actions-user", "codegenie", "codegenie-agent[bot]"]
+const bot = ["actions-user", "deveco", "deveco-agent[bot]"]
 const teamPath = path.resolve(import.meta.dir, "../../../.github/TEAM_MEMBERS")
 const team = [
   ...(await Bun.file(teamPath)
@@ -68,10 +68,10 @@ export const Script = {
     return IS_PREVIEW
   },
   get release(): boolean {
-    return !!env.CODEGENIE_RELEASE
+    return !!env.DEVECO_RELEASE
   },
   get team() {
     return team
   },
 }
-console.log(`codegenie script`, JSON.stringify(Script, null, 2))
+console.log(`deveco script`, JSON.stringify(Script, null, 2))

@@ -381,14 +381,14 @@ describe("cross-spawn spawner", () => {
 
         const out = yield* ChildProcessSpawner.ChildProcessSpawner.use((svc) =>
           svc.string(
-            ChildProcess.make("set", ["CODEGENIE_TEST_SHELL"], {
+            ChildProcess.make("set", ["DEVECO_TEST_SHELL"], {
               shell: true,
               extendEnv: true,
-              env: { CODEGENIE_TEST_SHELL: "ok" },
+              env: { DEVECO_TEST_SHELL: "ok" },
             }),
           ),
         )
-        expect(out).toContain("CODEGENIE_TEST_SHELL=ok")
+        expect(out).toContain("DEVECO_TEST_SHELL=ok")
       }),
     )
 

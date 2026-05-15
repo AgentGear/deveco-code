@@ -1,7 +1,7 @@
 {
   "$schema": "https://v2-8-13.turborepo.dev/schema.json",
-  "globalEnv": ["CI", "CODEGENIE_DISABLE_SHARE"],
-  "globalPassThroughEnv": ["CI", "CODEGENIE_DISABLE_SHARE"],
+  "globalEnv": ["CI", "DEVECO_DISABLE_SHARE"],
+  "globalPassThroughEnv": ["CI", "DEVECO_DISABLE_SHARE"],
   "tasks": {
     "typecheck": {},
     "build": {
