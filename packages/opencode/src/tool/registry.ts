@@ -221,7 +221,7 @@ export const layer: Layer.Layer<
         const questionEnabled =
           ["app", "cli", "desktop"].includes(Flag.DEVECO_CLIENT) || Flag.DEVECO_ENABLE_QUESTION_TOOL
 
-        const authInfo = yield* auth.get("codegenie").pipe(Effect.orElseSucceed(() => undefined))
+        const authInfo = yield* auth.get("deveco").pipe(Effect.orElseSucceed(() => undefined))
         const ohknowledgeEnabled = authInfo !== undefined && authInfo.type === "oauth"
 
         const tool = yield* Effect.all({

@@ -3,7 +3,7 @@
 ## Directory Structure
 
 ```
-codegenie-cli/
+deveco-cli/
 ├── packages/
 │   ├── opencode/          # CLI core (Effect runtime, TUI, Agent logic)
 │   ├── app/               # Web App (SolidJS frontend)

@@ -1,6 +1,6 @@
-> **CodeGenie Override**: This document is inherited from the upstream OpenCode repo and covers **code style only** (syntax, patterns, naming, testing).
+> **DevEco Code Override**: This document is inherited from the upstream OpenCode repo and covers **code style only** (syntax, patterns, naming, testing).
 > Development workflow, branch strategy, commit conventions, and release procedures are **NOT** governed by this file — follow [DEV-WORKFLOW.md](../DEV-WORKFLOW.md) and [RELEASE-WORKFLOW.md](../RELEASE-WORKFLOW.md) instead.
-> In particular, ignore any branch references below (e.g. `dev`, `main`); the CodeGenie development branch is `upstream-tracking-develop`.
+> In particular, ignore any branch references below (e.g. `dev`, `main`); the DevEco Code development branch is `upstream-tracking-develop`.
 
 - To regenerate the JavaScript SDK, run `./packages/sdk/js/script/build.ts`.
 - ALWAYS USE PARALLEL TOOLS WHEN APPLICABLE.
