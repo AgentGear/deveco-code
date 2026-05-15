@@ -4,7 +4,9 @@ agent: sdd
 ---
 
 ## User Input
-{{FEATURE_DESCRIPTION}}
+```text
+$ARGUMENTS
+```
 You **MUST** consider the user input before proceeding. If empty or whitespace-only, halt immediately and output: `ERROR: No feature description provided.`
 
 ## STRICT OPERATIONAL CONSTRAINTS (ZERO EXCEPTIONS)

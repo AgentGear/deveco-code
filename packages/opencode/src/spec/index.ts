@@ -29,14 +29,14 @@ export const layer = Layer.effect(
     const { configDir, specDir } = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
 
     log.info("spec resources initialized", {
-      commands: path.join(configDir, "commands"),
+      commands: path.join(specDir, "commands"),
       templates: path.join(specDir, "templates"),
       agents: path.join(configDir, "agents"),
     })
 
     const get = Effect.fn("Spec.get")(function* () {
       return {
-        commandsPath: path.join(configDir, "commands"),
+        commandsPath: path.join(specDir, "commands"),
         templatesPath: path.join(specDir, "templates"),
         agentsPath: path.join(configDir, "agents"),
       }
