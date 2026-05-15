@@ -49,8 +49,8 @@ function detectPlatformAndArch() {
 
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const packageName = `@codegenie-ai/codegenie-${platform}-${arch}`
-  const binaryName = platform === "windows" ? "codegenie.exe" : "codegenie"
+  const packageName = `@deveco/deveco-${platform}-${arch}`
+  const binaryName = platform === "windows" ? "deveco.exe" : "deveco"
 
   try {
     // Use require.resolve to find the package
@@ -79,7 +79,7 @@ async function main() {
 
     // On non-Windows platforms, hardlink binary to bin/.codegenie
     const { binaryPath, packageDir } = findBinary()
-    const target = path.join(__dirname, "bin", ".codegenie")
+    const target = path.join(__dirname, "bin", ".deveco")
     if (fs.existsSync(target)) fs.unlinkSync(target)
     try {
       fs.linkSync(binaryPath, target)
@@ -108,7 +108,7 @@ async function main() {
       console.log(`vendor directory copied: ${vendorDst}`)
     }
   } catch (error) {
-    console.error("Failed to setup codegenie binary:", error.message)
+    console.error("Failed to setup deveco binary:", error.message)
     process.exit(1)
   }
 }

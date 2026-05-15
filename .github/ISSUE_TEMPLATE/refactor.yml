@@ -31,8 +31,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: codegenie cli 版本。
-      description: 请提供您使用的codegenie cli 版本信息。
+      label: DevEco Code 版本。
+      description: 请提供您使用的 DevEco Code 版本信息。
       placeholder: "0.0.1"
     validations:
       required: true     
