@@ -141,6 +141,7 @@ export const layer: Layer.Layer<
     const switchcwd = yield* SwitchCwdTool
     const ohknowledge = yield* OhKnowledgeTool
     const agent = yield* Agent.Service
+    const auth = yield* Auth.Service
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -220,6 +221,9 @@ export const layer: Layer.Layer<
         const questionEnabled =
           ["app", "cli", "desktop"].includes(Flag.DEVECO_CLIENT) || Flag.DEVECO_ENABLE_QUESTION_TOOL
 
+        const authInfo = yield* auth.get("codegenie").pipe(Effect.orElseSucceed(() => undefined))
+        const ohknowledgeEnabled = authInfo !== undefined && authInfo.type === "oauth"
+
         const tool = yield* Effect.all({
           invalid: Tool.init(invalid),
           shell: Tool.init(shell),
@@ -267,7 +271,7 @@ export const layer: Layer.Layer<
             tool.patch,
             tool.hdclog,
             tool.switchcwd,
-            tool.ohknowledge,
+            ...(ohknowledgeEnabled ? [tool.ohknowledge] : []),
             ...(Flag.DEVECO_EXPERIMENTAL_LSP_TOOL ? [tool.lsp] : []),
             ...(Flag.DEVECO_CLIENT === "cli" ? [tool.plan, tool.planwrite, tool.planenter] : []),
           ],
