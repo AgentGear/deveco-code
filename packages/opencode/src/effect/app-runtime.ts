@@ -20,6 +20,7 @@ import { ProviderAuth } from "@/provider/auth"
 import { Agent } from "@/agent/agent"
 import { Skill } from "@/skill"
 import { Discovery } from "@/skill/discovery"
+import { Spec } from "@/spec"
 import { Question } from "@/question"
 import { Permission } from "@/permission"
 import { Todo } from "@/session/todo"
@@ -76,6 +77,7 @@ export const AppLayer = Layer.mergeAll(
   Agent.defaultLayer,
   Skill.defaultLayer,
   Discovery.defaultLayer,
+  Spec.defaultLayer,
   Question.defaultLayer,
   Permission.defaultLayer,
   Todo.defaultLayer,
