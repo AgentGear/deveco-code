@@ -203,6 +203,7 @@ export function Prompt(props: PromptProps) {
   const [cursorVersion, setCursorVersion] = createSignal(0)
   const currentProviderLabel = createMemo(() => local.model.parsed().provider)
   const hasRightContent = createMemo(() => Boolean(props.right))
+  const isHomeRoute = createMemo(() => route.data.type === "home")
   const defaultWorkspaceID = createMemo(() => props.workspaceID ?? project.workspace.current())
 
   function selectWorkspace(selection: WorkspaceSelection | undefined) {
@@ -1599,32 +1600,34 @@ export function Prompt(props: PromptProps) {
             </box>
           </box>
         </box>
-        <box
-          height={1}
-          border={["left"]}
-          borderColor={borderHighlight()}
-          customBorderChars={{
-            ...EmptyBorder,
-            vertical: bgElementVisible() ? "╹" : " ",
-          }}
-        >
+        <Show when={!isHomeRoute()}>
           <box
             height={1}
-            border={["bottom"]}
-            borderColor={theme.backgroundElement}
-            customBorderChars={
-              bgElementVisible()
-                ? {
-                    ...EmptyBorder,
-                    horizontal: "▀",
-                  }
-                : {
-                    ...EmptyBorder,
-                    horizontal: " ",
-                  }
-            }
-          />
-        </box>
+            border={["left"]}
+            borderColor={borderHighlight()}
+            customBorderChars={{
+              ...EmptyBorder,
+              vertical: bgElementVisible() ? "╹" : " ",
+            }}
+          >
+            <box
+              height={1}
+              border={["bottom"]}
+              borderColor={theme.backgroundElement}
+              customBorderChars={
+                bgElementVisible()
+                  ? {
+                      ...EmptyBorder,
+                      horizontal: "▀",
+                    }
+                  : {
+                      ...EmptyBorder,
+                      horizontal: " ",
+                    }
+              }
+            />
+          </box>
+        </Show>
         <box width="100%" flexDirection="row" justifyContent="space-between" position="relative">
           <Switch>
             <Match when={status().type !== "idle"}>
