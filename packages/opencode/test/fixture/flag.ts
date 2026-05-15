@@ -3,7 +3,7 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { Effect, Scope } from "effect"
 
 /**
- * Scoped override for `Flag.CODEGENIE_WORKSPACE_ID`. Saves the previous value
+ * Scoped override for `Flag.DEVECO_WORKSPACE_ID`. Saves the previous value
  * on entry and restores it via finalizer when the surrounding scope closes —
  * preserves the original try/finally semantics regardless of test outcome.
  */

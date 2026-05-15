@@ -13,13 +13,13 @@ import { testEffect } from "../lib/effect"
 const testStateLayer = Layer.effectDiscard(
   Effect.gen(function* () {
     const original = {
-      CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+      DEVECO_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
     }
     Flag.DEVECO_SERVER_PASSWORD = "secret"
     yield* Effect.promise(() => resetDatabase())
     yield* Effect.addFinalizer(() =>
       Effect.promise(async () => {
-        Flag.DEVECO_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
+        Flag.DEVECO_SERVER_PASSWORD = original.DEVECO_SERVER_PASSWORD
         await resetDatabase()
       }),
     )
@@ -64,7 +64,7 @@ describe("HttpApi CORS", () => {
     Effect.gen(function* () {
       const handler = HttpRouter.toWebHandler(
         ExperimentalHttpApiServer.createRoutes().pipe(
-          Layer.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ CODEGENIE_SERVER_PASSWORD: "secret" }))),
+          Layer.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ DEVECO_SERVER_PASSWORD: "secret" }))),
         ),
         { disableLogger: true },
       ).handler

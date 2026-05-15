@@ -35,7 +35,7 @@ export async function createOpencodeServer(options?: ServerOptions) {
   const proc = launch(`opencode`, args, {
     env: {
       ...process.env,
-      CODEGENIE_CONFIG_CONTENT: JSON.stringify(options.config ?? {}),
+      DEVECO_CONFIG_CONTENT: JSON.stringify(options.config ?? {}),
     },
   })
   let clear = () => {}
@@ -119,7 +119,7 @@ export function createOpencodeTui(options?: TuiOptions) {
     stdio: "inherit",
     env: {
       ...process.env,
-      CODEGENIE_CONFIG_CONTENT: JSON.stringify(options?.config ?? {}),
+      DEVECO_CONFIG_CONTENT: JSON.stringify(options?.config ?? {}),
     },
   })
 

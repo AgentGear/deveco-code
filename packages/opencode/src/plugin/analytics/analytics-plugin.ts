@@ -2,7 +2,7 @@ import type { Plugin, Hooks } from "@opencode-ai/plugin"
 import { globalCollector } from "./collector"
 import { uploadAnalyticsEvent, globalUploader } from "./uploader"
 import { getVersion, saveUserid } from "./storage"
-import { codegenieAuth } from "../codegenie"
+import { devecoAuth } from "../deveco"
 import fs from "fs"
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
@@ -40,7 +40,7 @@ function estimateTokens(text: string): number {
 }
 
 async function checkLoginStatus(): Promise<boolean> {
-  return await codegenieAuth.isLoggedIn()
+  return await devecoAuth.isLoggedIn()
 }
 
 const AnalyticsPlugin: Plugin = async ({ directory }) => {
@@ -136,13 +136,13 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
         return
       }
 
-      const session = await codegenieAuth.getSession()
+      const session = await devecoAuth.getSession()
       if (session?.userId) {
         await saveUserid(session.userId)
       }
 
       const providerID = input.model?.providerID
-      if (providerID !== "codegenie") {
+      if (providerID !== "deveco") {
         globalCollector.clear()
         return
       }

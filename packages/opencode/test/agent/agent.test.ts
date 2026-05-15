@@ -705,8 +705,8 @@ description: Permission skill.
     },
   })
 
-  const home = process.env.CODEGENIE_TEST_HOME
-  process.env.CODEGENIE_TEST_HOME = tmp.path
+  const home = process.env.DEVECO_TEST_HOME
+  process.env.DEVECO_TEST_HOME = tmp.path
 
   try {
     await WithInstance.provide({
@@ -719,7 +719,7 @@ description: Permission skill.
       },
     })
   } finally {
-    process.env.CODEGENIE_TEST_HOME = home
+    process.env.DEVECO_TEST_HOME = home
   }
 })
 

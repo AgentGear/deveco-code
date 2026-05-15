@@ -49,7 +49,7 @@ opencode acp --cwd /path/to/project
 ACP excludes `QuestionTool` by default.
 
 ```bash
-CODEGENIE_ENABLE_QUESTION_TOOL=1 codegenie acp
+DEVECO_ENABLE_QUESTION_TOOL=1 deveco acp
 ```
 
 Enable this only for ACP clients that support interactive question prompts.

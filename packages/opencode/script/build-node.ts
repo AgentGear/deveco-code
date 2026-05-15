@@ -51,8 +51,8 @@ await Bun.build({
   sourcemap: "linked",
   external: ["jsonc-parser", "@lydell/node-pty"],
   define: {
-    CODEGENIE_MIGRATIONS: JSON.stringify(migrations),
-    CODEGENIE_CHANNEL: `'${Script.channel}'`,
+    DEVECO_MIGRATIONS: JSON.stringify(migrations),
+    DEVECO_CHANNEL: `'${Script.channel}'`,
   },
   files: {
     "opencode-web-ui.gen.ts": "",

@@ -237,27 +237,27 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
-      outfile: `dist/${name}/bin/codegenie`,
+      outfile: `dist/${name}/bin/deveco`,
       execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : [])],
     define: {
-      CODEGENIE_VERSION: `'${Script.version}'`,
-      CODEGENIE_MIGRATIONS: JSON.stringify(migrations),
+      DEVECO_VERSION: `'${Script.version}'`,
+      DEVECO_MIGRATIONS: JSON.stringify(migrations),
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
-      CODEGENIE_WORKER_PATH: workerPath,
-      CODEGENIE_CHANNEL: `'${Script.channel}'`,
-      CODEGENIE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
-      CODEGENIE_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
-      CODEGENIE_DEFAULT_SPEC_RESOURCES: JSON.stringify(defaultSpecData),
+      DEVECO_WORKER_PATH: workerPath,
+      DEVECO_CHANNEL: `'${Script.channel}'`,
+      DEVECO_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
+      DEVECO_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
+      DEVECO_DEFAULT_SPEC_RESOURCES: JSON.stringify(defaultSpecData),
     },
   })
 
   // Smoke test: only run if binary is for current platform
   if (item.os === process.platform && item.arch === process.arch && !item.abi) {
-    const binaryPath = `dist/${name}/bin/codegenie`
+    const binaryPath = `dist/${name}/bin/deveco`
     console.log(`Running smoke test: ${binaryPath} --version`)
     try {
       const versionOutput = await $`${binaryPath} --version`.text()
@@ -308,7 +308,7 @@ for (const item of targets) {
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name: `@codegenie-ai/${name}`,
+        name: `@deveco/${name}`,
         version: Script.version,
         os: [item.os],
         cpu: [item.arch],

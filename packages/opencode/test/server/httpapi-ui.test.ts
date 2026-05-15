@@ -22,19 +22,19 @@ import { Server } from "../../src/server/server"
 void Log.init({ print: false })
 
 const original = {
-  CODEGENIE_DISABLE_EMBEDDED_WEB_UI: Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI,
-  CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
-  CODEGENIE_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
-  envPassword: process.env.CODEGENIE_SERVER_PASSWORD,
-  envUsername: process.env.CODEGENIE_SERVER_USERNAME,
+  DEVECO_DISABLE_EMBEDDED_WEB_UI: Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI,
+  DEVECO_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+  DEVECO_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
+  envPassword: process.env.DEVECO_SERVER_PASSWORD,
+  envUsername: process.env.DEVECO_SERVER_USERNAME,
 }
 
 afterEach(() => {
-  Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = original.CODEGENIE_DISABLE_EMBEDDED_WEB_UI
-  Flag.DEVECO_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
-  Flag.DEVECO_SERVER_USERNAME = original.CODEGENIE_SERVER_USERNAME
-  restoreEnv("CODEGENIE_SERVER_PASSWORD", original.envPassword)
-  restoreEnv("CODEGENIE_SERVER_USERNAME", original.envUsername)
+  Flag.DEVECO_DISABLE_EMBEDDED_WEB_UI = original.DEVECO_DISABLE_EMBEDDED_WEB_UI
+  Flag.DEVECO_SERVER_PASSWORD = original.DEVECO_SERVER_PASSWORD
+  Flag.DEVECO_SERVER_USERNAME = original.DEVECO_SERVER_USERNAME
+  restoreEnv("DEVECO_SERVER_PASSWORD", original.envPassword)
+  restoreEnv("DEVECO_SERVER_USERNAME", original.envUsername)
 })
 
 function restoreEnv(key: string, value: string | undefined) {
@@ -51,8 +51,8 @@ function app(input?: { password?: string; username?: string }) {
       Layer.provide(
         ConfigProvider.layer(
           ConfigProvider.fromUnknown({
-            CODEGENIE_SERVER_PASSWORD: input?.password,
-            CODEGENIE_SERVER_USERNAME: input?.username,
+            DEVECO_SERVER_PASSWORD: input?.password,
+            DEVECO_SERVER_USERNAME: input?.username,
           }),
         ),
       ),
@@ -85,8 +85,8 @@ function uiApp(input?: { password?: string; username?: string; client?: Layer.La
         HttpServer.layerServices,
         ConfigProvider.layer(
           ConfigProvider.fromUnknown({
-            CODEGENIE_SERVER_PASSWORD: input?.password,
-            CODEGENIE_SERVER_USERNAME: input?.username,
+            DEVECO_SERVER_PASSWORD: input?.password,
+            DEVECO_SERVER_USERNAME: input?.username,
           }),
         ),
       ]),

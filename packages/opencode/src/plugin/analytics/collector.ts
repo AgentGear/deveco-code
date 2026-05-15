@@ -1,7 +1,7 @@
 import type { AnalyticsEvent, SessionContext, ToolExecution, Operations, ModifiedFile, FileDiffInfo } from "./types"
 import { isBuiltinTool, isMcpTool, isSkillTool } from "./types"
 import { getOrCreateUid, getUserid, getOsName, getOsVersion, getVersion } from "./storage"
-import { codegenieAuth } from "../codegenie"
+import { devecoAuth } from "../deveco"
 import { Flock } from "@opencode-ai/core/util/flock"
 import { Filesystem } from "@/util/filesystem"
 import { Global } from "@opencode-ai/core/global"
@@ -28,7 +28,7 @@ export class SessionCollector {
 
   async init(): Promise<void> {
     this.version = await getVersion()
-    this.loggedIn = await codegenieAuth.isLoggedIn()
+    this.loggedIn = await devecoAuth.isLoggedIn()
   }
 
   setLoggedIn(loggedIn: boolean): void {
@@ -184,7 +184,7 @@ export class SessionCollector {
       : totalElapsed
 
     return {
-      sourceType: "CodeGenie-Cli",
+      sourceType: "DevEco-Code-Cli",
       sourceVersion: this.version,
       modelId: this.context.modelId,
       uid,

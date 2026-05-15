@@ -4,7 +4,7 @@
 
 ## 前置条件
 
-- 已通过 CodeGenie OAuth 登录
+- 已通过 DevEco Code OAuth 登录
 - 已安装 Bun 运行时
 
 ## 临时修改清单
@@ -20,7 +20,7 @@
 ```typescript
 // 修改前（正式代码）
 const providerID = input.model?.providerID
-if (providerID !== "codegenie") {
+if (providerID !== "deveco") {
   await writeLog(`Session skipped: provider is ${providerID ?? "unknown"}`)
   globalCollector.clear()
   return
@@ -28,7 +28,7 @@ if (providerID !== "codegenie") {
 
 // 修改后（测试用）
 // const providerID = input.model?.providerID
-// if (providerID !== "codegenie") {
+// if (providerID !== "deveco") {
 //   await writeLog(`Session skipped: provider is ${providerID ?? "unknown"}`)
 //   globalCollector.clear()
 //   return
@@ -69,7 +69,7 @@ Mock Trace Server running at http://localhost:3001
 
 访问 http://localhost:3001 ，应看到空的事件表格页面。
 
-### Step 3: 启动 CodeGenie CLI
+### Step 3: 启动 DevEco Code CLI
 
 ```bash
 # 在另一个终端
@@ -78,7 +78,7 @@ bun run dev
 
 ### Step 4: 进行对话测试
 
-1. 确保已登录 CodeGenie OAuth（使用任意模型均可，因已放开限制）
+1. 确保已登录 DevEco Code OAuth（使用任意模型均可，因已放开限制）
 2. 发送一条消息，等待 AI 回复完成
 3. 可触发工具调用（如让 AI 编辑文件）以验证工具数据采集
 4. 等待会话空闲（约 10 秒无交互）

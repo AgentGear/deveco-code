@@ -25,13 +25,13 @@ describe("shell env", () => {
       },
       {
         PATH: "/desktop/path",
-        CODEGENIE_CLIENT: "desktop",
+        DEVECO_CLIENT: "desktop",
       },
     )
 
     expect(env.PATH).toBe("/desktop/path")
     expect(env.HOME).toBe("/tmp/home")
-    expect(env.CODEGENIE_CLIENT).toBe("desktop")
+    expect(env.DEVECO_CLIENT).toBe("desktop")
   })
 
   test("isNushell handles path and binary name", () => {

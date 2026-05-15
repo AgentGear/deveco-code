@@ -9,7 +9,7 @@ import { useSDK } from "../context/sdk"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { DialogPrompt } from "@tui/ui/dialog-prompt"
 import { Link } from "../ui/link"
-import { codegenieAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from "@/plugin/codegenie"
+import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from "@/plugin/deveco"
 import { Logo } from "./logo"
 
 type OnboardingStep = "entry" | "auth" | "providers"
@@ -29,7 +29,7 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   google: 5,
 }
 
-export function CodeGenieOnboarding(props: { onComplete: () => void }) {
+export function DevEcoOnboarding(props: { onComplete: () => void }) {
   const { theme } = useTheme()
   const sync = useSync()
   const exit = useExit()
@@ -46,7 +46,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
 
   const providerList = createMemo(() => {
     return [...sync.data.provider_next.all]
-      .filter((p) => p.id !== "codegenie")
+      .filter((p) => p.id !== "deveco")
       .sort((a, b) => (PROVIDER_PRIORITY[a.id] ?? 99) - (PROVIDER_PRIORITY[b.id] ?? 99))
   })
 
@@ -78,7 +78,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
     setAuthMessage(null)
     authAborted = false
     try {
-      const result = await codegenieAuth.login()
+      const result = await devecoAuth.login()
       if (authAborted) return
       if (!result.success) {
         if (result.cancelled) {
@@ -92,7 +92,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
       }
       const access = result.userInfo?.accessToken || ""
       const refresh = result.userInfo?.refreshToken || ""
-      await saveAuthToDisk("codegenie", {
+      await saveAuthToDisk("deveco", {
         type: "oauth",
         access,
         refresh,
@@ -300,7 +300,7 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
         evt.preventDefault()
         if (authBusy()) {
           authAborted = true
-          codegenieAuth.cancel()
+          devecoAuth.cancel()
           setAuthBusy(false)
         }
         setStep("entry")
@@ -359,14 +359,14 @@ export function CodeGenieOnboarding(props: { onComplete: () => void }) {
           <box flexDirection="column" flexGrow={1} minWidth={0}>
             <Logo column="right" />
             <text fg={theme.text} attributes={1} selectable={false}>
-              Get started with CodeGenie
+              Get started with DevEco Code
             </text>
             <text fg={theme.textMuted} selectable={false}>
               {LIST_HELP}
             </text>
             <text fg={entryIndex() === 0 ? theme.success : theme.text} selectable={false}>
               {selectionLead(entryIndex() === 0)}
-              CodeGenie OAuth
+              DevEco Code OAuth
             </text>
             <text fg={entryIndex() === 1 ? theme.success : theme.text} selectable={false}>
               {selectionLead(entryIndex() === 1)}

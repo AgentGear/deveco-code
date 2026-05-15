@@ -21,8 +21,8 @@ function rewrite(request: Request, values: { directory?: string; workspace?: str
   let changed = false
 
   for (const [name, key] of [
-    ["x-codegenie-directory", "directory"],
-    ["x-codegenie-workspace", "workspace"],
+    ["x-deveco-directory", "directory"],
+    ["x-deveco-workspace", "workspace"],
   ] as const) {
     const value = pick(
       request.headers.get(name),
@@ -39,8 +39,8 @@ function rewrite(request: Request, values: { directory?: string; workspace?: str
   if (!changed) return request
 
   const next = new Request(url, request)
-  next.headers.delete("x-codegenie-directory")
-  next.headers.delete("x-codegenie-workspace")
+  next.headers.delete("x-deveco-directory")
+  next.headers.delete("x-deveco-workspace")
   return next
 }
 
@@ -60,14 +60,14 @@ export function createOpencodeClient(config?: Config & { directory?: string; exp
   if (config?.directory) {
     config.headers = {
       ...config.headers,
-      "x-codegenie-directory": encodeURIComponent(config.directory),
+      "x-deveco-directory": encodeURIComponent(config.directory),
     }
   }
 
   if (config?.experimental_workspaceID) {
     config.headers = {
       ...config.headers,
-      "x-codegenie-workspace": config.experimental_workspaceID,
+      "x-deveco-workspace": config.experimental_workspaceID,
     }
   }
 

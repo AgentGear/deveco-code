@@ -519,7 +519,7 @@ test("continues loading when a plugin is missing config metadata", async () => {
     },
   })
 
-  process.env.CODEGENIE_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
+  process.env.DEVECO_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
   const config = createTuiResolvedConfig({
     plugin: [
       [tmp.extra.badSpec, { marker: path.join(tmp.path, "bad.txt") }],
@@ -554,7 +554,7 @@ test("continues loading when a plugin is missing config metadata", async () => {
     await TuiPluginRuntime.dispose()
     cwd.mockRestore()
     wait.mockRestore()
-    delete process.env.CODEGENIE_PLUGIN_META_FILE
+    delete process.env.DEVECO_PLUGIN_META_FILE
   }
 })
 
@@ -611,7 +611,7 @@ export default {
     },
   })
 
-  process.env.CODEGENIE_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
+  process.env.DEVECO_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
   const cwd = spyOn(process, "cwd").mockImplementation(() => tmp.path)
 
   try {
@@ -632,7 +632,7 @@ export default {
   } finally {
     await TuiPluginRuntime.dispose()
     cwd.mockRestore()
-    delete process.env.CODEGENIE_PLUGIN_META_FILE
+    delete process.env.DEVECO_PLUGIN_META_FILE
 
     if (backupJson === undefined) {
       await fs.rm(globalJson, { force: true }).catch(() => {})
@@ -989,7 +989,7 @@ test("updates installed theme when plugin metadata changes", async () => {
     },
   })
 
-  process.env.CODEGENIE_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
+  process.env.DEVECO_PLUGIN_META_FILE = path.join(tmp.path, "plugin-meta.json")
   const cwd = spyOn(process, "cwd").mockImplementation(() => tmp.path)
   const wait = spyOn(TuiConfig, "waitForDependencies").mockResolvedValue()
 
@@ -1041,13 +1041,13 @@ test("updates installed theme when plugin metadata changes", async () => {
     expect(text).toContain("#222222")
     expect(text).not.toContain("#111111")
     const list = await Filesystem.readJson<Record<string, { themes?: Record<string, { dest: string }> }>>(
-      process.env.CODEGENIE_PLUGIN_META_FILE!,
+      process.env.DEVECO_PLUGIN_META_FILE!,
     )
     expect(list["demo.theme-update"]?.themes?.[tmp.extra.themeName]?.dest).toBe(tmp.extra.dest)
   } finally {
     await TuiPluginRuntime.dispose()
     cwd.mockRestore()
     wait.mockRestore()
-    delete process.env.CODEGENIE_PLUGIN_META_FILE
+    delete process.env.DEVECO_PLUGIN_META_FILE
   }
 })

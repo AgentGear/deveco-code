@@ -762,7 +762,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         },
         category: "System",
       },
-      ...(sync.data.provider_next.connected.includes("codegenie")
+      ...(sync.data.provider_next.connected.includes("deveco")
         ? [
             {
               name: "privacy.open",

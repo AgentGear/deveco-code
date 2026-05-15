@@ -16,11 +16,11 @@ const dryRun = values["dry-run"]
 const repo = process.env.GH_REPO
 if (!repo) throw new Error("GH_REPO is required")
 
-const releaseId = process.env.CODEGENIE_RELEASE
-if (!releaseId) throw new Error("CODEGENIE_RELEASE is required")
+const releaseId = process.env.DEVECO_RELEASE
+if (!releaseId) throw new Error("DEVECO_RELEASE is required")
 
-const version = process.env.CODEGENIE_VERSION
-if (!version) throw new Error("CODEGENIE_VERSION is required")
+const version = process.env.DEVECO_VERSION
+if (!version) throw new Error("DEVECO_VERSION is required")
 
 const dir = process.env.LATEST_YML_DIR
 if (!dir) throw new Error("LATEST_YML_DIR is required")

@@ -3,11 +3,11 @@
  * One-click release script: build CLI → publish CLI
  *
  * Usage:
- *   CODEGENIE_VERSION=0.0.7-beta CODEGENIE_CHANNEL=beta bun run script/release.ts [--single] [--skip-install]
+ *   DEVECO_VERSION=0.0.7-beta DEVECO_CHANNEL=beta bun run script/release.ts [--single] [--skip-install]
  *
  * Environment variables (same as @opencode-ai/script):
- *   CODEGENIE_VERSION  - version to publish (required)
- *   CODEGENIE_CHANNEL  - npm tag: "beta", "latest", etc. (required)
+ *   DEVECO_VERSION  - version to publish (required)
+ *   DEVECO_CHANNEL  - npm tag: "beta", "latest", etc. (required)
  */
 import { $ } from "bun"
 import { Script } from "@opencode-ai/script"
@@ -28,7 +28,7 @@ console.log(">>> [1/2] Building CLI binary ...")
 const buildArgs = process.argv.slice(2)
 await $`bun run script/build.ts ${buildArgs}`
   .cwd(cliDir)
-  .env({ ...process.env, CODEGENIE_VERSION: Script.version, CODEGENIE_CHANNEL: Script.channel })
+  .env({ ...process.env, DEVECO_VERSION: Script.version, DEVECO_CHANNEL: Script.channel })
 console.log("✔ CLI build done")
 console.log()
 
@@ -71,7 +71,7 @@ await Bun.file(`./dist/${pkg.name}/LICENSE`).write(await Bun.file("../../LICENSE
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify(
     {
-      name: "@codegenie-ai/codegenie-cli",
+      name: "@deveco/deveco",
       bin: {
         [pkg.name]: `./bin/${pkg.name}`,
       },
@@ -99,9 +99,9 @@ const tasks = Object.entries(binaries).map(async ([name, { dir }]) => {
 await Promise.all(tasks)
 
 await $`cd ./dist/${pkg.name} && bun pm pack && npm publish *.tgz --access public --tag ${Script.channel}`
-console.log(`  ✔ @codegenie-ai/codegenie-cli@${Script.version}`)
+console.log(`  ✔ @deveco/deveco@${Script.version}`)
 
 console.log()
 console.log("=== Release complete ===")
-console.log(`  @codegenie-ai/codegenie-cli@${Script.version}`)
+console.log(`  @deveco/deveco@${Script.version}`)
 console.log(`  ${Object.keys(binaries).map((n) => `${n}@${Script.version}`).join("\n  ")}`)

@@ -76,7 +76,7 @@ let arch = archMap[os.arch()]
 if (!arch) {
   arch = os.arch()
 }
-const base = "@codegenie-ai/codegenie-" + platform + "-" + arch
+const base = "@deveco/deveco-" + platform + "-" + arch
 const binary = platform === "windows" ? "deveco.exe" : "deveco"
 
 function supportsAvx2() {

@@ -6,8 +6,8 @@ import { pathToFileURL } from "url"
 import { disposeAllInstances, provideTmpdirInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 
-const disableDefault = process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS
-process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS = "1"
+const disableDefault = process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
+process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = "1"
 
 const { Flag } = await import("@opencode-ai/core/flag/flag")
 const { Plugin } = await import("../../src/plugin/index")
@@ -31,9 +31,9 @@ afterEach(async () => {
 
 afterAll(() => {
   if (disableDefault === undefined) {
-    delete process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS
+    delete process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
   } else {
-    process.env.CODEGENIE_DISABLE_DEFAULT_PLUGINS = disableDefault
+    process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = disableDefault
   }
 
   Flag.DEVECO_EXPERIMENTAL_WORKSPACES = experimental

@@ -22,8 +22,8 @@ import { disposeAllInstances, tmpdir } from "../fixture/fixture"
 import { it } from "../lib/effect"
 
 const original = {
-  CODEGENIE_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
-  CODEGENIE_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
+  DEVECO_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+  DEVECO_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
 }
 
 type ServerPath = "default" | "raw"
@@ -43,8 +43,8 @@ function app(serverPath: ServerPath, input?: { password?: string; username?: str
       Layer.provide(
         ConfigProvider.layer(
           ConfigProvider.fromUnknown({
-            CODEGENIE_SERVER_PASSWORD: input?.password,
-            CODEGENIE_SERVER_USERNAME: input?.username,
+            DEVECO_SERVER_PASSWORD: input?.password,
+            DEVECO_SERVER_USERNAME: input?.username,
           }),
         ),
       ),
@@ -304,8 +304,8 @@ function seedMessage(directory: string, sessionID: string) {
 }
 
 afterEach(async () => {
-  Flag.DEVECO_SERVER_PASSWORD = original.CODEGENIE_SERVER_PASSWORD
-  Flag.DEVECO_SERVER_USERNAME = original.CODEGENIE_SERVER_USERNAME
+  Flag.DEVECO_SERVER_PASSWORD = original.DEVECO_SERVER_PASSWORD
+  Flag.DEVECO_SERVER_USERNAME = original.DEVECO_SERVER_USERNAME
   await disposeAllInstances()
   await resetDatabase()
 })

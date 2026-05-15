@@ -33,10 +33,10 @@ test("skips external tui plugins in pure mode", async () => {
     },
   })
 
-  const pure = process.env.CODEGENIE_PURE
-  const meta = process.env.CODEGENIE_PLUGIN_META_FILE
-  process.env.CODEGENIE_PURE = "1"
-  process.env.CODEGENIE_PLUGIN_META_FILE = tmp.extra.meta
+  const pure = process.env.DEVECO_PURE
+  const meta = process.env.DEVECO_PLUGIN_META_FILE
+  process.env.DEVECO_PURE = "1"
+  process.env.DEVECO_PLUGIN_META_FILE = tmp.extra.meta
 
   const config = createTuiResolvedConfig({
     plugin: [[tmp.extra.spec, { marker: tmp.extra.marker }]],
@@ -59,14 +59,14 @@ test("skips external tui plugins in pure mode", async () => {
     cwd.mockRestore()
     wait.mockRestore()
     if (pure === undefined) {
-      delete process.env.CODEGENIE_PURE
+      delete process.env.DEVECO_PURE
     } else {
-      process.env.CODEGENIE_PURE = pure
+      process.env.DEVECO_PURE = pure
     }
     if (meta === undefined) {
-      delete process.env.CODEGENIE_PLUGIN_META_FILE
+      delete process.env.DEVECO_PLUGIN_META_FILE
     } else {
-      process.env.CODEGENIE_PLUGIN_META_FILE = meta
+      process.env.DEVECO_PLUGIN_META_FILE = meta
     }
   }
 })

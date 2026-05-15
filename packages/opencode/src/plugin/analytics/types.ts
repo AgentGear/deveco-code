@@ -23,7 +23,7 @@ export interface Operations {
 }
 
 export interface AnalyticsEvent {
-  sourceType: "CodeGenie-Cli"
+  sourceType: "DevEco-Code-Cli"
   sourceVersion: string
   modelId: string
   uid: string

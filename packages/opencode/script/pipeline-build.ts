@@ -280,19 +280,19 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
-      outfile: `dist/${name}/bin/codegenie`,
-      execArgv: [`--user-agent=codegenie/${Script.version}`, "--use-system-ca", "--"],
+      outfile: `dist/${name}/bin/deveco`,
+      execArgv: [`--user-agent=deveco/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : [])],
     define: {
-      CODEGENIE_VERSION: `'${Script.version}'`,
-      CODEGENIE_MIGRATIONS: JSON.stringify(migrations),
-      CODEGENIE_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
+      DEVECO_VERSION: `'${Script.version}'`,
+      DEVECO_MIGRATIONS: JSON.stringify(migrations),
+      DEVECO_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
-      CODEGENIE_WORKER_PATH: workerPath,
-      CODEGENIE_CHANNEL: `'${Script.channel}'`,
+      DEVECO_WORKER_PATH: workerPath,
+      DEVECO_CHANNEL: `'${Script.channel}'`,
     },
   })
 
@@ -328,7 +328,7 @@ for (const item of targets) {
 
   // Smoke test: only run if binary is for current platform
   if (item.os === process.platform && item.arch === process.arch) {
-    const binaryPath = `dist/${name}/bin/codegenie`
+    const binaryPath = `dist/${name}/bin/deveco`
     console.log(`    Running smoke test: ${binaryPath} --version`)
     try {
       const versionOutput = await $`${binaryPath} --version`.text()
@@ -343,7 +343,7 @@ for (const item of targets) {
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name: `@codegenie-ai/${name}`,
+        name: `@deveco/${name}`,
         version: Script.version,
         os: [item.os],
         cpu: [item.arch],

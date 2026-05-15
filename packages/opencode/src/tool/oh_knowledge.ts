@@ -50,7 +50,7 @@ export const OhKnowledgeTool = Tool.define(KNOWLEDGE_TOOL_ID, Effect.gen(functio
           metadata: {},
         })
 
-        const authInfo = yield* auth.get("codegenie")
+        const authInfo = yield* auth.get("deveco")
         if (!authInfo || authInfo.type !== "oauth") {
           throw new Error("Authorization fail: Please authorize to proceed.")
         }

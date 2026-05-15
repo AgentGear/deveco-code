@@ -13,17 +13,17 @@ describe("websearch provider", () => {
   })
 
   test("supports an operational override", () => {
-    const original = process.env.CODEGENIE_WEBSEARCH_PROVIDER
+    const original = process.env.DEVECO_WEBSEARCH_PROVIDER
 
     try {
-      process.env.CODEGENIE_WEBSEARCH_PROVIDER = "parallel"
+      process.env.DEVECO_WEBSEARCH_PROVIDER = "parallel"
       expect(selectWebSearchProvider(SESSION_ID)).toBe("parallel")
 
-      process.env.CODEGENIE_WEBSEARCH_PROVIDER = "exa"
+      process.env.DEVECO_WEBSEARCH_PROVIDER = "exa"
       expect(selectWebSearchProvider(SESSION_ID)).toBe("exa")
     } finally {
-      if (original === undefined) delete process.env.CODEGENIE_WEBSEARCH_PROVIDER
-      else process.env.CODEGENIE_WEBSEARCH_PROVIDER = original
+      if (original === undefined) delete process.env.DEVECO_WEBSEARCH_PROVIDER
+      else process.env.DEVECO_WEBSEARCH_PROVIDER = original
     }
   })
 
