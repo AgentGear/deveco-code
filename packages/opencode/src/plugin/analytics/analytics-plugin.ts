@@ -69,7 +69,7 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
       const eventType = evt.type as string
       const props = evt.properties as Record<string, unknown> | undefined
 
-      if (!globalCollector.shouldCollect()) {
+      if (!(await globalCollector.shouldCollect())) {
         return
       }
 
@@ -169,7 +169,7 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
     },
 
     "tool.execute.before": async (input, _output) => {
-      if (!globalCollector.shouldCollect()) {
+      if (!(await globalCollector.shouldCollect())) {
         return
       }
       const callID = input.callID
@@ -177,7 +177,7 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
     },
 
     "tool.execute.after": async (input, output) => {
-      if (!globalCollector.shouldCollect()) {
+      if (!(await globalCollector.shouldCollect())) {
         return
       }
 

@@ -40,6 +40,7 @@ import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "@tui/component/dialog-agent"
 import { DialogSessionList } from "@tui/component/dialog-session-list"
 import { DialogConsoleOrg } from "@tui/component/dialog-console-org"
+import { DialogPrivacy } from "@tui/component/dialog-privacy"
 import { ThemeProvider, useTheme } from "@tui/context/theme"
 import { Home } from "@tui/routes/home"
 import { Session } from "@tui/routes/session"
@@ -766,11 +767,10 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
             {
               name: "privacy.open",
               title: "Privacy",
-              description: "Show privacy policy",
+              description: "Privacy settings",
               slashName: "privacy",
               run: () => {
-                open("https://consumer.huawei.com/cn/privacy/privacy-statement-huawei/#/").catch(() => {})
-                dialog.clear()
+                dialog.replace(() => <DialogPrivacy />)
               },
               category: "System",
             },
