@@ -24,7 +24,7 @@ $ARGUMENTS
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
 2. **No Early Coding**: You are strictly forbidden from writing any application code in the `src/` directory in this step. This includes code snippets, pseudocode, or implementation details. Main Agent must comply fully.
 3. **No Auto-Execute Next Command**: Upon completion of `/spec-tasks`, refrain from auto-executing any follow-up commands including `/spec-implement`. Remain idle and await clear user instruction.
-4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/codegenie/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 
 ## Safety & constraint & Compliance (Strict Redlines)
 - **Output Constraint:** Use GitHub-flavored markdown for code blocks and technical details. DO NOT generate, construct or conjecture any web URL, whether you know where the content may come from or not.

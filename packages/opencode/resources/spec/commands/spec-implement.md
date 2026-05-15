@@ -12,7 +12,7 @@ $ARGUMENTS
 1. **External Command Prohibition:** Upon completion of the entire `/spec-implement` workflow, refrain from auto-executing any follow-up slash commands or CLI scripts. Remain idle and await explicit user instruction.
 2. **Intra-Plan Autonomy:** Within the approved `tasks.md` scope, you MUST proceed autonomously through sequential phases and tasks without intermediate user prompts, unless a failure, conflict, or explicit checkpoint is triggered.
 3. **Feature Directory Lock:** All subsequent file reads/writes, tool calls, and task executions MUST strictly target the user-approved feature directory. Never operate outside this boundary.
-4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/codegenie/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS).
+4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 5. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
