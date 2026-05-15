@@ -2,6 +2,24 @@ import type { AnalyticsEvent, SessionContext, ToolExecution, Operations, Modifie
 import { isBuiltinTool, isMcpTool, isSkillTool } from "./types"
 import { getOrCreateUid, getUserid, getOsName, getOsVersion, getVersion } from "./storage"
 import { codegenieAuth } from "../codegenie"
+import { Flock } from "@opencode-ai/core/util/flock"
+import { Filesystem } from "@/util/filesystem"
+import { Global } from "@opencode-ai/core/global"
+import path from "path"
+
+async function getAnalyticsEnabled(): Promise<boolean> {
+  const kvPath = path.join(Global.Path.state, "kv.json")
+  const lockKey = `tui-kv:${kvPath}`
+
+  try {
+    const kv = await Flock.withLock(lockKey, () =>
+      Filesystem.readJson<Record<string, any>>(kvPath)
+    )
+    return kv?.analytics_enabled ?? true
+  } catch {
+    return true
+  }
+}
 
 export class SessionCollector {
   private context: SessionContext | null = null
@@ -20,8 +38,9 @@ export class SessionCollector {
     }
   }
 
-  shouldCollect(): boolean {
-    return this.loggedIn
+  async shouldCollect(): Promise<boolean> {
+    const enabled = await getAnalyticsEnabled()
+    return this.loggedIn && enabled
   }
 
   startSession(sessionID: string, modelId: string, query: string, agentName: string, messageID: string): void {
