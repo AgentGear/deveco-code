@@ -1240,7 +1240,6 @@ export function Session() {
                         toBottom()
                       }}
                       sessionID={route.sessionID}
-                      notice="⚠︎AI-generated content. For reference only"
                       right={<TuiPluginRuntime.Slot name="session_prompt_right" session_id={route.sessionID} />}
                     />
                   </TuiPluginRuntime.Slot>
@@ -1394,13 +1393,19 @@ function UserMessage(props: {
 function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; last: boolean }) {
   const ctx = use()
   const local = useLocal()
-  const { theme } = useTheme()
+  const { theme, subtleSyntax } = useTheme()
   const sync = useSync()
   const messages = createMemo(() => sync.data.message[props.message.sessionID] ?? [])
   const model = createMemo(() => Model.name(ctx.providers(), props.message.providerID, props.message.modelID))
 
   const final = createMemo(() => {
     return props.message.finish && !["tool-calls", "unknown"].includes(props.message.finish)
+  })
+
+  const hasOutput = createMemo(() => {
+    const hasText = props.parts.some((p) => p.type === "text")
+    const hasReasoning = props.parts.some((p) => p.type === "reasoning")
+    return hasText || (hasReasoning && ctx.showThinking())
   })
 
   const duration = createMemo(() => {
@@ -1455,6 +1460,17 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
       <Switch>
         <Match when={props.last || final() || props.message.error?.name === "MessageAbortedError"}>
           <box paddingLeft={3}>
+<Show when={hasOutput() && (final() || props.message.error?.name === "MessageAbortedError")}>
+              <box marginTop={1}>
+                <code
+                  filetype="markdown"
+                  drawUnstyledText={false}
+                  syntaxStyle={subtleSyntax()}
+                  content="•  AI-generated content. For reference only"
+                  fg={theme.textMuted}
+                />
+              </box>
+            </Show>
             <text marginTop={1}>
               <span
                 style={{
