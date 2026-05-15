@@ -11,7 +11,7 @@ $ARGUMENTS
 ## Pre-Flow: FEATURE_DIR Resolution & User Confirmation (STRICT SEQUENCE)
 1. Resolve target path:
     - If `$ARGUMENTS` is not empty → `TARGET = .specs/$ARGUMENTS`
-    - If `$ARGUMENTS` is empty → `TARGET = value from .specs/feature.json` (key: `default_feature_dir`)
+    - If `$ARGUMENTS` is empty → `TARGET = value from .specs/feature.json` (key: `feature_directory`)
 2. Validate directory:
     - Check if `TARGET` exists.
     - If exists → `FEATURE_DIR = TARGET`
