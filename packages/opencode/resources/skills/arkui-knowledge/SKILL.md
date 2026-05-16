@@ -1,6 +1,6 @@
 ---
 name: arkui-knowledge
-description: MUST load this skill when writing or modifying ArkUI UI code, state decorators, rendering control, component APIs, or HarmonyOS declarative UI in .ets files.
+description: MUST load this skill when writing or modifying ArkUI UI code, state decorators, rendering control, component APIs, or ArkUI declarative UI in .ets files.
 ---
 
 # Harmony UI Implementation Skill
