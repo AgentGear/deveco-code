@@ -767,10 +767,6 @@ class DevEcoAuth {
     return loginService.logout()
   }
 
-  cancel(): void {
-    loginService.cancel()
-  }
-
   /**
    * 检查 token 是否过期
    * @param expires 过期时间戳（毫秒）

@@ -1852,6 +1852,7 @@ export function Prompt(props: PromptProps) {
               <IdleKeybindHintRow />
             </box>
           </Show>
+          </box>
         </box>
       </box>
       <Autocomplete
