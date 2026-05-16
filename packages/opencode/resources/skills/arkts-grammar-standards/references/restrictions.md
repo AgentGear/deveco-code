@@ -10,11 +10,13 @@ Unless noted otherwise, the rules below are derived from the bundled linter summ
 - Do not use destructuring in variable declarations.
 - Do not use destructuring in parameters.
 - Do not rely on `any` or `unknown`.
+- Do not use `as` type assertions as a shortcut around ArkTS type checking.
 - Avoid definite assignment assertions like `!`; in `Sendable` classes they are not allowed.
 
 Reference:
 - Linter summary: declaration section
 - Rules: `arkts-no-var`, `arkts-no-destruct-decls`, `arkts-no-destruct-params`, `arkts-no-any-unknown`, `arkts-no-definite-assignment`
+- Project authoring rule: avoid `as` type assertions unless explicitly requested.
 
 ## Functions and classes
 
@@ -32,12 +34,38 @@ Reference:
 
 - Do not treat object literals as free-form structural types.
 - Do not declare inline object literal types in place of named interfaces or classes.
+- Object literals must have explicit type context, such as a typed variable, typed parameter, or declared class/interface target.
 - Do not depend on dynamic property access as a normal modeling pattern.
+- Avoid `Record<string, T>` when it encourages dynamic indexing; define a named type with known properties instead.
 - Prefer identifier property names and direct dot access.
 
 Reference:
 - Linter summary: object literal and property access sections
-- Rules: `arkts-no-structural-typing`, `arkts-no-props-by-index`, `arkts-identifiers-as-prop-names`
+- Rules: `arkts-no-structural-typing`, `arkts-no-untyped-obj-literals`, `arkts-no-obj-literals-as-types`, `arkts-no-props-by-index`, `arkts-identifiers-as-prop-names`
+
+## String syntax
+
+- Template literals are not supported for ArkTS authoring in this project.
+- Rewrite interpolation to string concatenation with explicit conversion.
+
+Example rewrite:
+
+```ts
+const label: string = "Likes: " + likeCount.toString()
+```
+
+Reference:
+- Linter summary: syntax restriction section
+
+## Namespaces
+
+- Do not use a namespace itself as a runtime value.
+- Avoid namespace bodies that contain runtime statements; keep namespace-like organization to supported declarations.
+- Prefer importing concrete exported symbols or defining explicit runtime classes/objects.
+
+Reference:
+- Linter summary: namespace section
+- Rules: `arkts-no-ns-statements`
 
 ## Restricted operators and statements
 

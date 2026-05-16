@@ -42,15 +42,38 @@
     "in operator",
     "for in",
     "catch",
+    "as",
+    "type assertion",
+    "as const",
     "运算符",
-    "类型查询"
+    "类型查询",
+    "类型断言"
   ],
   "object-literal": [
     "object literal",
     "dynamic property",
     "indexed access",
+    "record",
+    "Record",
+    "property by index",
     "对象字面量",
-    "动态属性"
+    "动态属性",
+    "动态索引"
+  ],
+  "strings": [
+    "template literal",
+    "template string",
+    "${",
+    "string interpolation",
+    "模板字符串",
+    "字符串插值"
+  ],
+  "namespace": [
+    "namespace",
+    "namespace as value",
+    "Cannot use namespace as a value",
+    "命名空间",
+    "namespace 作为值"
   ],
   "sendable": [
     "sendable",
