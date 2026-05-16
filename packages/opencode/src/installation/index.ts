@@ -161,7 +161,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | ChildPro
 
           for (const check of checks) {
             const output = yield* check.command()
-            if (output.includes("@deveco/deveco")) {
+            if (output.includes("@deveco/deveco-code")) {
               return check.name
             }
           }
@@ -172,7 +172,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | ChildPro
           const detectedMethod = installMethod || (yield* result.method())
 
           if (detectedMethod === "npm" || detectedMethod === "bun" || detectedMethod === "pnpm") {
-            return yield* viewVersion(detectedMethod, `@deveco/deveco@${InstallationChannel}`)
+            return yield* viewVersion(detectedMethod, `@deveco/deveco-code@${InstallationChannel}`)
           }
 
           const r = (yield* text(["npm", "config", "get", "registry"])).trim()
@@ -180,7 +180,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | ChildPro
           const registry = reg.endsWith("/") ? reg.slice(0, -1) : reg
           const channel = InstallationChannel
           const response = yield* httpOk.execute(
-            HttpClientRequest.get(`${registry}/@deveco%2Fdeveco/${channel}`).pipe(
+            HttpClientRequest.get(`${registry}/@deveco%2Fdeveco-code/${channel}`).pipe(
               HttpClientRequest.acceptJson,
             ),
           )
@@ -191,8 +191,8 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | ChildPro
           const effectiveMethod = (m === "unknown" ? "npm" : m) as "npm" | "pnpm" | "bun"
           const args =
             effectiveMethod === "bun"
-              ? ["pm", "view", `@deveco/deveco@${target}`, "version", "--json"]
-              : ["view", `@deveco/deveco@${target}`, "version", "--json"]
+              ? ["pm", "view", `@deveco/deveco-code@${target}`, "version", "--json"]
+              : ["view", `@deveco/deveco-code@${target}`, "version", "--json"]
           const result = yield* run([effectiveMethod, ...args])
           return result.code === 0 && !!result.stdout.trim()
         }),
@@ -200,16 +200,16 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | ChildPro
           let upgradeResult: { code: ChildProcessSpawner.ExitCode; stdout: string; stderr: string } | undefined
           switch (m) {
             case "npm":
-              upgradeResult = yield* run(["npm", "install", "-g", `@deveco/deveco@${target}`])
+              upgradeResult = yield* run(["npm", "install", "-g", `@deveco/deveco-code@${target}`])
               break
             case "pnpm":
-              upgradeResult = yield* run(["pnpm", "install", "-g", `@deveco/deveco@${target}`])
+              upgradeResult = yield* run(["pnpm", "install", "-g", `@deveco/deveco-code@${target}`])
               break
             case "bun":
-              upgradeResult = yield* run(["bun", "install", "-g", `@deveco/deveco@${target}`])
+              upgradeResult = yield* run(["bun", "install", "-g", `@deveco/deveco-code@${target}`])
               break
             default:
-              upgradeResult = yield* run(["npm", "install", "-g", `@deveco/deveco@${target}`])
+              upgradeResult = yield* run(["npm", "install", "-g", `@deveco/deveco-code@${target}`])
               break
           }
           if (!upgradeResult || upgradeResult.code !== 0) {

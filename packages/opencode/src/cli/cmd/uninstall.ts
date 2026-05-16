@@ -126,9 +126,9 @@ async function showRemovalSummary(targets: RemovalTargets, method: Installation.
 
   if (method !== "unknown") {
     const cmds: Record<string, string> = {
-      npm: "npm uninstall -g @deveco/deveco",
-      pnpm: "pnpm uninstall -g @deveco/deveco",
-      bun: "bun remove -g @deveco/deveco",
+      npm: "npm uninstall -g @deveco/deveco-code",
+      pnpm: "pnpm uninstall -g @deveco/deveco-code",
+      bun: "bun remove -g @deveco/deveco-code",
     }
     prompts.log.info(`  ✓ Package: ${cmds[method] || method}`)
   }
@@ -162,9 +162,9 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
 
   if (method !== "unknown") {
     const cmds: Record<string, string[]> = {
-      npm: ["npm", "uninstall", "-g", "@deveco/deveco"],
-      pnpm: ["pnpm", "uninstall", "-g", "@deveco/deveco"],
-      bun: ["bun", "remove", "-g", "@deveco/deveco"],
+      npm: ["npm", "uninstall", "-g", "@deveco/deveco-code"],
+      pnpm: ["pnpm", "uninstall", "-g", "@deveco/deveco-code"],
+      bun: ["bun", "remove", "-g", "@deveco/deveco-code"],
     }
 
     const cmd = cmds[method]

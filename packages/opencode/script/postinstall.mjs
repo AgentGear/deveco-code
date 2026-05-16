@@ -49,7 +49,7 @@ function detectPlatformAndArch() {
 
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const packageName = `@deveco/deveco-${platform}-${arch}`
+  const packageName = `@deveco/deveco-code-${platform}-${arch}`
   const binaryName = platform === "windows" ? "deveco.exe" : "deveco"
 
   try {
