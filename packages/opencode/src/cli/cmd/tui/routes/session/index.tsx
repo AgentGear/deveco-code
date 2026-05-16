@@ -337,7 +337,9 @@ export function Session() {
     const title = Locale.truncate(session()?.title ?? "", 50)
     const pad = (text: string) => text.padEnd(10, " ")
     const weak = (text: string) => UI.Style.TEXT_DIM + pad(text) + UI.Style.TEXT_NORMAL
-    const logo = formatBannerLogoAnsiLines(dimensions().width, bannerLogoPalette(mode() === "light", theme))
+    const logo = formatBannerLogoAnsiLines(dimensions().width, bannerLogoPalette(mode() === "light", theme), {
+      scanline: true,
+    })
     return exit.message.set(
       [
         ``,

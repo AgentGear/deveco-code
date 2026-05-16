@@ -72,6 +72,8 @@ export type PromptProps = {
   ref?: (ref: PromptRef | undefined) => void
   hint?: JSX.Element
   right?: JSX.Element
+  /** Home: tips / extras on the right of the bottom hint row */
+  footerRight?: JSX.Element
   showPlaceholder?: boolean
   placeholders?: {
     normal?: string[]
@@ -204,6 +206,14 @@ export function Prompt(props: PromptProps) {
   const currentProviderLabel = createMemo(() => local.model.parsed().provider)
   const hasRightContent = createMemo(() => Boolean(props.right))
   const isHomeRoute = createMemo(() => route.data.type === "home")
+  const homeTipsMaxWidth = createMemo(() => {
+    if (!isHomeRoute()) return 0
+    const inner = Math.max(0, Math.floor(dimensions().width) - 4)
+    const panel = Math.min(110, inner)
+    const hintReserve = Math.min(32, Math.max(22, Math.floor(panel * 0.42)))
+    return Math.max(24, panel - hintReserve - 2)
+  })
+  const homePromptRows = 4
   const defaultWorkspaceID = createMemo(() => props.workspaceID ?? project.workspace.current())
 
   function selectWorkspace(selection: WorkspaceSelection | undefined) {
@@ -1472,23 +1482,68 @@ export function Prompt(props: PromptProps) {
     }
   })
 
+  function IdleKeybindHintRow() {
+    return (
+      <box gap={2} flexDirection="row">
+        <Switch>
+          <Match when={store.mode === "normal"}>
+            <Switch>
+              <Match when={usage()}>
+                {(item) => (
+                  <text fg={theme.textMuted} wrapMode="none">
+                    {[item().context, item().cost].filter(Boolean).join(" · ")}
+                  </text>
+                )}
+              </Match>
+              <Match when={true}>
+                <text fg={theme.text}>
+                  {agentShortcut()} <span style={{ fg: theme.textMuted }}>agents</span>
+                </text>
+              </Match>
+            </Switch>
+            <text fg={theme.text}>
+              {paletteShortcut()} <span style={{ fg: theme.textMuted }}>commands</span>
+            </text>
+          </Match>
+          <Match when={store.mode === "shell"}>
+            <text fg={theme.text}>
+              esc <span style={{ fg: theme.textMuted }}>exit shell mode</span>
+            </text>
+          </Match>
+        </Switch>
+      </box>
+    )
+  }
+
   return (
     <>
       <box ref={(r: BoxRenderable) => (anchor = r)} visible={props.visible !== false}>
         <box
-          border={["left"]}
-          borderColor={borderHighlight()}
-          customBorderChars={{
-            ...SplitBorder.customBorderChars,
-            bottomLeft: "╹",
-          }}
+          border={isHomeRoute() ? ["top", "right", "bottom", "left"] : ["left"]}
+          borderColor={isHomeRoute() ? theme.textMuted : borderHighlight()}
+          customBorderChars={
+            isHomeRoute()
+              ? {
+                  ...EmptyBorder,
+                  topLeft: "┌",
+                  topRight: "┐",
+                  bottomLeft: "└",
+                  bottomRight: "┘",
+                  horizontal: "─",
+                  vertical: "│",
+                }
+              : {
+                  ...SplitBorder.customBorderChars,
+                  bottomLeft: "╹",
+                }
+          }
         >
           <box
-            paddingLeft={2}
-            paddingRight={2}
-            paddingTop={1}
+            paddingLeft={isHomeRoute() ? 1 : 2}
+            paddingRight={isHomeRoute() ? 1 : 2}
+            paddingTop={isHomeRoute() ? 0 : 1}
             flexShrink={0}
-            backgroundColor={theme.backgroundElement}
+            backgroundColor={isHomeRoute() ? undefined : theme.backgroundElement}
             flexGrow={1}
           >
             <textarea
@@ -1496,8 +1551,8 @@ export function Prompt(props: PromptProps) {
               placeholderColor={theme.textMuted}
               textColor={leader() ? theme.textMuted : theme.text}
               focusedTextColor={leader() ? theme.textMuted : theme.text}
-              minHeight={1}
-              maxHeight={6}
+              minHeight={isHomeRoute() ? homePromptRows : 1}
+              maxHeight={isHomeRoute() ? homePromptRows : 6}
               onContentChange={() => {
                 const value = input.plainText
                 setStore("prompt", "input", value)
@@ -1556,21 +1611,26 @@ export function Prompt(props: PromptProps) {
                 }, 0)
               }}
               onMouseDown={(r: MouseEvent) => r.target?.focus()}
-              focusedBackgroundColor={theme.backgroundElement}
+              focusedBackgroundColor={isHomeRoute() ? RGBA.fromInts(0, 0, 0, 0) : theme.backgroundElement}
               cursorColor={props.disabled ? theme.backgroundElement : theme.text}
               syntaxStyle={syntax()}
             />
-            <box flexDirection="row" flexShrink={0} paddingTop={1} gap={1} justifyContent="space-between">
-              <box flexDirection="row" gap={1}>
+            <box
+              flexDirection="row"
+              flexShrink={0}
+              paddingTop={1}
+              gap={1}
+              justifyContent={isHomeRoute() ? "flex-start" : "space-between"}
+            >
+              <box flexDirection="row" gap={isHomeRoute() ? 3 : 1}>
                 <Show when={local.agent.current()} fallback={<box height={1} />}>
                   {(agent) => (
                     <>
-                      <text fg={fadeColor(highlight(), agentMetaAlpha())}>
+                      <text fg={theme.text}>
                         {store.mode === "shell" ? "Shell" : Locale.titlecase(agent().name)}
                       </text>
                       <Show when={store.mode === "normal"}>
-                        <box flexDirection="row" gap={1}>
-                          <text fg={fadeColor(theme.textMuted, modelMetaAlpha())}>·</text>
+                        <box flexDirection="row" gap={isHomeRoute() ? 3 : 1}>
                           <text
                             flexShrink={0}
                             fg={fadeColor(leader() ? theme.textMuted : theme.text, modelMetaAlpha())}
@@ -1628,8 +1688,10 @@ export function Prompt(props: PromptProps) {
             />
           </box>
         </Show>
-        <box width="100%" flexDirection="row" justifyContent="space-between" position="relative">
-          <Switch>
+        <box width="100%" flexDirection="column" gap={1} position="relative">
+          <box width="100%" flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+            <box flexGrow={1} minWidth={0}>
+              <Switch>
             <Match when={status().type !== "idle"}>
               <box
                 flexDirection="row"
@@ -1745,41 +1807,49 @@ export function Prompt(props: PromptProps) {
                 </box>
               )}
             </Match>
-            <Match when={true}>{props.hint ?? <text />}</Match>
-          </Switch>
-          <Show when={status().type !== "retry"}>
+            <Match when={isHomeRoute() && status().type === "idle"}>
+              <box flexDirection="column" width="100%" gap={1} alignItems="stretch">
+                <Show when={props.hint}>
+                  <box flexShrink={0} alignSelf="flex-start">
+                    {props.hint}
+                  </box>
+                </Show>
+                <box
+                  flexDirection="row"
+                  justifyContent="space-between"
+                  width="100%"
+                  gap={2}
+                  alignItems="center"
+                  flexShrink={0}
+                >
+                  <box flexShrink={0}>
+                    <IdleKeybindHintRow />
+                  </box>
+                  <Show when={props.footerRight}>
+                    <box flexShrink={1} minWidth={0} maxWidth={homeTipsMaxWidth()}>
+                      {props.footerRight}
+                    </box>
+                  </Show>
+                </box>
+              </box>
+            </Match>
+            <Match when={true}>
+              <box flexShrink={0}>{props.hint ?? <text />}</box>
+            </Match>
+              </Switch>
+            </box>
+            <Show
+              when={
+                status().type !== "retry" && !(isHomeRoute() && status().type === "idle")
+              }
+            >
             <box gap={2} flexDirection="row">
               <Show when={editorContextLabelState() !== "none" ? editorFileLabelDisplay() : undefined}>
                 {(file) => (
                   <text fg={editorContextLabelState() === "pending" ? theme.secondary : theme.textMuted}>{file()}</text>
                 )}
               </Show>
-              <Switch>
-                <Match when={store.mode === "normal"}>
-                  <Switch>
-                    <Match when={usage()}>
-                      {(item) => (
-                        <text fg={theme.textMuted} wrapMode="none">
-                          {[item().context, item().cost].filter(Boolean).join(" · ")}
-                        </text>
-                      )}
-                    </Match>
-                    <Match when={true}>
-                      <text fg={theme.text}>
-                        {agentShortcut()} <span style={{ fg: theme.textMuted }}>agents</span>
-                      </text>
-                    </Match>
-                  </Switch>
-                  <text fg={theme.text}>
-                    {paletteShortcut()} <span style={{ fg: theme.textMuted }}>commands</span>
-                  </text>
-                </Match>
-                <Match when={store.mode === "shell"}>
-                  <text fg={theme.text}>
-                    esc <span style={{ fg: theme.textMuted }}>exit shell mode</span>
-                  </text>
-                </Match>
-              </Switch>
+              <IdleKeybindHintRow />
             </box>
           </Show>
         </box>
