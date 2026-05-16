@@ -308,7 +308,7 @@ for (const item of targets) {
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name: `@deveco/${name}`,
+        name: `@deveco/deveco-code-${item.os === "win32" ? "windows" : item.os}-${item.arch}`,
         version: Script.version,
         os: [item.os],
         cpu: [item.arch],

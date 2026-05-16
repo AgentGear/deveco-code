@@ -71,7 +71,7 @@ await Bun.file(`./dist/${pkg.name}/LICENSE`).write(await Bun.file("../../LICENSE
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify(
     {
-      name: "@deveco/deveco",
+      name: "@deveco/deveco-code",
       bin: {
         [pkg.name]: `./bin/${pkg.name}`,
       },
@@ -99,9 +99,9 @@ const tasks = Object.entries(binaries).map(async ([name, { dir }]) => {
 await Promise.all(tasks)
 
 await $`cd ./dist/${pkg.name} && bun pm pack && npm publish *.tgz --access public --tag ${Script.channel}`
-console.log(`  ✔ @deveco/deveco@${Script.version}`)
+console.log(`  ✔ @deveco/deveco-code@${Script.version}`)
 
 console.log()
 console.log("=== Release complete ===")
-console.log(`  @deveco/deveco@${Script.version}`)
+console.log(`  @deveco/deveco-code@${Script.version}`)
 console.log(`  ${Object.keys(binaries).map((n) => `${n}@${Script.version}`).join("\n  ")}`)

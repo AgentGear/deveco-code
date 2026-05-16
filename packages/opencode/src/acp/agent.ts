@@ -509,18 +509,18 @@ export class Agent implements ACPAgent {
     log.info("initialize", { protocolVersion: params.protocolVersion })
 
     const authMethod: AuthMethod = {
-      description: "Run `opencode auth login` in the terminal",
-      name: "Login with opencode",
-      id: "opencode-login",
+      description: "Run `deveco auth login` in the terminal",
+      name: "Login with DevEco Code",
+      id: "deveco-login",
     }
 
     // If client supports terminal-auth capability, use that instead.
     if (params.clientCapabilities?._meta?.["terminal-auth"] === true) {
       authMethod._meta = {
         "terminal-auth": {
-          command: "opencode",
+          command: "deveco",
           args: ["auth", "login"],
-          label: "OpenCode Login",
+          label: "DevEco Code Login",
         },
       }
     }
