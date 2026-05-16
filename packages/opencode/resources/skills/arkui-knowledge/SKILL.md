@@ -1,6 +1,6 @@
 ---
 name: arkui-knowledge
-description: Best practices for implementing HarmonyOS UI components with ArkUI declarative syntax.
+description: MUST load this skill when writing or modifying ArkUI UI code, state decorators, rendering control, component APIs, or ArkUI declarative UI in .ets files.
 ---
 
 # Harmony UI Implementation Skill
@@ -28,3 +28,12 @@ When building UI components:
    - Use `LazyForEach` with `IDataSource` for large lists.
    - Minimize the scope of `@State` to reduce re-renders.
    - Use `@Reusable` for components that are frequently created and destroyed.
+
+## Compile guardrails
+
+- Place `@State`, `@Prop`, `@Link`, `@Provide`, `@Consume`, and similar ArkUI state decorators only on member declarations inside a `struct` decorated with `@Component` or another supported ArkUI component decorator.
+- Do not put ArkUI state decorators on plain classes, top-level variables, local variables, or standalone helper declarations.
+- `ForEach` key generator functions must return a stable string value. Do not use a block body that performs work but returns `void`.
+- Use `LazyForEach` with a proper `IDataSource` implementation for large or lazy-rendered data. Use `ForEach` for ordinary arrays when lazy data loading is not needed.
+- Do not invent component modifier APIs. Before using a modifier, make sure it belongs to that component; for example, layout alignment modifiers differ by component type.
+- Keep UI component callbacks and builders typed explicitly when inference is unclear, especially for list item models and event parameters.

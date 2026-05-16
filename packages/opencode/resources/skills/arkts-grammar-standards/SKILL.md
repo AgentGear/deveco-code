@@ -1,11 +1,26 @@
 ---
 name: arkts-grammar-standards
-description: Use this skill for ArkTS syntax rules, ArkTS-specific restrictions, TypeScript-to-ArkTS syntax differences, and syntax compliance review. It is suitable when the user is writing ArkTS, reviewing ArkTS code, asking why a syntax form is allowed or forbidden, or asking how to rewrite a TypeScript syntax pattern into valid ArkTS.
+description: MUST load this skill BEFORE writing or modifying .ets files. Use it for ArkTS syntax rules, ArkTS-specific restrictions, TypeScript-to-ArkTS syntax differences, syntax compliance review, and ArkTS syntax questions.
 ---
 
 # arkts-grammar-standards
 
-Use this skill to answer ArkTS syntax and restriction questions with grounded references.
+Use this skill before authoring ArkTS code and to answer ArkTS syntax and restriction questions with grounded references.
+
+## Core authoring checklist
+
+Before writing or modifying `.ets` files:
+
+- Treat the code as ArkTS, not generic TypeScript.
+- Do not use `any` or `unknown` unless the user explicitly allows it.
+- Do not use `as` type assertions; use explicit types, constructors, or typed helper functions.
+- Do not rely on structural typing; prefer named classes, interfaces, and explicit `implements` relationships.
+- Do not use dynamic property access such as `obj[key]` as a normal modeling pattern; prefer direct property access with known names.
+- Give object literals explicit type context through typed variables, typed parameters, or class/interface construction.
+- Do not use inline object literal types; define a named interface or class instead.
+- Do not use template literals such as `` `${value}` ``; use string concatenation and explicit conversion.
+- Do not use namespaces as runtime values; import or reference the concrete exported value/type that is needed.
+- Avoid restricted TypeScript patterns such as destructuring declarations, destructuring parameters, function expressions, nested local function declarations, class expressions, `delete`, `in`, `for...in`, and type queries like `typeof Foo`.
 
 Prefer the bundled reference files over model memory. Keep the answer focused on:
 

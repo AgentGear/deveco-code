@@ -46,17 +46,58 @@ Reference:
 - Use normal arithmetic, comparison, logical, and conditional operators with explicit types.
 - Prefer `===` and `!==`.
 - Use explicit conversions instead of JavaScript-style coercion.
+- Use string concatenation and explicit conversion instead of template literals.
 
 Reference:
 - Guide: `docs/ArkTS-Language-Guide/02-Basic-Syntax/advanced-operators.md`
+
+## Strings
+
+- Use ordinary string literals and concatenation for formatted text.
+- Convert non-string values explicitly before concatenating when the target expects a string.
+- Avoid template literal syntax such as `` `Count: ${count}` ``.
+
+ArkTS style:
+
+```ts
+const label: string = "Count: " + count.toString()
+```
+
+Reference:
+- Linter summary: syntax restriction section
 
 ## Object modeling
 
 - Prefer named classes and interfaces for stable data models.
 - Use object literals only when there is clear explicit type context.
 - Prefer direct property access with known names.
+- Avoid `Record<string, T>` and dynamic keys when a named interface or class can model the shape.
+
+ArkTS style:
+
+```ts
+interface UserLabels {
+  name: string
+  title: string
+}
+
+const labels: UserLabels = {
+  name: "Name",
+  title: "Title",
+}
+const title: string = labels.title
+```
 
 Reference:
 - Guide: `docs/ArkTS-Language-Guide/02-Basic-Syntax/classes.md`
 - Guide: `docs/ArkTS-Language-Guide/02-Basic-Syntax/interfaces.md`
 - Linter summary: object literal section
+
+## Namespaces and imports
+
+- Treat namespaces as declaration or type organization, not runtime objects to pass around.
+- Import or reference the concrete exported class, enum, function, or type that the code needs.
+- If a namespace-like module is needed at runtime, model the runtime value with an explicit class or exported object that ArkTS accepts.
+
+Reference:
+- Linter summary: namespace section
