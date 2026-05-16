@@ -15,6 +15,7 @@ import { Session } from "@/session/session"
 import { LLM } from "../../src/session/llm"
 import { MessageV2 } from "../../src/session/message-v2"
 import { SessionProcessor } from "../../src/session/processor"
+import { ExitQueue } from "../../src/session/exit-queue"
 import { MessageID, PartID, SessionID } from "../../src/session/schema"
 import { SessionStatus } from "../../src/session/status"
 import { SessionSummary } from "../../src/session/summary"
@@ -187,6 +188,7 @@ const env = Layer.mergeAll(
     Layer.provide(summary),
     Layer.provide(Image.defaultLayer),
     Layer.provide(RuntimeFlags.layer({ experimentalEventSystem: true })),
+    Layer.provide(ExitQueue.defaultLayer),
     Layer.provideMerge(deps),
   ),
 )

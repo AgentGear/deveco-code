@@ -9,7 +9,7 @@ import {
   type Renderable,
 } from "@opentui/core"
 import type { CommandContext } from "@opentui/keymap"
-import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
+import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match, batch } from "solid-js"
 import "opentui-spinner/solid"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -1717,6 +1717,34 @@ export function Prompt(props: PromptProps) {
                   </box>
                   <box flexDirection="row" gap={1} flexShrink={0}>
                     {(() => {
+                      const isQueue = createMemo(() => {
+                        const s = status()
+                        if (s.type !== "retry") return false
+                        return s.message.includes("in queue")
+                      })
+                      // Snail animation for queue
+                      // macOS 🐌 faces right, Windows 🐌 faces left — put flag where snail crawls toward
+                      const snailToRight = process.platform !== "win32"
+                      const SNAIL_TRACK_WIDTH = 20
+                      const [snailPos, setSnailPos] = createSignal(0)
+                      onMount(() => {
+                        if (!kv.get("animations_enabled", true)) return
+                        const timer = setInterval(() => {
+                          setSnailPos((p) => (p + 1) % SNAIL_TRACK_WIDTH)
+                        }, 400)
+                        onCleanup(() => clearInterval(timer))
+                      })
+                      const snailFrame = createMemo(() => {
+                        const raw = snailPos()
+                        // Windows snail faces left: reverse position so it moves left toward flag
+                        const p = snailToRight ? raw : SNAIL_TRACK_WIDTH - 1 - raw
+                        const before = ".".repeat(p)
+                        const after = ".".repeat(SNAIL_TRACK_WIDTH - p - 1)
+                        return snailToRight
+                          ? `${before}🐌${after}🏁`
+                          : `🏁${before}🐌${after}`
+                      })
+
                       const retry = createMemo(() => {
                         const s = status()
                         if (s.type !== "retry") return
@@ -1766,9 +1794,22 @@ export function Prompt(props: PromptProps) {
 
                       return (
                         <Show when={retry()}>
-                          <box onMouseUp={handleMessageClick}>
-                            <text fg={theme.error}>{retryText()}</text>
-                          </box>
+                          <Switch>
+                            <Match when={isQueue()}>
+                              <box flexDirection="row" gap={1}>
+                                <text fg={theme.info}>{message() ?? ""}</text>
+                                <text fg={theme.textMuted}>[retrying {(() => { const d = formatDuration(seconds()); return d ? `in ${d} ` : "" })()}attempt #{retry()!.attempt}]</text>
+                                <Show when={kv.get("animations_enabled", true)}>
+                                  <text fg={theme.textMuted}>{snailFrame()}</text>
+                                </Show>
+                              </box>
+                            </Match>
+                            <Match when={true}>
+                              <box onMouseUp={handleMessageClick}>
+                                <text fg={theme.error}>{retryText()}</text>
+                              </box>
+                            </Match>
+                          </Switch>
                         </Show>
                       )
                     })()}
