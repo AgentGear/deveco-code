@@ -22,6 +22,7 @@ import { SessionV2 } from "../../src/v2/session"
 import { ModelID, ProviderID } from "../../src/provider/schema"
 import type { Provider } from "@/provider/provider"
 import * as SessionProcessorModule from "../../src/session/processor"
+import { ExitQueue } from "../../src/session/exit-queue"
 import { Snapshot } from "../../src/snapshot"
 import { ProviderTest } from "../fake/provider"
 import { testEffect } from "../lib/effect"
@@ -260,6 +261,7 @@ function compactionProcessLayer(options?: CompactionProcessOptions) {
         Layer.provide(summary),
         Layer.provide(Image.defaultLayer),
         Layer.provide(RuntimeFlags.layer({ experimentalEventSystem: true })),
+        Layer.provide(ExitQueue.defaultLayer),
         Layer.provide(status),
       )
     : layer(options?.result ?? "continue")

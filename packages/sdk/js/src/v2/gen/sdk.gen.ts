@@ -3152,7 +3152,7 @@ export class Session2 extends HeyApiClient {
       title?: string
       permission?: PermissionRuleset
       time?: {
-        archived?: number
+        archived?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
       }
     },
     options?: Options<never, ThrowOnError>,
