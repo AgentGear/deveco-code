@@ -167,7 +167,7 @@ export interface Interface {
   readonly cancel: (sessionID: SessionID) => Effect.Effect<void>
   readonly prompt: (input: PromptInput) => Effect.Effect<MessageV2.WithParts>
   readonly loop: (input: LoopInput) => Effect.Effect<MessageV2.WithParts>
-  readonly shell: (input: ShellInput) => Effect.Effect<MessageV2.WithParts>
+  readonly shell: (input: ShellInput) => Effect.Effect<MessageV2.WithParts, Session.BusyError>
   readonly command: (input: CommandInput) => Effect.Effect<MessageV2.WithParts>
   readonly resolvePromptParts: (template: string) => Effect.Effect<PromptInput["parts"]>
 }
@@ -1057,15 +1057,15 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       if (Exit.isSuccess(exit)) return exit.value
       const err = Cause.squash(exit.cause)
       if (Provider.ModelNotFoundError.isInstance(err)) {
-        const hint = err.data.suggestions?.length ? ` Did you mean: ${err.data.suggestions.join(", ")}?` : ""
+        const hint = err.suggestions?.length ? ` Did you mean: ${err.suggestions.join(", ")}?` : ""
         yield* bus.publish(Session.Event.Error, {
           sessionID,
           error: new NamedError.Unknown({
-            message: `Model not found: ${err.data.providerID}/${err.data.modelID}.${hint}`,
+            message: `Model not found: ${err.providerID}/${err.modelID}.${hint}`,
           }).toObject(),
         })
       }
-      return yield* Effect.failCause(exit.cause)
+      return yield* Effect.die(err)
     })
 
     const currentModel = Effect.fnUntraced(function* (sessionID: SessionID) {
@@ -1108,7 +1108,9 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       const same = ag.model && model.providerID === ag.model.providerID && model.modelID === ag.model.modelID
       const full =
         !input.variant && ag.variant && same
-          ? yield* provider.getModel(model.providerID, model.modelID).pipe(Effect.catchDefect(() => Effect.void))
+          ? yield* provider
+              .getModel(model.providerID, model.modelID)
+              .pipe(Effect.catchIf(Provider.ModelNotFoundError.isInstance, () => Effect.succeed(undefined)))
           : undefined
       const variant = input.variant ?? (ag.variant && full?.variants?.[ag.variant] ? ag.variant : undefined)
 
@@ -1862,12 +1864,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       return yield* state.ensureRunning(input.sessionID, lastAssistant(input.sessionID), runLoop(input.sessionID))
     })
 
-    const shell: (input: ShellInput) => Effect.Effect<MessageV2.WithParts> = Effect.fn("SessionPrompt.shell")(
-      function* (input: ShellInput) {
-        const ready = yield* Latch.make()
-        return yield* state.startShell(input.sessionID, lastAssistant(input.sessionID), shellImpl(input, ready), ready)
-      },
-    )
+    const shell: (input: ShellInput) => Effect.Effect<MessageV2.WithParts, Session.BusyError> = Effect.fn(
+      "SessionPrompt.shell",
+    )(function* (input: ShellInput) {
+      const ready = yield* Latch.make()
+      return yield* state.startShell(input.sessionID, lastAssistant(input.sessionID), shellImpl(input, ready), ready)
+    })
 
     const command = Effect.fn("SessionPrompt.command")(function* (input: CommandInput) {
       yield* elog.info("command", { sessionID: input.sessionID, command: input.command, agent: input.agent })

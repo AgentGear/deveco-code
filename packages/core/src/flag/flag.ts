@@ -1,21 +1,8 @@
 import { Config } from "effect"
-import { InstallationChannel } from "../installation/version"
 
 function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
   return value === "true" || value === "1"
-}
-
-function falsy(key: string) {
-  const value = process.env[key]?.toLowerCase()
-  return value === "false" || value === "0"
-}
-
-// Channels where new experiments default to ON (unstable / internal users).
-// Stable channels (`prod`, `latest`) stay opt-in.
-const UNSTABLE_CHANNELS = new Set(["dev", "beta", "local"])
-function unstableDefault(key: string) {
-  return truthy(key) || (!falsy(key) && UNSTABLE_CHANNELS.has(InstallationChannel))
 }
 
 function number(key: string) {
@@ -56,7 +43,6 @@ export const Flag = {
   DEVECO_DISABLE_CLAUDE_CODE_PROMPT: DEVECO_DISABLE_CLAUDE_CODE || truthy("DEVECO_DISABLE_CLAUDE_CODE_PROMPT"),
   DEVECO_DISABLE_CLAUDE_CODE_SKILLS,
   DEVECO_DISABLE_EXTERNAL_SKILLS: truthy("DEVECO_DISABLE_EXTERNAL_SKILLS"),
-  DEVECO_EXPERIMENTAL_CUSTOMIZE_SKILL: unstableDefault("DEVECO_EXPERIMENTAL_CUSTOMIZE_SKILL"),
   DEVECO_FAKE_VCS: process.env["DEVECO_FAKE_VCS"],
   DEVECO_SERVER_PASSWORD: process.env["DEVECO_SERVER_PASSWORD"],
   DEVECO_SERVER_USERNAME: process.env["DEVECO_SERVER_USERNAME"],
@@ -81,7 +67,6 @@ export const Flag = {
   DEVECO_EXPERIMENTAL_LSP_TOOL: DEVECO_EXPERIMENTAL || truthy("DEVECO_EXPERIMENTAL_LSP_TOOL"),
   DEVECO_EXPERIMENTAL_PLAN_MODE: DEVECO_EXPERIMENTAL || truthy("DEVECO_EXPERIMENTAL_PLAN_MODE"),
   DEVECO_EXPERIMENTAL_SCOUT: DEVECO_EXPERIMENTAL || truthy("DEVECO_EXPERIMENTAL_SCOUT"),
-  DEVECO_EXPERIMENTAL_MARKDOWN: !falsy("DEVECO_EXPERIMENTAL_MARKDOWN"),
   DEVECO_ENABLE_PARALLEL: truthy("DEVECO_ENABLE_PARALLEL") || truthy("DEVECO_EXPERIMENTAL_PARALLEL"),
   DEVECO_MODELS_URL: process.env["DEVECO_MODELS_URL"],
   DEVECO_MODELS_PATH: process.env["DEVECO_MODELS_PATH"],
