@@ -57,6 +57,8 @@ feat(opencode): add user profile page
 1. add ProfileView component
 2. add /profile route
 3. integrate user info API
+
+Signed-off-by: YourName <your.email@example.com>
 ```
 
 提交内容规范：

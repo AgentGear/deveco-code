@@ -243,7 +243,7 @@ export function formatBannerLogoAnsiLines(
   return lines
 }
 
-/** Dark-style palette when no TUI theme is available (e.g. `codegenie -h` on stderr). */
+/** Dark-style palette when no TUI theme is available (e.g. `deveco -h` on stderr). */
 export function cliHelpBannerLogoPalette(): BannerLogoPalette {
   return {
     logoFg: RGBA.fromInts(255, 255, 255),
