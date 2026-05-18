@@ -24,16 +24,31 @@ function View(props: { api: TuiPluginApi; hidden: boolean; show: boolean; connec
   }))
 
   return (
-    <box height={4} minHeight={0} width="100%" maxWidth={75} alignItems="center" paddingTop={3} flexShrink={1}>
+    <box width="100%" maxWidth={75} alignItems="center" paddingTop={3} flexShrink={1}>
       <Show when={props.show}>
-        <Tips connected={props.connected} />
+        <Tips api={props.api} connected={props.connected} />
       </Show>
     </box>
   )
 }
 
 const tui: TuiPlugin = async (api) => {
-  
+  api.slots.register({
+    order: 100,
+    slots: {
+      home_bottom() {
+        const hidden = createMemo(() => api.kv.get("tips_hidden", false))
+        const first = createMemo(() => api.state.session.count() === 0)
+        const connected = createMemo(() =>
+          api.state.provider.some(
+            (item) => item.id !== "opencode" || Object.values(item.models).some((model) => model.cost?.input !== 0),
+          ),
+        )
+        const show = createMemo(() => (!first() || !connected()) && !hidden())
+        return <View api={api} hidden={hidden()} show={show()} connected={connected()} />
+      },
+    },
+  })
 }
 
 const plugin: InternalTuiPlugin = {

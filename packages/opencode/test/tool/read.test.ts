@@ -4,10 +4,13 @@ import path from "path"
 import { Agent } from "../../src/agent/agent"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
-import { Flag } from "@opencode-ai/core/flag/flag"
 import { Global } from "@opencode-ai/core/global"
+import { Config } from "@/config/config"
+import { RuntimeFlags } from "@/effect/runtime-flags"
+import { Git } from "@/git"
 import { LSP } from "@/lsp/lsp"
 import { Permission } from "../../src/permission"
+import { Instance } from "../../src/project/instance"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { Instruction } from "../../src/session/instruction"
 import { ReadTool } from "../../src/tool/read"
@@ -35,17 +38,27 @@ const ctx = {
   ask: () => Effect.void,
 }
 
-const it = testEffect(
+const referenceLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
+  Reference.layer.pipe(
+    Layer.provide(Config.defaultLayer),
+    Layer.provide(AppFileSystem.defaultLayer),
+    Layer.provide(Git.defaultLayer),
+    Layer.provide(RuntimeFlags.layer(flags)),
+  )
+
+const readLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
   Layer.mergeAll(
     Agent.defaultLayer,
     AppFileSystem.defaultLayer,
     CrossSpawnSpawner.defaultLayer,
     Instruction.defaultLayer,
     LSP.defaultLayer,
-    Reference.defaultLayer,
+    referenceLayer(flags),
     Truncate.defaultLayer,
-  ),
-)
+  )
+
+const it = testEffect(readLayer())
+const scout = testEffect(readLayer({ experimentalScout: true }))
 
 const init = Effect.fn("ReadToolTest.init")(function* () {
   const info = yield* ReadTool
@@ -84,31 +97,18 @@ const fail = Effect.fn("ReadToolTest.fail")(function* (
 const full = (p: string) => (process.platform === "win32" ? Filesystem.normalizePath(p) : p)
 const glob = (p: string) =>
   process.platform === "win32" ? Filesystem.normalizePathPattern(p) : p.replaceAll("\\", "/")
-const experimentalScout = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-  Effect.acquireUseRelease(
-    Effect.sync(() => {
-      const previous = Flag.DEVECO_EXPERIMENTAL_SCOUT
-      Flag.DEVECO_EXPERIMENTAL_SCOUT = true
-      return previous
-    }),
-    () => self,
-    (previous) =>
-      Effect.sync(() => {
-        Flag.DEVECO_EXPERIMENTAL_SCOUT = previous
-      }),
-  )
 const githubBase = <A, E, R>(url: string, self: Effect.Effect<A, E, R>) =>
   Effect.acquireUseRelease(
     Effect.sync(() => {
-      const previous = process.env.OPENCODE_REPO_CLONE_GITHUB_BASE_URL
-      process.env.OPENCODE_REPO_CLONE_GITHUB_BASE_URL = url
+      const previous = process.env.DEVECO_REPO_CLONE_GITHUB_BASE_URL
+      process.env.DEVECO_REPO_CLONE_GITHUB_BASE_URL = url
       return previous
     }),
     () => self,
     (previous) =>
       Effect.sync(() => {
-        if (previous) process.env.OPENCODE_REPO_CLONE_GITHUB_BASE_URL = previous
-        else delete process.env.OPENCODE_REPO_CLONE_GITHUB_BASE_URL
+        if (previous) process.env.DEVECO_REPO_CLONE_GITHUB_BASE_URL = previous
+        else delete process.env.DEVECO_REPO_CLONE_GITHUB_BASE_URL
       }),
   )
 const git = Effect.fn("ReadToolTest.git")(function* (cwd: string, args: string[]) {
@@ -259,44 +259,42 @@ describe("tool.read external_directory permission", () => {
     }),
   )
 
-  it.live("does not ask for external_directory permission when reading configured references", () =>
-    experimentalScout(
-      Effect.gen(function* () {
-        const fs = yield* AppFileSystem.Service
-        const cache = path.join(Global.Path.repos, "github.com", "opencode-read-reference", "repo")
-        yield* fs.remove(cache, { recursive: true }).pipe(Effect.ignore)
-        yield* Effect.addFinalizer(() => fs.remove(cache, { recursive: true }).pipe(Effect.ignore))
+  scout.live("does not ask for external_directory permission when reading configured references", () =>
+    Effect.gen(function* () {
+      const fs = yield* AppFileSystem.Service
+      const cache = path.join(Global.Path.repos, "github.com", "opencode-read-reference", "repo")
+      yield* fs.remove(cache, { recursive: true }).pipe(Effect.ignore)
+      yield* Effect.addFinalizer(() => fs.remove(cache, { recursive: true }).pipe(Effect.ignore))
 
-        const source = yield* tmpdirScoped({ git: true })
-        const remoteRoot = yield* tmpdirScoped()
-        const remoteDir = path.join(remoteRoot, "opencode-read-reference")
-        const remoteRepo = path.join(remoteDir, "repo.git")
-        yield* put(path.join(source, "notes.md"), "reference notes")
-        yield* git(source, ["add", "."])
-        yield* git(source, ["commit", "-m", "add notes"])
-        yield* fs.makeDirectory(remoteDir, { recursive: true }).pipe(Effect.orDie)
-        yield* git(remoteRoot, ["clone", "--bare", source, remoteRepo])
+      const source = yield* tmpdirScoped({ git: true })
+      const remoteRoot = yield* tmpdirScoped()
+      const remoteDir = path.join(remoteRoot, "opencode-read-reference")
+      const remoteRepo = path.join(remoteDir, "repo.git")
+      yield* put(path.join(source, "notes.md"), "reference notes")
+      yield* git(source, ["add", "."])
+      yield* git(source, ["commit", "-m", "add notes"])
+      yield* fs.makeDirectory(remoteDir, { recursive: true }).pipe(Effect.orDie)
+      yield* git(remoteRoot, ["clone", "--bare", source, remoteRepo])
 
-        const dir = yield* tmpdirScoped({
-          git: true,
-          config: {
-            reference: {
-              docs: "opencode-read-reference/repo",
-            },
+      const dir = yield* tmpdirScoped({
+        git: true,
+        config: {
+          reference: {
+            docs: "opencode-read-reference/repo",
           },
-        })
+        },
+      })
 
-        const { items, next } = asks()
-        const result = yield* githubBase(
-          `file://${remoteRoot}/`,
-          exec(dir, { filePath: path.join(cache, "notes.md") }, next),
-        )
-        const ext = items.find((item) => item.permission === "external_directory")
+      const { items, next } = asks()
+      const result = yield* githubBase(
+        `file://${remoteRoot}/`,
+        exec(dir, { filePath: path.join(cache, "notes.md") }, next),
+      )
+      const ext = items.find((item) => item.permission === "external_directory")
 
-        expect(result.output).toContain("reference notes")
-        expect(ext).toBeUndefined()
-      }),
-    ),
+      expect(result.output).toContain("reference notes")
+      expect(ext).toBeUndefined()
+    }),
   )
 })
 
@@ -537,6 +535,24 @@ root_type Monster;`
       expect(result.attachments).toBeUndefined()
       expect(result.output).toContain("namespace MyGame")
       expect(result.output).toContain("table Monster")
+    }),
+  )
+
+  it.live("falls through unsupported image mime types to text", () =>
+    Effect.gen(function* () {
+      const dir = yield* tmpdirScoped()
+      const cases = [
+        ["image.bmp", "BM text content"],
+        ["photo.tiff", "II text content"],
+        ["photo.avif", "avif text content"],
+      ] as const
+
+      for (const item of cases) {
+        yield* put(path.join(dir, item[0]), item[1])
+        const result = yield* exec(dir, { filePath: path.join(dir, item[0]) })
+        expect(result.attachments).toBeUndefined()
+        expect(result.output).toContain(item[1])
+      }
     }),
   )
 })

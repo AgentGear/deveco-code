@@ -26,12 +26,20 @@ function tr(translator: Translator | undefined, key: string, text: string, vars?
 }
 
 export function formatServerError(error: unknown, translate?: Translator, fallback?: string) {
-  if (isConfigInvalidErrorLike(error)) return parseReadableConfigInvalidError(error, translate)
-  if (isProviderModelNotFoundErrorLike(error)) return parseReadableProviderModelNotFoundError(error, translate)
+  const unwrapped = unwrapNamedError(error)
+  if (isConfigInvalidErrorLike(unwrapped)) return parseReadableConfigInvalidError(unwrapped, translate)
+  if (isProviderModelNotFoundErrorLike(unwrapped)) return parseReadableProviderModelNotFoundError(unwrapped, translate)
   if (error instanceof Error && error.message) return error.message
   if (typeof error === "string" && error) return error
   if (fallback) return fallback
   return tr(translate, "error.chain.unknown", "Unknown error")
+}
+
+function unwrapNamedError(error: unknown): unknown {
+  if (error instanceof Error && error.cause && typeof error.cause === "object" && "body" in error.cause) {
+    return (error.cause as Record<string, unknown>).body
+  }
+  return error
 }
 
 function isConfigInvalidErrorLike(error: unknown): error is ConfigInvalidError {
@@ -69,7 +77,7 @@ function parseReadableProviderModelNotFoundError(errorInput: ProviderModelNotFou
   const m = errorInput.data.modelID.trim()
   const list = (errorInput.data.suggestions ?? []).map((v) => v.trim()).filter(Boolean)
   const body = tr(translator, "error.chain.modelNotFound", `Model not found: ${p}/${m}`, { provider: p, model: m })
-  const tail = tr(translator, "error.chain.checkConfig", "Check your config (opencode.json) provider/model names")
+  const tail = tr(translator, "error.chain.checkConfig", "Check your config (deveco.json) provider/model names")
   if (list.length) {
     const suggestions = list.slice(0, 5).join(", ")
     return [body, tr(translator, "error.chain.didYouMean", `Did you mean: ${suggestions}`, { suggestions }), tail].join(
