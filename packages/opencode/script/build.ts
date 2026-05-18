@@ -53,6 +53,9 @@ async function walk(directory: string): Promise<string[]> {
   async function recurse(dir: string) {
     for (const entry of await fs.promises.readdir(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name)
+      if (entry.isSymbolicLink()) {
+        continue
+      }
       if (entry.isDirectory()) {
         await recurse(full)
       } else if (entry.name !== ".DS_Store") {
