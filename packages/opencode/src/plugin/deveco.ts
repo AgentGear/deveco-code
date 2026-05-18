@@ -12,6 +12,7 @@ import * as Log from "@opencode-ai/core/util/log"
 import { Global } from "@opencode-ai/core/global"
 import { LocalCrypto } from "@/security/local-crypto"
 import { URL } from "url"
+import { GlobalBus } from "@/bus/global"
 
 const execAsync = promisify(exec)
 const log = Log.create({ service: "deveco" })
@@ -892,7 +893,7 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
             if (currentAuth?.type === "oauth") {
               if (!currentAuth.access || currentAuth.expires < Date.now()) {
                 const newTokens = await devecoAuth.refreshToken()
-                if (newTokens) {
+                if (newTokens?.accessToken) {
                   await saveAuthToDisk("deveco", {
                     type: "oauth",
                     access: newTokens.accessToken,
@@ -900,6 +901,24 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
                     expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
                   })
                   currentAuth.access = newTokens.accessToken
+                } else {
+                  log.error("DevEco Code token refresh failed, user needs to re-login")
+                  GlobalBus.emit("event", {
+                    directory: "global",
+                    payload: {
+                      type: "auth.token_refresh_failed",
+                      properties: {
+                        providerID: "deveco",
+                        message: "Token refresh failed. Please re-login to DevEco Code.",
+                      },
+                    },
+                  })
+                  // 返回 401 错误响应，阻止使用过期 token 发送请求
+                  return new Response(JSON.stringify({ error: "Token refresh failed. Please re-login to DevEco Code." }), {
+                    status: 401,
+                    statusText: "Unauthorized",
+                    headers: { "Content-Type": "application/json" },
+                  })
                 }
               }
             }
