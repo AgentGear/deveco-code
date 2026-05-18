@@ -125,8 +125,8 @@ const DEFAULT_CONFIG: LoginConfig = {
   authUrl: "console/DevEcoIDE/apply",
   tempTokenCheckUrl: "authrouter/auth/api/temptoken/check",
   jwtTokenCheckUrl: "authrouter/auth/api/jwToken/check",
-  successRedirectUrl: "console/DevEcoCodeGenie/loginSuccess",
-  failedRedirectUrl: "console/DevEcoCodeGenie/loginFailed",
+  successRedirectUrl: "console/DevEcoCode/loginSuccess",
+  failedRedirectUrl: "console/DevEcoCode/loginFailed",
   appId: "1008",
   defaultPort: 10101,
   timeout: 600000, // 10 minutes
