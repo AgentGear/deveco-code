@@ -1,9 +1,11 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect } from "bun:test"
 import { Effect, Layer, Stream } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { Installation } from "../../src/installation"
 import { InstallationChannel } from "@opencode-ai/core/installation/version"
+import { AppProcess } from "@opencode-ai/core/process"
+import { testEffect } from "../lib/effect"
 
 const encoder = new TextEncoder()
 
@@ -46,90 +48,122 @@ function testLayer(
   httpHandler: (request: HttpClientRequest.HttpClientRequest) => Response,
   spawnHandler?: (cmd: string, args: readonly string[]) => string,
 ) {
-  return Installation.layer.pipe(Layer.provide(mockHttpClient(httpHandler)), Layer.provide(mockSpawner(spawnHandler)))
+  const appProcess = AppProcess.layer.pipe(Layer.provide(mockSpawner(spawnHandler)))
+  return Installation.layer.pipe(Layer.provide(mockHttpClient(httpHandler)), Layer.provide(appProcess))
 }
 
 describe("installation", () => {
   describe("latest", () => {
-    test("reads release version from GitHub releases", async () => {
-      const layer = testLayer(() => jsonResponse({ tag_name: "v1.2.3" }))
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.2.3" }))).effect(
+      "reads release version from GitHub releases",
+      () =>
+        Effect.gen(function* () {
+          const result = yield* Installation.Service.use((svc) => svc.latest("unknown"))
+          expect(result).toBe("1.2.3")
+        }),
+    )
 
-      const result = await Effect.runPromise(
-        Installation.Service.use((svc) => svc.latest("unknown")).pipe(Effect.provide(layer)),
-      )
-      expect(result).toBe("1.2.3")
-    })
+    testEffect(testLayer(() => jsonResponse({ tag_name: "v4.0.0-beta.1" }))).effect(
+      "strips v prefix from GitHub release tag",
+      () =>
+        Effect.gen(function* () {
+          const result = yield* Installation.Service.use((svc) => svc.latest("curl"))
+          expect(result).toBe("4.0.0-beta.1")
+        }),
+    )
 
-    test("strips v prefix from GitHub release tag", async () => {
-      const layer = testLayer(() => jsonResponse({ tag_name: "v4.0.0-beta.1" }))
+    const npmCalls: string[] = []
+    testEffect(
+      testLayer((request) => {
+        npmCalls.push(request.url)
+        return jsonResponse({ version: "1.5.0" })
+      }),
+    ).effect("reads npm versions via registry", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.Service.use((svc) => svc.latest("npm"))
+        expect(result).toBe("1.5.0")
+        expect(npmCalls).toContain(`https://registry.npmjs.org/opencode-ai/${InstallationChannel}`)
+      }),
+    )
 
-      const result = await Effect.runPromise(
-        Installation.Service.use((svc) => svc.latest("unknown")).pipe(Effect.provide(layer)),
-      )
-      expect(result).toBe("4.0.0-beta.1")
-    })
+    const bunCalls: string[] = []
+    testEffect(
+      testLayer((request) => {
+        bunCalls.push(request.url)
+        return jsonResponse({ version: "1.6.0" })
+      }),
+    ).effect("reads bun versions via registry", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.Service.use((svc) => svc.latest("bun"))
+        expect(result).toBe("1.6.0")
+        expect(bunCalls).toContain(`https://registry.npmjs.org/opencode-ai/${InstallationChannel}`)
+      }),
+    )
 
-    test("reads npm versions via npm view", async () => {
-      const calls: string[][] = []
+    const pnpmCalls: string[] = []
+    testEffect(
+      testLayer((request) => {
+        pnpmCalls.push(request.url)
+        return jsonResponse({ version: "1.7.0" })
+      }),
+    ).effect("reads pnpm versions via registry", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.Service.use((svc) => svc.latest("pnpm"))
+        expect(result).toBe("1.7.0")
+        expect(pnpmCalls).toContain(`https://registry.npmjs.org/opencode-ai/${InstallationChannel}`)
+      }),
+    )
 
-      const layer = testLayer(
-        () => {
-          throw new Error("unexpected http request")
-        },
+    testEffect(testLayer(() => jsonResponse({ version: "2.3.4" }))).effect("reads scoop manifest versions", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.Service.use((svc) => svc.latest("scoop"))
+        expect(result).toBe("2.3.4")
+      }),
+    )
+
+    testEffect(testLayer(() => jsonResponse({ d: { results: [{ Version: "3.4.5" }] } }))).effect(
+      "reads chocolatey feed versions",
+      () =>
+        Effect.gen(function* () {
+          const result = yield* Installation.Service.use((svc) => svc.latest("choco"))
+          expect(result).toBe("3.4.5")
+        }),
+    )
+
+    testEffect(
+      testLayer(
+        () => jsonResponse({ versions: { stable: "2.0.0" } }),
         (cmd, args) => {
-          calls.push([cmd, ...args])
-          if (cmd === "npm" && args[0] === "view") return '"1.5.0"\n'
+          // getBrewFormula: return core formula (no tap)
+          if (cmd === "brew" && args.includes("--formula") && args.includes("anomalyco/tap/opencode")) return ""
+          if (cmd === "brew" && args.includes("--formula") && args.includes("opencode")) return "opencode"
           return ""
         },
-      )
+      ),
+    ).effect("reads brew formulae API versions", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.Service.use((svc) => svc.latest("brew"))
+        expect(result).toBe("2.0.0")
+      }),
+    )
 
-      const result = await Effect.runPromise(
-        Installation.Service.use((svc) => svc.latest("npm")).pipe(Effect.provide(layer)),
-      )
-      expect(result).toBe("1.5.0")
-      expect(calls.some((c) => c[0] === "npm" && c[1] === "view")).toBe(true)
+    const brewInfoJson = JSON.stringify({
+      formulae: [{ versions: { stable: "2.1.0" } }],
     })
-
-    test("reads bun versions via bun pm view", async () => {
-      const calls: string[][] = []
-
-      const layer = testLayer(
-        () => {
-          throw new Error("unexpected http request")
-        },
+    testEffect(
+      testLayer(
+        () => jsonResponse({}), // HTTP not used for tap formula
         (cmd, args) => {
-          calls.push([cmd, ...args])
-          if (cmd === "bun" && args[0] === "pm") return '"1.6.0"\n'
+          if (cmd === "brew" && args.includes("anomalyco/tap/opencode") && args.includes("--formula")) return "opencode"
+          if (cmd === "brew" && args.includes("--json=v2")) return brewInfoJson
           return ""
         },
-      )
-
-      const result = await Effect.runPromise(
-        Installation.Service.use((svc) => svc.latest("bun")).pipe(Effect.provide(layer)),
-      )
-      expect(result).toBe("1.6.0")
-      expect(calls.some((c) => c[0] === "bun" && c[1] === "pm")).toBe(true)
-    })
-
-    test("reads pnpm versions via pnpm view", async () => {
-      const calls: string[][] = []
-
-      const layer = testLayer(
-        () => {
-          throw new Error("unexpected http request")
-        },
-        (cmd, args) => {
-          calls.push([cmd, ...args])
-          if (cmd === "pnpm" && args[0] === "view") return '"1.7.0"\n'
-          return ""
-        },
-      )
-
-      const result = await Effect.runPromise(
-        Installation.Service.use((svc) => svc.latest("pnpm")).pipe(Effect.provide(layer)),
-      )
-      expect(result).toBe("1.7.0")
-      expect(calls.some((c) => c[0] === "pnpm" && c[1] === "view")).toBe(true)
-    })
+      ),
+    ).effect("reads brew tap info JSON via CLI", () =>
+      Effect.gen(function* () {
+        const result = yield* Installation.Service.use((svc) => svc.latest("brew"))
+        expect(result).toBe("2.1.0")
+      }),
+    )
   })
 })

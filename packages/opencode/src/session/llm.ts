@@ -14,16 +14,15 @@ import type { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
 import { sessionChatIdMap } from "@/plugin/deveco"
 import { SystemPrompt } from "./system"
-import { Flag } from "@opencode-ai/core/flag/flag"
 import { Permission } from "@/permission"
 import { PermissionID } from "@/permission/schema"
 import { Bus } from "@/bus"
 import { Wildcard } from "@/util/wildcard"
 import { SessionID } from "@/session/schema"
 import { Auth } from "@/auth"
-import { Installation } from "@/installation"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { EffectBridge } from "@/effect/bridge"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import * as Option from "effect/Option"
 import * as OtelTracer from "@effect/opentelemetry/Tracer"
 
@@ -65,7 +64,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/LL
 const live: Layer.Layer<
   Service,
   never,
-  Auth.Service | Config.Service | Provider.Service | Plugin.Service | Permission.Service
+  Auth.Service | Config.Service | Provider.Service | Plugin.Service | Permission.Service | RuntimeFlags.Service
 > = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -74,6 +73,7 @@ const live: Layer.Layer<
     const provider = yield* Provider.Service
     const plugin = yield* Plugin.Service
     const perm = yield* Permission.Service
+    const flags = yield* RuntimeFlags.Service
 
     const run = Effect.fn("LLM.run")(function* (input: StreamRequest) {
       let chatId = sessionChatIdMap.get(input.sessionID)
@@ -341,7 +341,7 @@ const live: Layer.Layer<
           })
         : undefined
 
-      const opencodeProjectID = input.model.providerID.startsWith("opencode")
+      const opencodeProjectID = input.model.providerID.startsWith("opencode") || input.model.providerID.startsWith("deveco")
         ? (yield* InstanceState.context).project.id
         : undefined
 
@@ -395,12 +395,12 @@ const live: Layer.Layer<
         maxOutputTokens: params.maxOutputTokens,
         abortSignal: input.abort,
         headers: {
-          ...(input.model.providerID.startsWith("opencode")
+          ...(input.model.providerID.startsWith("opencode") || input.model.providerID.startsWith("deveco")
             ? {
                 "x-deveco-project": opencodeProjectID,
                 "x-deveco-session": input.sessionID,
                 "x-deveco-request": input.user.id,
-                "x-deveco-client": Flag.DEVECO_CLIENT,
+                "x-deveco-client": flags.client,
                 "User-Agent": `deveco/${InstallationVersion}`,
               }
             : {
@@ -468,6 +468,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Config.defaultLayer),
     Layer.provide(Provider.defaultLayer),
     Layer.provide(Plugin.defaultLayer),
+    Layer.provide(RuntimeFlags.defaultLayer),
   ),
 )
 

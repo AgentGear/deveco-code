@@ -7,14 +7,11 @@ import { useSync } from "../context/sync"
 import { useKV } from "../context/kv"
 import { Toast } from "../ui/toast"
 import { useArgs } from "../context/args"
-import { useDirectory } from "../context/directory"
 import { useRouteData } from "@tui/context/route"
 import { usePromptRef } from "../context/prompt"
-import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { useLocal } from "../context/local"
 import { DevEcoOnboarding } from "../component/deveco-onboarding"
 import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
-import { Tips } from "../feature-plugins/home/tips-view"
 import { KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED } from "@/cli/codegenie-legal"
 
 // TODO: what is the best way to do this?
@@ -61,18 +58,6 @@ export function Home() {
   const connectedMcpCount = createMemo(() => {
     return Object.values(sync.data.mcp).filter((x) => x.status === "connected").length
   })
-
-  const providerConnected = createMemo(() =>
-    sync.data.provider.some(
-      (x) => x.id !== "opencode" || Object.values(x.models).some((y) => y.cost?.input !== 0),
-    ),
-  )
-
-  const tipsHidden = createMemo(() => kv.get("tips_hidden", false))
-  const tipsFirstSession = createMemo(() => sync.data.session.length === 0)
-  const showTips = createMemo(
-    () => (!tipsFirstSession() || !providerConnected()) && !tipsHidden(),
-  )
 
   const Hint = (
     <Show when={connectedMcpCount() > 0}>
@@ -121,8 +106,6 @@ export function Home() {
       },
     ),
   )
-  const directory = useDirectory()
-
   return (
     <>
       <box
@@ -157,11 +140,6 @@ export function Home() {
                       }
                     }}
                     hint={Hint}
-                    footerRight={
-                      <Show when={showTips()}>
-                        <Tips connected={providerConnected()} />
-                      </Show>
-                    }
                   />
                 </TuiPluginRuntime.Slot>
               </box>
@@ -175,28 +153,8 @@ export function Home() {
         <box flexGrow={1} minHeight={0} flexShrink={1} />
         <Toast />
       </box>
-      <box paddingTop={1} paddingBottom={1} paddingLeft={2} paddingRight={2} flexDirection="row" flexShrink={0} gap={2}>
-        <text fg={theme.textMuted}>{directory()}</text>
-        <box gap={1} flexDirection="row" flexShrink={0}>
-          {/* <Show when={mcp()}> */}
-          <text fg={theme.text}>
-            <Switch>
-              <Match when={mcpError()}>
-                <span style={{ fg: theme.error }}>⊙ </span>
-              </Match>
-              <Match when={true}>
-                <span style={{ fg: connectedMcpCount() > 0 ? theme.success : theme.textMuted }}>⊙ </span>
-              </Match>
-            </Switch>
-            {connectedMcpCount()} MCP
-          </text>
-          <text fg={theme.textMuted}>/status</text>
-          {/* </Show> */}
-        </box>
-        <box flexGrow={1} />
-        <box flexShrink={0}>
-          <text fg={theme.textMuted}>Version: {InstallationVersion}</text>
-        </box>
+      <box width="100%" flexShrink={0}>
+        <TuiPluginRuntime.Slot name="home_footer" mode="single_winner" />
       </box>
     </>
   )
