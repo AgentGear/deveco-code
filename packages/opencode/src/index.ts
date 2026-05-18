@@ -10,6 +10,7 @@ import { UpgradeCommand } from "./cli/cmd/upgrade"
 import { UninstallCommand } from "./cli/cmd/uninstall"
 import { ModelsCommand } from "./cli/cmd/models"
 import { UI } from "./cli/ui"
+import { formatCliHelpBannerLogoBlock } from "./cli/cmd/tui/component/banner-logo"
 import { Installation } from "./installation"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { NamedError } from "@opencode-ai/core/util/error"
@@ -58,7 +59,8 @@ const args = hideBin(process.argv)
 function show(out: string) {
   const text = out.trimStart()
   if (!text.startsWith("deveco ")) {
-    process.stderr.write(UI.logo() + EOL + EOL)
+    const cols = process.stderr.columns ?? process.stdout.columns
+    process.stderr.write(formatCliHelpBannerLogoBlock(cols) + EOL + EOL)
     process.stderr.write(text)
     return
   }

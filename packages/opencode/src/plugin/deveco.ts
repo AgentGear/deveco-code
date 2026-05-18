@@ -411,8 +411,12 @@ class LocalAuthServer {
         return
       }
 
-      if (code !== this.clientSecret) {
-        this.rejectCallback?.(new LoginCancelledError("Login cancelled or invalid callback"))
+      if (quit === "true" || quit === "access_denied") {
+        this.rejectCallback?.(
+          new LoginCancelledError(
+            quit === "access_denied" ? "Access denied by user" : "Login cancelled by user",
+          ),
+        )
         res.writeHead(302, {
           Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
         })
@@ -522,6 +526,12 @@ class LoginService {
     }
   }
 
+  public cancel(): void {
+    if (this.server) {
+      this.server.cancel()
+    }
+  }
+
   public async isLoggedIn(): Promise<boolean> {
     if (this.userInfo) {
       return true
@@ -537,12 +547,6 @@ class LoginService {
   public async logout(): Promise<void> {
     await tokenStorage.clearToken()
     this.userInfo = null
-  }
-
-  public cancel(): void {
-    if (this.server) {
-      this.server.cancel()
-    }
   }
 
   private generateClientSecret(): string {
@@ -755,12 +759,12 @@ class DevEcoAuth {
     return loginService.login()
   }
 
-  async logout(): Promise<void> {
-    return loginService.logout()
-  }
-
   cancel(): void {
     loginService.cancel()
+  }
+
+  async logout(): Promise<void> {
+    return loginService.logout()
   }
 
   /**
