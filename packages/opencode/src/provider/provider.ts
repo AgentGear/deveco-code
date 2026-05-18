@@ -12,8 +12,6 @@ import * as ModelsDev from "@opencode-ai/core/models"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
-import { Flag } from "@opencode-ai/core/flag/flag"
-import { NamedError } from "@opencode-ai/core/util/error"
 import { iife } from "@/util/iife"
 import { Global } from "@opencode-ai/core/global"
 import path from "path"
@@ -28,6 +26,7 @@ import { optionalOmitUndefined } from "@opencode-ai/core/schema"
 import * as ProviderTransform from "./transform"
 import { ModelID, ProviderID } from "./schema"
 import { ModelStatus } from "./model-status"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 
 const log = Log.create({ service: "provider" })
 
@@ -48,10 +47,6 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
       const part = await new Promise<Awaited<ReturnType<typeof reader.read>>>((resolve, reject) => {
         const id = setTimeout(() => {
           const err = new Error("SSE read timed out")
-          Log.Default.warn("SSE chunk timeout", {
-            timeoutMs: ms,
-            url: res.url?.slice(0, 200),
-          })
           ctl.abort(err)
           void reader.cancel(err)
           reject(err)
@@ -417,7 +412,8 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "deveco",
+            "X-Title": "opencode",
+            "X-Source": "opencode",
           },
         },
       }),
@@ -427,17 +423,18 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "deveco",
+            "X-Title": "opencode",
           },
         },
       }),
-    nvidia: () =>
+    nvidia: (provider) =>
       Effect.succeed({
-        autoload: false,
+        autoload: provider.source === "config",
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "deveco",
+            "X-Title": "opencode",
+            "X-BILLING-INVOKE-ORIGIN": "OpenCode",
           },
         },
       }),
@@ -447,7 +444,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           headers: {
             "http-referer": "https://opencode.ai/",
-            "x-title": "deveco",
+            "x-title": "opencode",
           },
         },
       }),
@@ -551,7 +548,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "deveco",
+            "X-Title": "opencode",
           },
         },
       }),
@@ -576,7 +573,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       const directory = yield* InstanceState.directory
 
       const aiGatewayHeaders = {
-        "User-Agent": `deveco/${InstallationVersion} gitlab-ai-provider/${GITLAB_PROVIDER_VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
+        "User-Agent": `opencode/${InstallationVersion} gitlab-ai-provider/${GITLAB_PROVIDER_VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`,
         "anthropic-beta": "context-1m-2025-08-07",
         ...providerConfig?.options?.aiGatewayHeaders,
       }
@@ -729,7 +726,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           apiKey,
           headers: {
-            "User-Agent": `deveco/${InstallationVersion} cloudflare-workers-ai (${os.platform()} ${os.release()}; ${os.arch()})`,
+            "User-Agent": `opencode/${InstallationVersion} cloudflare-workers-ai (${os.platform()} ${os.release()}; ${os.arch()})`,
           },
         },
         async getModel(sdk: any, modelID: string) {
@@ -801,7 +798,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         skipCache: input.options?.skipCache,
         collectLog: input.options?.collectLog,
         headers: {
-          "User-Agent": `deveco/${InstallationVersion} cloudflare-ai-gateway (${os.platform()} ${os.release()}; ${os.arch()})`,
+          "User-Agent": `opencode/${InstallationVersion} cloudflare-ai-gateway (${os.platform()} ${os.release()}; ${os.arch()})`,
         },
       }
 
@@ -837,7 +834,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: {
           headers: {
             "HTTP-Referer": "https://opencode.ai/",
-            "X-Title": "deveco",
+            "X-Title": "opencode",
           },
         },
       }),
@@ -1020,7 +1017,16 @@ export class ModelNotFoundError extends Schema.TaggedErrorClass<ModelNotFoundErr
   }
 }
 
-export type Error = ModelNotFoundError
+export class InitError extends Schema.TaggedErrorClass<InitError>()("ProviderInitError", {
+  providerID: ProviderID,
+  cause: Schema.optional(Schema.Defect),
+}) {
+  static isInstance(input: unknown): input is InitError {
+    return input instanceof InitError
+  }
+}
+
+export type Error = ModelNotFoundError | InitError
 
 export interface Interface {
   readonly list: () => Effect.Effect<Record<ProviderID, Info>>
@@ -1164,18 +1170,18 @@ export function fromModelsDevProvider(provider: ModelsDev.Provider): Info {
   }
 }
 
-function suggestionModelIDs(provider: Info | undefined) {
+function suggestionModelIDs(provider: Info | undefined, enableExperimentalModels: boolean) {
   if (!provider) return []
   return Object.keys(provider.models).filter((id) => {
     const model = provider.models[id]
     if (model.status === "deprecated") return false
-    if (model.status === "alpha" && !Flag.DEVECO_ENABLE_EXPERIMENTAL_MODELS) return false
+    if (model.status === "alpha" && !enableExperimentalModels) return false
     return true
   })
 }
 
-function modelSuggestions(provider: Info | undefined, modelID: ModelID) {
-  const available = suggestionModelIDs(provider)
+function modelSuggestions(provider: Info | undefined, modelID: ModelID, enableExperimentalModels: boolean) {
+  const available = suggestionModelIDs(provider, enableExperimentalModels)
   const fuzzy = fuzzysort.go(modelID, available, { limit: 3, threshold: -10000 }).map((m) => m.target)
   if (fuzzy.length) return fuzzy
   const query = modelID
@@ -1196,7 +1202,7 @@ function modelSuggestions(provider: Info | undefined, modelID: ModelID) {
     .map((item) => item.id)
 }
 
-const layer = Layer.effect(
+export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* AppFileSystem.Service
@@ -1205,6 +1211,7 @@ const layer = Layer.effect(
     const env = yield* Env.Service
     const plugin = yield* Plugin.Service
     const modelsDevSvc = yield* ModelsDev.Service
+    const runtimeFlags = yield* RuntimeFlags.Service
 
     const state = yield* InstanceState.make<State>(() =>
       Effect.gen(function* () {
@@ -1505,7 +1512,7 @@ const layer = Layer.effect(
               (providerID === ProviderID.openrouter && modelID === "openai/gpt-5-chat")
             )
               delete provider.models[modelID]
-            if (model.status === "alpha" && !Flag.DEVECO_ENABLE_EXPERIMENTAL_MODELS) delete provider.models[modelID]
+            if (model.status === "alpha" && !runtimeFlags.enableExperimentalModels) delete provider.models[modelID]
             if (model.status === "deprecated") delete provider.models[modelID]
             if (
               (configProvider?.blacklist && configProvider.blacklist.includes(modelID)) ||
@@ -1687,7 +1694,7 @@ const layer = Layer.effect(
         s.sdk.set(key, loaded)
         return loaded as SDK
       } catch (e) {
-        throw new InitError({ providerID: model.providerID }, { cause: e })
+        throw new InitError({ providerID: model.providerID, cause: e })
       }
     }
 
@@ -1701,7 +1708,7 @@ const layer = Layer.effect(
       if (!provider) {
         const catalogProvider = s.catalog[providerID]
         const suggestions = catalogProvider
-          ? modelSuggestions(catalogProvider, modelID)
+          ? modelSuggestions(catalogProvider, modelID, runtimeFlags.enableExperimentalModels)
           : fuzzysort
               .go(providerID, Object.keys({ ...s.catalog, ...s.providers }), { limit: 3, threshold: -10000 })
               .map((m) => m.target)
@@ -1710,8 +1717,10 @@ const layer = Layer.effect(
 
       const info = provider.models[modelID]
       if (!info) {
-        const current = modelSuggestions(provider, modelID)
-        const suggestions = current.length ? current : modelSuggestions(s.catalog[providerID], modelID)
+        const current = modelSuggestions(provider, modelID, runtimeFlags.enableExperimentalModels)
+        const suggestions = current.length
+          ? current
+          : modelSuggestions(s.catalog[providerID], modelID, runtimeFlags.enableExperimentalModels)
         return yield* new ModelNotFoundError({ providerID, modelID, suggestions })
       }
       return info
@@ -1780,9 +1789,6 @@ const layer = Layer.effect(
       ]
       if (providerID.startsWith("opencode")) {
         priority = ["gpt-5-nano"]
-      }
-      if (providerID.startsWith("deveco")) {
-        priority = ["deepseek-v3.2"]
       }
       if (providerID.startsWith("github-copilot")) {
         priority = ["gpt-5-mini", "claude-haiku-4.5", ...priority]
@@ -1862,6 +1868,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Auth.defaultLayer),
     Layer.provide(Plugin.defaultLayer),
     Layer.provide(ModelsDev.defaultLayer),
+    Layer.provide(RuntimeFlags.defaultLayer),
   ),
 )
 
@@ -1882,9 +1889,5 @@ export function parseModel(model: string) {
     modelID: ModelID.make(rest.join("/")),
   }
 }
-
-export const InitError = NamedError.create("ProviderInitError", {
-  providerID: ProviderID,
-})
 
 export * as Provider from "./provider"

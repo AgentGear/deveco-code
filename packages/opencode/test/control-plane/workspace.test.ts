@@ -10,7 +10,6 @@ import { FetchHttpClient, HttpServer, HttpServerRequest, HttpServerResponse } fr
 import { eq } from "drizzle-orm"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import * as Log from "@opencode-ai/core/util/log"
-import { Flag } from "@opencode-ai/core/flag/flag"
 import { GlobalBus, type GlobalEvent } from "@/bus/global"
 import { Database } from "@/storage/db"
 import { ProjectID } from "@/project/schema"
@@ -42,7 +41,6 @@ import { RuntimeFlags } from "@/effect/runtime-flags"
 
 void Log.init({ print: false })
 
-const originalWorkspacesFlag = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const originalEnv = {
   DEVECO_AUTH_CONTENT: process.env.DEVECO_AUTH_CONTENT,
   DEVECO_EXPERIMENTAL_WORKSPACES: process.env.DEVECO_EXPERIMENTAL_WORKSPACES,
@@ -113,7 +111,6 @@ function restoreEnv() {
 
 beforeEach(() => {
   Database.close()
-  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
   restoreEnv()
   process.env.DEVECO_EXPERIMENTAL_WORKSPACES = "true"
 })
@@ -121,7 +118,6 @@ beforeEach(() => {
 afterEach(async () => {
   mock.restore()
   await disposeAllInstances()
-  Flag.DEVECO_EXPERIMENTAL_WORKSPACES = originalWorkspacesFlag
   restoreEnv()
   await resetDatabase()
 })

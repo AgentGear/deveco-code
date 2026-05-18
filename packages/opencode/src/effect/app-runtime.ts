@@ -57,6 +57,7 @@ import { Npm } from "@opencode-ai/core/npm"
 import { memoMap } from "@opencode-ai/core/effect/memo-map"
 import { DataMigration } from "@/data-migration"
 import { BackgroundJob } from "@/background/job"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 
 export const AppLayer = Layer.mergeAll(
   Npm.defaultLayer,
@@ -85,6 +86,7 @@ export const AppLayer = Layer.mergeAll(
   Session.defaultLayer,
   SessionStatus.defaultLayer,
   BackgroundJob.defaultLayer,
+  RuntimeFlags.defaultLayer,
   SessionRunState.defaultLayer,
   SessionProcessor.defaultLayer,
   SessionCompaction.defaultLayer,

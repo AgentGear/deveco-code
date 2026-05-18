@@ -4,7 +4,7 @@ import { createWriteStream } from "node:fs"
 import * as Tool from "./tool"
 import path from "path"
 import * as Log from "@opencode-ai/core/util/log"
-import { Instance, type InstanceContext } from "../project/instance"
+import { containsPath, type InstanceContext } from "../project/instance-context"
 import { InstanceState } from "@/effect/instance-state"
 import { lazy } from "@/util/lazy"
 import { Language, type Node } from "web-tree-sitter"
@@ -12,7 +12,7 @@ import { Language, type Node } from "web-tree-sitter"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { fileURLToPath } from "url"
 import { Config } from "@/config/config"
-import { Flag } from "@opencode-ai/core/flag/flag"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Shell } from "@/shell/shell"
 import { ShellID } from "./shell/id"
 
@@ -26,7 +26,6 @@ import { BashArity } from "@/permission/arity"
 export { Parameters } from "./shell/prompt"
 
 const MAX_METADATA_LENGTH = 30_000
-const DEFAULT_TIMEOUT = Flag.DEVECO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
 const CWD = new Set(["cd", "chdir", "popd", "pushd", "push-location", "set-location"])
 const FILES = new Set([
   ...CWD,
@@ -340,6 +339,8 @@ export const ShellTool = Tool.define(
     const fs = yield* AppFileSystem.Service
     const trunc = yield* Truncate.Service
     const plugin = yield* Plugin.Service
+    const flags = yield* RuntimeFlags.Service
+    const defaultTimeout = flags.bashDefaultTimeoutMs ?? 2 * 60 * 1000
 
     const cygpath = Effect.fn("ShellTool.cygpath")(function* (shell: string, text: string) {
       const lines = yield* spawner
@@ -393,7 +394,7 @@ export const ShellTool = Tool.define(
           for (const arg of pathArgs(command, ps, shellKind === "cmd")) {
             const resolved = yield* argPath(arg, cwd, ps, shell)
             log.info("resolved path", { arg, resolved })
-            if (!resolved || Instance.containsPath(resolved, instance)) continue
+            if (!resolved || containsPath(resolved, instance)) continue
             const dir = (yield* fs.isDir(resolved)) ? resolved : path.dirname(resolved)
             scan.dirs.add(dir)
           }
@@ -443,6 +444,31 @@ export const ShellTool = Tool.define(
       let expired = false
       let aborted = false
 
+      const closeSink = Effect.fnUntraced(function* () {
+        const stream = sink
+        if (!stream) return
+        sink = undefined
+        if (stream.destroyed || stream.closed) return
+        yield* Effect.promise(
+          () =>
+            new Promise<void>((resolve) => {
+              let settled = false
+              const done = () => {
+                if (settled) return
+                settled = true
+                stream.off("close", done)
+                stream.off("error", done)
+                stream.off("finish", done)
+                resolve()
+              }
+              stream.once("close", done)
+              stream.once("error", done)
+              stream.once("finish", done)
+              stream.end(done)
+            }),
+        ).pipe(Effect.catch(() => Effect.void))
+      })
+
       yield* ctx.metadata({
         metadata: {
           output: "",
@@ -452,6 +478,7 @@ export const ShellTool = Tool.define(
 
       const code: number | null = yield* Effect.scoped(
         Effect.gen(function* () {
+          yield* Effect.addFinalizer(closeSink)
           const handle = yield* spawner.spawn(cmd(input.shell, input.command, input.cwd, input.env))
 
           yield* Effect.forkScoped(
@@ -520,19 +547,10 @@ export const ShellTool = Tool.define(
 
           if (exit.kind === "abort") {
             aborted = true
-            log.warn("shell command aborted by user", {
-              command: input.command.slice(0, 100),
-              timeout: input.timeout,
-            })
             yield* handle.kill({ forceKillAfter: "3 seconds" }).pipe(Effect.orDie)
           }
           if (exit.kind === "timeout") {
             expired = true
-            log.warn("shell command timeout", {
-              command: input.command.slice(0, 100),
-              timeout: input.timeout,
-              cwd: input.cwd,
-            })
             yield* handle.kill({ forceKillAfter: "3 seconds" }).pipe(Effect.orDie)
           }
 
@@ -564,17 +582,6 @@ export const ShellTool = Tool.define(
       if (meta.length > 0) {
         output += "\n\n<shell_metadata>\n" + meta.join("\n") + "\n</shell_metadata>"
       }
-      if (sink) {
-        const stream = sink
-        yield* Effect.promise(
-          () =>
-            new Promise<void>((resolve) => {
-              stream.end(() => resolve())
-              stream.on("error", () => resolve())
-            }),
-        )
-      }
-
       return {
         title: input.description,
         metadata: {
@@ -609,7 +616,7 @@ export const ShellTool = Tool.define(
               if (params.timeout !== undefined && params.timeout < 0) {
                 throw new Error(`Invalid timeout value: ${params.timeout}. Timeout must be a positive number.`)
               }
-              const timeout = params.timeout ?? DEFAULT_TIMEOUT
+              const timeout = params.timeout ?? defaultTimeout
               const ps = Shell.ps(shell)
               yield* Effect.scoped(
                 Effect.gen(function* () {
@@ -617,7 +624,7 @@ export const ShellTool = Tool.define(
                     Effect.sync(() => tree.delete()),
                   )
                   const scan = yield* collect(tree.rootNode, cwd, ps, shell, executeInstance)
-                  if (!Instance.containsPath(cwd, executeInstance)) scan.dirs.add(cwd)
+                  if (!containsPath(cwd, executeInstance)) scan.dirs.add(cwd)
                   yield* ask(ctx, scan)
                 }),
               )
