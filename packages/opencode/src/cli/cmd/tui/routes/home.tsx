@@ -1,7 +1,7 @@
 import { Prompt, type PromptRef } from "@tui/component/prompt"
 import { createEffect, createMemo, createSignal, Match, on, onMount, Show, Switch } from "solid-js"
 import { useTheme } from "@tui/context/theme"
-import { Banner } from "../component/banner"
+import { Banner, BANNER_HOME_CONTENT_INSET } from "../component/banner"
 import { pluralize } from "@/util/locale"
 import { useSync } from "../context/sync"
 import { useKV } from "../context/kv"
@@ -19,6 +19,11 @@ import { KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED } from "@/cli/codegenie-legal"
 
 // TODO: what is the best way to do this?
 let once = false
+
+const placeholder = {
+  normal: ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"],
+  shell: ["ls -la", "git status", "pwd"],
+}
 
 export function Home() {
   const sync = useSync()
@@ -145,7 +150,7 @@ export function Home() {
           >
             <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
               <TuiPluginRuntime.Slot name="home_logo" mode="replace">
-                <Banner />
+                <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
               </TuiPluginRuntime.Slot>
               <box width="100%" maxWidth={110} zIndex={1000} paddingTop={2} flexShrink={0}>
                 <TuiPluginRuntime.Slot name="home_prompt" mode="replace">
@@ -162,6 +167,7 @@ export function Home() {
                         <Tips connected={providerConnected()} />
                       </Show>
                     }
+                    placeholders={placeholder}
                   />
                 </TuiPluginRuntime.Slot>
               </box>
@@ -170,7 +176,19 @@ export function Home() {
           </box>
         </Show>
         <Show when={devecoReady() === false}>
-          <DevEcoOnboarding onComplete={() => setDevecoReady(true)} />
+          <box
+            paddingLeft={2}
+            paddingRight={2}
+            width="100%"
+            flexDirection="column"
+            alignItems="center"
+            flexShrink={0}
+            paddingTop={1}
+          >
+            <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
+              <DevEcoOnboarding onComplete={() => setDevecoReady(true)} />
+            </box>
+          </box>
         </Show>
         <box flexGrow={1} minHeight={0} flexShrink={1} />
         <Toast />

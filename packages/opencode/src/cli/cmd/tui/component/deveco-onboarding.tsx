@@ -1,4 +1,4 @@
-import { Show, createSignal, createMemo, For, createEffect } from "solid-js"
+import { Show, createSignal, createMemo, For, createEffect, type ParentProps } from "solid-js"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { ScrollBoxRenderable, TextareaRenderable } from "@opentui/core"
 import { useTheme } from "@tui/context/theme"
@@ -12,12 +12,22 @@ import { Link } from "../ui/link"
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from "@/plugin/deveco"
 import { useKV } from "@tui/context/kv"
 import { DEVECO_AI_PRIVACY_URL, KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED } from "@/cli/codegenie-legal"
-import { Banner } from "./banner"
+import { Banner, BANNER_HOME_CONTENT_INSET } from "./banner"
 
 type OnboardingStep = "privacy" | "entry" | "auth" | "providers" | "key"
 
 const LIST_HELP = "Use Enter to Select"
 const CONTENT_MAX_WIDTH = 110
+/** Nudge copy/options right so they sit under the centered banner tagline, not the logo's left edge. */
+const CONTENT_PAD_LEFT = 15
+
+function OnboardingContent(props: ParentProps) {
+  return (
+    <box flexDirection="column" width="100%" maxWidth={CONTENT_MAX_WIDTH} paddingLeft={CONTENT_PAD_LEFT}>
+      {props.children}
+    </box>
+  )
+}
 
 function selectionLead(selected: boolean): string {
   return selected ? "● " : "  "
@@ -97,7 +107,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
 
   const providerSearchBoxWidth = createMemo(() => {
     // 75 matches the surrounding maxWidth; clamp to terminal width (minus Home padding).
-    const w = Math.floor(dimensions().width) - 4
+    const w = Math.floor(dimensions().width) - BANNER_HOME_CONTENT_INSET
     return Math.max(16, Math.min(75, w))
   })
 
@@ -505,11 +515,20 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
   })
 
   return (
-    <box flexDirection="column" gap={1} paddingTop={1} flexShrink={0} flexGrow={1} minHeight={0}>
+    <box
+      flexDirection="column"
+      gap={1}
+      paddingTop={1}
+      flexShrink={0}
+      flexGrow={1}
+      minHeight={0}
+      width="100%"
+      alignItems="center"
+    >
       <Show when={step() === "privacy"}>
-        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0}>
-          <Banner />
-          <box flexDirection="column" width="100%" maxWidth={CONTENT_MAX_WIDTH}>
+        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0} width="100%">
+          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
+          <OnboardingContent>
             <text fg={theme.text} selectable={false}>
               Please read and agree to the privacy statement to start the HarmonyOS development journey.
             </text>
@@ -523,13 +542,13 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
               {selectionLead(privacyIndex() === 1)}
               2. No, exit
             </text>
-          </box>
+          </OnboardingContent>
         </box>
       </Show>
       <Show when={step() === "entry"}>
-        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0}>
-          <Banner />
-          <box flexDirection="column" width="100%" maxWidth={CONTENT_MAX_WIDTH}>
+        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0} width="100%">
+          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
+          <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false} marginBottom={1}>
               Get started
             </text>
@@ -542,13 +561,13 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
               2. Other providers
             </text>
             <text fg={theme.textMuted} selectable={false} marginTop={1}>{LIST_HELP}</text>
-          </box>
+          </OnboardingContent>
         </box>
       </Show>
       <Show when={step() === "auth"}>
-        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0}>
-          <Banner />
-          <box flexDirection="column" width="100%" maxWidth={CONTENT_MAX_WIDTH}>
+        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0} width="100%">
+          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
+          <OnboardingContent>
             <text fg={theme.text} selectable={false}>
               Login through a browser
             </text>
@@ -565,13 +584,13 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
                 Press Esc to go back
               </text>
             </Show>
-          </box>
+          </OnboardingContent>
         </box>
       </Show>
       <Show when={step() === "providers"}>
-        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0}>
-          <Banner />
-          <box flexDirection="column" width="100%" maxWidth={CONTENT_MAX_WIDTH}>
+        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0} width="100%">
+          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
+          <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false}>
               Please select provider
             </text>
@@ -607,13 +626,13 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
             <text fg={theme.textMuted} selectable={false} marginTop={1}>
               Use Enter to Select, Esc to Cancel, Type : to search
             </text>
-          </box>
+          </OnboardingContent>
         </box>
       </Show>
       <Show when={step() === "key"}>
-        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0}>
-          <Banner />
-          <box flexDirection="column" width="100%" maxWidth={CONTENT_MAX_WIDTH}>
+        <box flexDirection="column" gap={2} alignItems="center" flexShrink={0} width="100%">
+          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
+          <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false}>
               {pid() ? apiKeyTitle(pid()!) : "Enter API Key"}
             </text>
@@ -648,7 +667,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
             <text fg={theme.textMuted} selectable={false} marginTop={1}>
               Use Enter to submit, Esc to Cancel, Ctrl+C to Clear
             </text>
-          </box>
+          </OnboardingContent>
         </box>
       </Show>
     </box>

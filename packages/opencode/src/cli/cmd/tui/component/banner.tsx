@@ -20,11 +20,17 @@ import {
  * - Taglines below are centered via left-padding (reliable in terminal layouts) and may use per-character gradient.
  */
 
-export function Banner() {
+/** Home / onboarding horizontal padding: outer 2+2 and inner 2+2. */
+export const BANNER_HOME_CONTENT_INSET = 8
+
+export function Banner(props?: { contentInset?: number }) {
   const { theme, mode } = useTheme()
   const dimensions = useTerminalDimensions()
 
-  const width = createMemo(() => Math.max(0, Math.floor(dimensions().width)))
+  const width = createMemo(() => {
+    const inset = props?.contentInset ?? 0
+    return Math.max(0, Math.floor(dimensions().width) - inset)
+  })
   const logoRows = createMemo(() => logoRowsForWidth(width()).slice(0, LOGO_ROW_CAP))
 
   const isLight = createMemo(() => mode() === "light")
