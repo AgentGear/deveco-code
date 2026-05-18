@@ -4,7 +4,6 @@ import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { Decimal } from "decimal.js"
 import { type ProviderMetadata, type LanguageModelUsage } from "ai"
-import { Flag } from "@opencode-ai/core/flag/flag"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 
 import { Database } from "@/storage/db"
@@ -37,31 +36,22 @@ import type { Provider } from "@/provider/provider"
 import { Permission } from "@/permission"
 import { Global } from "@opencode-ai/core/global"
 import { Effect, Layer, Option, Context, Schema, Types } from "effect"
-import { zod } from "@opencode-ai/core/effect-zod"
-import { NonNegativeInt, optionalOmitUndefined, withStatics } from "@opencode-ai/core/schema"
+import { NonNegativeInt, optionalOmitUndefined } from "@opencode-ai/core/schema"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 
 const log = Log.create({ service: "session" })
 
 const parentTitlePrefix = "New session - "
 const childTitlePrefix = "Child session - "
 
-function toLocalTimeString(date: Date): string {
-  return date.toLocaleString()
-}
-
 function createDefaultTitle(isChild = false) {
-  return (isChild ? childTitlePrefix : parentTitlePrefix) + toLocalTimeString(new Date())
+  return (isChild ? childTitlePrefix : parentTitlePrefix) + new Date().toISOString()
 }
 
-export function isDefaultTitle(title: string): boolean {
-  if (!title.startsWith(parentTitlePrefix) && !title.startsWith(childTitlePrefix)) {
-    return false
-  }
-  const timestamp = title.startsWith(parentTitlePrefix)
-    ? title.slice(parentTitlePrefix.length)
-    : title.slice(childTitlePrefix.length)
-  // Check if timestamp is a valid locale string format (contains digits, separators, etc.)
-  return /^\d{1,4}[\s\/\-:].+\d/.test(timestamp)
+export function isDefaultTitle(title: string) {
+  return new RegExp(
+    `^(${parentTitlePrefix}|${childTitlePrefix})\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$`,
+  ).test(title)
 }
 
 type SessionRow = typeof SessionTable.$inferSelect
@@ -97,6 +87,16 @@ export function fromRow(row: SessionRow): Info {
       : undefined,
     version: row.version,
     summary,
+    cost: row.cost,
+    tokens: {
+      input: row.tokens_input,
+      output: row.tokens_output,
+      reasoning: row.tokens_reasoning,
+      cache: {
+        read: row.tokens_cache_read,
+        write: row.tokens_cache_write,
+      },
+    },
     share,
     revert,
     permission: row.permission ?? undefined,
@@ -127,6 +127,12 @@ export function toRow(info: Info) {
     summary_deletions: info.summary?.deletions,
     summary_files: info.summary?.files,
     summary_diffs: info.summary?.diffs,
+    cost: info.cost ?? 0,
+    tokens_input: (info.tokens ?? EmptyTokens).input,
+    tokens_output: (info.tokens ?? EmptyTokens).output,
+    tokens_reasoning: (info.tokens ?? EmptyTokens).reasoning,
+    tokens_cache_read: (info.tokens ?? EmptyTokens).cache.read,
+    tokens_cache_write: (info.tokens ?? EmptyTokens).cache.write,
     revert: info.revert ?? null,
     permission: info.permission,
     time_created: info.time.created,
@@ -157,13 +163,25 @@ const Summary = Schema.Struct({
   diffs: optionalOmitUndefined(Schema.Array(Snapshot.FileDiff)),
 })
 
+const Tokens = Schema.Struct({
+  input: Schema.Finite,
+  output: Schema.Finite,
+  reasoning: Schema.Finite,
+  cache: Schema.Struct({
+    read: Schema.Finite,
+    write: Schema.Finite,
+  }),
+})
+
+const EmptyTokens = { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } }
+
 const Share = Schema.Struct({
   url: Schema.String,
 })
 
-// Legacy HTTP accepted any number here, and persisted data may already contain
-// negative values. Keep archive timestamps permissive while other clocks stay non-negative.
-export const ArchivedTimestamp = Schema.Number
+// Legacy HTTP accepted negative values here. Keep archive timestamps permissive
+// while excluding non-finite values that cannot round-trip through JSON.
+export const ArchivedTimestamp = Schema.Finite
 
 const Time = Schema.Struct({
   created: NonNegativeInt,
@@ -194,6 +212,8 @@ export const Info = Schema.Struct({
   path: optionalOmitUndefined(Schema.String),
   parentID: optionalOmitUndefined(SessionID),
   summary: optionalOmitUndefined(Summary),
+  cost: optionalOmitUndefined(Schema.Finite),
+  tokens: optionalOmitUndefined(Tokens),
   share: optionalOmitUndefined(Share),
   title: Schema.String,
   agent: optionalOmitUndefined(Schema.String),
@@ -202,26 +222,20 @@ export const Info = Schema.Struct({
   time: Time,
   permission: optionalOmitUndefined(Permission.Ruleset),
   revert: optionalOmitUndefined(Revert),
-})
-  .annotate({ identifier: "Session" })
-  .pipe(withStatics((s) => ({ zod: zod(s) })))
+}).annotate({ identifier: "Session" })
 export type Info = Types.DeepMutable<Schema.Schema.Type<typeof Info>>
 
 export const ProjectInfo = Schema.Struct({
   id: ProjectID,
   name: optionalOmitUndefined(Schema.String),
   worktree: Schema.String,
-})
-  .annotate({ identifier: "ProjectSummary" })
-  .pipe(withStatics((s) => ({ zod: zod(s) })))
+}).annotate({ identifier: "ProjectSummary" })
 export type ProjectInfo = Types.DeepMutable<Schema.Schema.Type<typeof ProjectInfo>>
 
 export const GlobalInfo = Schema.Struct({
   ...Info.fields,
   project: Schema.NullOr(ProjectInfo),
-})
-  .annotate({ identifier: "GlobalSession" })
-  .pipe(withStatics((s) => ({ zod: zod(s) })))
+}).annotate({ identifier: "GlobalSession" })
 export type GlobalInfo = Types.DeepMutable<Schema.Schema.Type<typeof GlobalInfo>>
 
 export const CreateInput = Schema.optional(
@@ -233,36 +247,34 @@ export const CreateInput = Schema.optional(
     permission: Schema.optional(Permission.Ruleset),
     workspaceID: Schema.optional(WorkspaceID),
   }),
-).pipe(withStatics((s) => ({ zod: zod(s) })))
+)
 export type CreateInput = Types.DeepMutable<Schema.Schema.Type<typeof CreateInput>>
 
 export const ForkInput = Schema.Struct({
   sessionID: SessionID,
   messageID: Schema.optional(MessageID),
-}).pipe(withStatics((s) => ({ zod: zod(s) })))
+})
 export const GetInput = SessionID
 export const ChildrenInput = SessionID
 export const RemoveInput = SessionID
-export const SetTitleInput = Schema.Struct({ sessionID: SessionID, title: Schema.String }).pipe(
-  withStatics((s) => ({ zod: zod(s) })),
-)
+export const SetTitleInput = Schema.Struct({ sessionID: SessionID, title: Schema.String })
 export const SetArchivedInput = Schema.Struct({
   sessionID: SessionID,
   time: Schema.optional(ArchivedTimestamp),
-}).pipe(withStatics((s) => ({ zod: zod(s) })))
+})
 export const SetPermissionInput = Schema.Struct({
   sessionID: SessionID,
   permission: Permission.Ruleset,
-}).pipe(withStatics((s) => ({ zod: zod(s) })))
+})
 export const SetRevertInput = Schema.Struct({
   sessionID: SessionID,
   revert: Schema.optional(Revert),
   summary: Schema.optional(Summary),
-}).pipe(withStatics((s) => ({ zod: zod(s) })))
+})
 export const MessagesInput = Schema.Struct({
   sessionID: SessionID,
   limit: Schema.optional(NonNegativeInt),
-}).pipe(withStatics((s) => ({ zod: zod(s) })))
+})
 export type ListInput = {
   directory?: string
   scope?: "project"
@@ -299,6 +311,8 @@ const UpdatedInfo = Schema.Struct({
   path: Schema.optional(Schema.NullOr(Schema.String)),
   parentID: Schema.optional(Schema.NullOr(SessionID)),
   summary: Schema.optional(Schema.NullOr(Summary)),
+  cost: Schema.optional(Schema.Finite),
+  tokens: Schema.optional(Tokens),
   share: Schema.optional(UpdatedShare),
   title: Schema.optional(Schema.NullOr(Schema.String)),
   agent: Schema.optional(Schema.NullOr(Schema.String)),
@@ -404,10 +418,14 @@ export const getUsage = (input: { model: Provider.Model; usage: LanguageModelUsa
     },
   }
 
+  const contextTokens = inputTokens
   const costInfo =
-    input.model.cost?.experimentalOver200K && tokens.input + tokens.cache.read > 200_000
+    input.model.cost?.tiers
+      ?.filter((item) => item.tier.type === "context" && contextTokens > item.tier.size)
+      .sort((a, b) => b.tier.size - a.tier.size)[0] ??
+    (input.model.cost?.experimentalOver200K && contextTokens > 200_000
       ? input.model.cost.experimentalOver200K
-      : input.model.cost
+      : input.model.cost)
   return {
     cost: safe(
       new Decimal(0)
@@ -430,7 +448,7 @@ export class BusyError extends Error {
   }
 }
 
-export type NotFound = InstanceType<typeof NotFoundError>
+export type NotFound = NotFoundError
 
 export interface Interface {
   readonly list: (input?: ListInput) => Effect.Effect<Info[]>
@@ -456,7 +474,7 @@ export interface Interface {
   readonly clearRevert: (sessionID: SessionID) => Effect.Effect<void>
   readonly setSummary: (input: { sessionID: SessionID; summary: Info["summary"] }) => Effect.Effect<void>
   readonly diff: (sessionID: SessionID) => Effect.Effect<Snapshot.FileDiff[]>
-  readonly messages: (input: { sessionID: SessionID; limit?: number }) => Effect.Effect<MessageV2.WithParts[]>
+  readonly messages: (input: { sessionID: SessionID; limit?: number }) => Effect.Effect<MessageV2.WithParts[], NotFound>
   readonly children: (parentID: SessionID) => Effect.Effect<Info[]>
   readonly remove: (sessionID: SessionID) => Effect.Effect<void, NotFound>
   readonly updateMessage: <T extends MessageV2.Info>(msg: T) => Effect.Effect<T>
@@ -479,7 +497,7 @@ export interface Interface {
   readonly findMessage: (
     sessionID: SessionID,
     predicate: (msg: MessageV2.WithParts) => boolean,
-  ) => Effect.Effect<Option.Option<MessageV2.WithParts>>
+  ) => Effect.Effect<Option.Option<MessageV2.WithParts>, NotFound>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Session") {}
@@ -489,12 +507,17 @@ export type Patch = Types.DeepMutable<SyncEvent.Event<typeof Event.Updated>["dat
 const db = <T>(fn: (d: Parameters<typeof Database.use>[0] extends (trx: infer D) => any ? D : never) => T) =>
   Effect.sync(() => Database.use(fn))
 
-export const layer: Layer.Layer<Service, never, Bus.Service | Storage.Service | SyncEvent.Service> = Layer.effect(
+export const layer: Layer.Layer<
+  Service,
+  never,
+  Bus.Service | Storage.Service | SyncEvent.Service | RuntimeFlags.Service
+> = Layer.effect(
   Service,
   Effect.gen(function* () {
     const bus = yield* Bus.Service
     const storage = yield* Storage.Service
     const sync = yield* SyncEvent.Service
+    const flags = yield* RuntimeFlags.Service
 
     const createNext = Effect.fn("Session.createNext")(function* (input: {
       id?: SessionID
@@ -521,6 +544,8 @@ export const layer: Layer.Layer<Service, never, Bus.Service | Storage.Service | 
         agent: input.agent,
         model: input.model,
         permission: input.permission,
+        cost: 0,
+        tokens: EmptyTokens,
         time: {
           created: Date.now(),
           updated: Date.now(),
@@ -530,7 +555,7 @@ export const layer: Layer.Layer<Service, never, Bus.Service | Storage.Service | 
 
       yield* sync.run(Event.Created, { sessionID: result.id, info: result })
 
-      if (!Flag.DEVECO_EXPERIMENTAL_WORKSPACES) {
+      if (!flags.experimentalWorkspaces) {
         // This only exist for backwards compatibility. We should not be
         // manually publishing this event; it is a sync event now
         yield* bus.publish(Event.Updated, {
@@ -550,7 +575,9 @@ export const layer: Layer.Layer<Service, never, Bus.Service | Storage.Service | 
 
     const list = Effect.fn("Session.list")(function* (input?: ListInput) {
       const ctx = yield* InstanceState.context
-      return Array.from(listByProject({ projectID: ctx.project.id, ...input }))
+      return Array.from(
+        listByProject({ projectID: ctx.project.id, experimentalWorkspaces: flags.experimentalWorkspaces, ...input }),
+      )
     })
 
     const children = Effect.fn("Session.children")(function* (parentID: SessionID) {
@@ -737,11 +764,25 @@ export const layer: Layer.Layer<Service, never, Bus.Service | Storage.Service | 
         .pipe(Effect.orElseSucceed((): Snapshot.FileDiff[] => []))
     })
 
-    const messages = Effect.fn("Session.messages")(function* (input: { sessionID: SessionID; limit?: number }) {
+    const messages: Interface["messages"] = Effect.fn("Session.messages")(function* (input) {
       if (input.limit) {
-        return MessageV2.page({ sessionID: input.sessionID, limit: input.limit }).items
+        return (yield* MessageV2.page({ sessionID: input.sessionID, limit: input.limit })).items
       }
-      return Array.from(MessageV2.stream(input.sessionID)).reverse()
+
+      const size = 50
+      const result = [] as MessageV2.WithParts[]
+      let before: string | undefined
+      while (true) {
+        const page = yield* MessageV2.page({ sessionID: input.sessionID, limit: size, before })
+        if (page.items.length === 0) break
+        for (let i = page.items.length - 1; i >= 0; i--) {
+          const item = page.items[i]
+          if (item) result.push(item)
+        }
+        if (!page.more || !page.cursor) break
+        before = page.cursor
+      }
+      return result.reverse()
     })
 
     const removeMessage = Effect.fn("Session.removeMessage")(function* (input: {
@@ -779,12 +820,18 @@ export const layer: Layer.Layer<Service, never, Bus.Service | Storage.Service | 
     })
 
     /** Finds the first message matching the predicate, searching newest-first. */
-    const findMessage = Effect.fn("Session.findMessage")(function* (
-      sessionID: SessionID,
-      predicate: (msg: MessageV2.WithParts) => boolean,
-    ) {
-      for (const item of MessageV2.stream(sessionID)) {
-        if (predicate(item)) return Option.some(item)
+    const findMessage: Interface["findMessage"] = Effect.fn("Session.findMessage")(function* (sessionID, predicate) {
+      const size = 50
+      let before: string | undefined
+      while (true) {
+        const page = yield* MessageV2.page({ sessionID, limit: size, before })
+        if (page.items.length === 0) break
+        for (let i = page.items.length - 1; i >= 0; i--) {
+          const item = page.items[i]
+          if (item && predicate(item)) return Option.some(item)
+        }
+        if (!page.more || !page.cursor) break
+        before = page.cursor
       }
       return Option.none<MessageV2.WithParts>()
     })
@@ -820,11 +867,13 @@ export const defaultLayer = layer.pipe(
   Layer.provide(Bus.layer),
   Layer.provide(Storage.defaultLayer),
   Layer.provide(SyncEvent.defaultLayer),
+  Layer.provide(RuntimeFlags.defaultLayer),
 )
 
 function* listByProject(
   input: ListInput & {
     projectID: ProjectID
+    experimentalWorkspaces: boolean
   },
 ) {
   const conditions = [eq(SessionTable.project_id, input.projectID)]
@@ -832,7 +881,7 @@ function* listByProject(
   if (input.workspaceID) {
     conditions.push(eq(SessionTable.workspace_id, input.workspaceID))
   }
-if (input.path !== undefined) {
+  if (input.path !== undefined) {
     if (input.path) {
       const conds = [eq(SessionTable.path, input.path), like(SessionTable.path, `${input.path}/%`)]
 
@@ -842,7 +891,7 @@ if (input.path !== undefined) {
           : or(...conds)!,
       )
     }
-} else if (input.scope !== "project" && !Flag.DEVECO_EXPERIMENTAL_WORKSPACES) {
+  } else if (input.scope !== "project" && !input.experimentalWorkspaces) {
     if (input.directory) {
       conditions.push(eq(SessionTable.directory, input.directory))
     }

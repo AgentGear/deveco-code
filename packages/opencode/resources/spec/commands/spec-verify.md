@@ -48,6 +48,21 @@ Validate in order using `Confirmed_Feature_Dir`. Skip on failure (except critica
     - *Rejected* → Log reason, skip `verify_ui`, terminate UI workflow.
 4. **`verify_ui`**: Execute only upon plan approval + valid envs.
 
-### Phase 3: Termination & Reporting
-- **Stop**: Halt completely after Phase 2. Await user instruction.
-- **Report**: Output summary covering: directory confirmation status, step-by-step results (executed/skipped/failed + reasons), test plan overview, approval result, and verification outputs/errors.
+### Phase 3: Result Review & Re-Verification Loop
+1. **Report**: Output summary covering: directory confirmation status, step-by-step results (executed/skipped/failed + reasons), test plan overview, approval result, and verification outputs/errors.
+2. **Review Gate**: Call `question` tool with these options:
+    - "Wrap up and finish"
+    - "There are remaining issues"
+    - "I want to do more testing"
+3. **Gate Action**:
+    - *"Wrap up and finish"* → Halt. Await user instruction.
+    - *"There are remaining issues"* → Proceed to step 4.
+    - *"I want to do more testing"* → Return to Phase 2 step 3 (regenerate test plan and re-run `verify_ui` with existing package).
+4. **Fix → Re-verify Cycle** (triggered by "There are remaining issues"):
+    1. Apply code fixes in `src/` to address the reported `verify_ui` failures.
+    2. Execute `build_project` to recompile with the fixed code.
+    3. Execute `start_app` to push the new package to the device/emulator.
+    4. Execute `verify_ui` with the same (or user-adjusted) test plan.
+    5. Output re-verification summary comparing previous and current results.
+    6. Return to step 2 (Review Gate) of this phase.
+5. **Loop Limit**: Maximum **3 iterations**. If issues persist after 3 rounds, halt and output a detailed failure report for manual intervention.

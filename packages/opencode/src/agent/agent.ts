@@ -1,16 +1,14 @@
 import { Config } from "@/config/config"
-import z from "zod"
 import { Provider } from "@/provider/provider"
 import { ModelID, ProviderID } from "../provider/schema"
 import { generateObject, streamObject, type ModelMessage } from "ai"
 import { Truncate } from "@/tool/truncate"
 import { Auth } from "../auth"
 import { ProviderTransform } from "@/provider/transform"
-import * as Log from "@opencode-ai/core/util/log"
-
-const log = Log.create({ service: "agent" })
 
 import PROMPT_GENERATE from "./generate.txt"
+import PROMPT_BUILD from "./prompt/build.txt"
+import PROMPT_PLAN from "./prompt/plan.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SCOUT from "./prompt/scout.txt"
@@ -19,17 +17,15 @@ import PROMPT_TITLE from "./prompt/title.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@opencode-ai/core/global"
-import { Flag } from "@opencode-ai/core/flag/flag"
 import path from "path"
 import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
 import { Effect, Context, Layer, Schema } from "effect"
 import { InstanceState } from "@/effect/instance-state"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import * as Option from "effect/Option"
 import * as OtelTracer from "@effect/opentelemetry/Tracer"
-import { zod } from "@opencode-ai/core/effect-zod"
-import { withStatics, type DeepMutable } from "@opencode-ai/core/schema"
-import { Reference } from "@/reference/reference"
+import { type DeepMutable } from "@opencode-ai/core/schema"
 
 export const Info = Schema.Struct({
   name: Schema.String,
@@ -51,14 +47,19 @@ export const Info = Schema.Struct({
   prompt: Schema.optional(Schema.String),
   options: Schema.Record(Schema.String, Schema.Unknown),
   steps: Schema.optional(Schema.Finite),
-})
-  .annotate({ identifier: "Agent" })
-  .pipe(withStatics((s) => ({ zod: zod(s) })))
+}).annotate({ identifier: "Agent" })
 export type Info = DeepMutable<Schema.Schema.Type<typeof Info>>
+
+const GeneratedAgent = Schema.Struct({
+  identifier: Schema.String,
+  whenToUse: Schema.String,
+  systemPrompt: Schema.String,
+})
 
 export interface Interface {
   readonly get: (agent: string) => Effect.Effect<Info>
   readonly list: () => Effect.Effect<Info[]>
+  readonly defaultInfo: () => Effect.Effect<Info>
   readonly defaultAgent: () => Effect.Effect<string>
   readonly generate: (input: {
     description: string
@@ -82,6 +83,7 @@ export const layer = Layer.effect(
     const plugin = yield* Plugin.Service
     const skill = yield* Skill.Service
     const provider = yield* Provider.Service
+    const flags = yield* RuntimeFlags.Service
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("Agent.state")(function* (ctx) {
@@ -129,13 +131,13 @@ export const layer = Layer.effect(
               defaults,
               Permission.fromConfig({
                 question: "allow",
-                plan_enter: "ask",
-                plan_write: "deny",
+                plan_enter: "allow",
               }),
               user,
             ),
             mode: "primary",
             native: true,
+            prompt: PROMPT_BUILD,
           },
           plan: {
             name: "plan",
@@ -145,26 +147,21 @@ export const layer = Layer.effect(
               defaults,
               Permission.fromConfig({
                 question: "allow",
-                plan_exit: "ask",
-                plan_write: "allow",
-                bash: "deny",
-                build_project: "deny",
-                check_ets_files: "deny",
-                perform_ui_action: "deny",
-                get_app_ui_tree: "deny",
-                start_app: "deny",
-                hdc_log: "deny",
-                switch_cwd: "deny",
-                arkts_knowledge_search: "deny",
+                plan_exit: "allow",
                 external_directory: {
                   [path.join(Global.Path.data, "plans", "*")]: "allow",
                 },
-                edit: "deny",
+                edit: {
+                  "*": "deny",
+                  [path.join(".opencode", "plans", "*.md")]: "allow",
+                  [path.relative(ctx.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
+                },
               }),
               user,
             ),
             mode: "primary",
             native: true,
+            prompt: PROMPT_PLAN,
           },
           general: {
             name: "general",
@@ -203,7 +200,7 @@ export const layer = Layer.effect(
             mode: "subagent",
             native: true,
           },
-          ...(Flag.DEVECO_EXPERIMENTAL_SCOUT
+          ...(flags.experimentalScout
             ? {
                 scout: {
                   name: "scout",
@@ -215,7 +212,6 @@ export const layer = Layer.effect(
                       glob: "allow",
                       webfetch: "allow",
                       websearch: "allow",
-                      codesearch: "allow",
                       read: "allow",
                       repo_clone: "allow",
                       repo_overview: "allow",
@@ -311,76 +307,6 @@ export const layer = Layer.effect(
           item.permission = Permission.merge(item.permission, Permission.fromConfig(value.permission ?? {}))
         }
 
-        function referencePrompt(reference: Reference.Resolved) {
-          if (reference.kind === "local") {
-            return [
-              `You are configured reference @${reference.name}, a read-only research agent for external reference material.`,
-              `Local directory: ${reference.path}`,
-              `Inspect this directory as the primary reference source. Prefer repo_overview with path ${JSON.stringify(reference.path)} before broader searches. Do not edit files.`,
-              `Return exact absolute file paths for findings whenever possible.`,
-            ].join("\n\n")
-          }
-
-          if (reference.kind === "invalid") {
-            return [
-              `You are configured reference @${reference.name}, but this reference is not usable yet.`,
-              `Configured repository: ${reference.repository}`,
-              `Problem: ${reference.message}`,
-              `Explain this configuration problem if invoked. Do not edit files or attempt fallback clones.`,
-            ].join("\n\n")
-          }
-
-          return [
-            `You are configured reference @${reference.name}, a read-only research agent for external reference material.`,
-            `Repository: ${reference.repository}`,
-            ...(reference.branch ? [`Branch/ref: ${reference.branch}`] : []),
-            `Cached directory: ${reference.path}`,
-            `OpenCode materializes this configured repository before use. Do not call repo_clone for this reference.`,
-            `Inspect the cached directory as the primary reference source. Prefer repo_overview with path ${JSON.stringify(reference.path)} before broader searches, then use Glob, Grep, and Read inside that directory. Do not edit files.`,
-            `Return exact absolute file paths for findings whenever possible.`,
-          ].join("\n\n")
-        }
-
-        function referenceDescription(reference: Reference.Resolved) {
-          if (reference.kind === "local") return `Scout reference for local directory ${reference.path}`
-          if (reference.kind === "git") return `Scout reference for repository ${reference.repository}`
-          return `Invalid Scout reference for repository ${reference.repository}`
-        }
-
-        if (Flag.DEVECO_EXPERIMENTAL_SCOUT) {
-          const resolvedReferences = Reference.resolveAll({
-            references: cfg.reference ?? {},
-            directory: ctx.directory,
-            worktree: ctx.worktree,
-          })
-          for (const resolved of resolvedReferences) {
-            if (agents[resolved.name]) continue
-            const localPath = resolved.kind === "invalid" ? undefined : resolved.path
-            agents[resolved.name] = {
-              name: resolved.name,
-              description: referenceDescription(resolved),
-              permission: Permission.merge(
-                agents.scout.permission,
-                Permission.fromConfig({
-                  repo_clone: "deny",
-                  ...(localPath
-                    ? {
-                        external_directory: {
-                          [localPath]: "allow",
-                          [path.join(localPath, "*")]: "allow",
-                        },
-                      }
-                    : {}),
-                }),
-              ),
-              prompt: referencePrompt(resolved),
-              options: { reference: cfg.reference?.[resolved.name], resolved },
-              mode: "subagent",
-              native: false,
-            }
-          }
-        }
-
         // Ensure Truncate.GLOB is allowed unless explicitly configured
         for (const name in agents) {
           const agent = agents[name]
@@ -413,23 +339,28 @@ export const layer = Layer.effect(
           )
         })
 
-        const defaultAgent = Effect.fnUntraced(function* () {
+        const defaultInfo = Effect.fnUntraced(function* () {
           const c = yield* config.get()
           if (c.default_agent) {
             const agent = agents[c.default_agent]
             if (!agent) throw new Error(`default agent "${c.default_agent}" not found`)
             if (agent.mode === "subagent") throw new Error(`default agent "${c.default_agent}" is a subagent`)
             if (agent.hidden === true) throw new Error(`default agent "${c.default_agent}" is hidden`)
-            return agent.name
+            return agent
           }
           const visible = Object.values(agents).find((a) => a.mode !== "subagent" && a.hidden !== true)
           if (!visible) throw new Error("no primary visible agent found")
-          return visible.name
+          return visible
+        })
+
+        const defaultAgent = Effect.fnUntraced(function* () {
+          return (yield* defaultInfo()).name
         })
 
         return {
           get,
           list,
+          defaultInfo,
           defaultAgent,
         } satisfies State
       }),
@@ -441,6 +372,9 @@ export const layer = Layer.effect(
       }),
       list: Effect.fn("Agent.list")(function* () {
         return yield* InstanceState.useEffect(state, (s) => s.list())
+      }),
+      defaultInfo: Effect.fn("Agent.defaultInfo")(function* () {
+        return yield* InstanceState.useEffect(state, (s) => s.defaultInfo())
       }),
       defaultAgent: Effect.fn("Agent.defaultAgent")(function* () {
         return yield* InstanceState.useEffect(state, (s) => s.defaultAgent())
@@ -489,15 +423,10 @@ export const layer = Layer.effect(
             },
           ],
           model: language,
-          schema: z.object({
-            identifier: z.string(),
-            whenToUse: z.string(),
-            systemPrompt: z.string(),
-          }),
-          experimental_repairText: async ({ text }: { text: string }) => {
-            // Some models wrap JSON in markdown code blocks (```json ... ```)
-            return text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/, "")
-          },
+          schema: Object.assign(
+            Schema.toStandardSchemaV1(GeneratedAgent),
+            Schema.toStandardJSONSchemaV1(GeneratedAgent),
+          ),
         } satisfies Parameters<typeof generateObject>[0]
 
         if (isOpenaiOauth) {
@@ -517,20 +446,7 @@ export const layer = Layer.effect(
           })
         }
 
-        return yield* Effect.promise(() =>
-          generateObject(params)
-            .then((r) => r.object)
-            .catch((err) => {
-              log.error("generateObject failed", {
-                provider: model.providerID,
-                model: model.modelID,
-                error: err.message,
-                cause: err.cause instanceof Error ? err.cause.message : err.cause,
-                text: err.text ? String(err.text).slice(0, 500) : undefined,
-              })
-              throw err
-            }),
-        )
+        return yield* Effect.promise(() => generateObject(params).then((r) => r.object))
       }),
     })
   }),
@@ -542,6 +458,7 @@ export const defaultLayer = layer.pipe(
   Layer.provide(Auth.defaultLayer),
   Layer.provide(Config.defaultLayer),
   Layer.provide(Skill.defaultLayer),
+  Layer.provide(RuntimeFlags.defaultLayer),
 )
 
 export * as Agent from "./agent"

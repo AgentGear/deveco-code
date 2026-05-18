@@ -9,7 +9,7 @@ import {
   type Renderable,
 } from "@opentui/core"
 import type { CommandContext } from "@opentui/keymap"
-import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
+import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match, batch } from "solid-js"
 import "opentui-spinner/solid"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -348,6 +348,7 @@ export function Prompt(props: PromptProps) {
 
   const usage = createMemo(() => {
     if (!props.sessionID) return
+    const session = sync.session.get(props.sessionID)
     const msg = sync.data.message[props.sessionID] ?? []
     const last = msg.findLast((item): item is AssistantMessage => item.role === "assistant" && item.tokens.output > 0)
     if (!last) return
@@ -358,7 +359,7 @@ export function Prompt(props: PromptProps) {
 
     const model = sync.data.provider.find((item) => item.id === last.providerID)?.models[last.modelID]
     const pct = model?.limit.context ? `${Math.round((tokens / model.limit.context) * 100)}%` : undefined
-    const cost = msg.reduce((sum, item) => sum + (item.role === "assistant" ? item.cost : 0), 0)
+    const cost = session?.cost ?? 0
     return {
       context: pct ? `${Locale.number(tokens)} (${pct})` : Locale.number(tokens),
       cost: cost > 0 ? money.format(cost) : undefined,
@@ -937,13 +938,7 @@ export function Prompt(props: PromptProps) {
       target: inputTarget,
       enabled: (() => {
         cursorVersion()
-        return (
-          inputTarget() !== undefined &&
-          !props.disabled &&
-          !auto()?.visible &&
-          input !== undefined &&
-          (input.cursorOffset === 0 || input.visualCursor.visualRow === 0)
-        )
+        return inputTarget() !== undefined && !props.disabled && !auto()?.visible && input !== undefined
       })(),
       commands: [
         {
@@ -952,12 +947,12 @@ export function Prompt(props: PromptProps) {
           category: "Prompt",
           run() {
             if (input.cursorOffset !== 0) {
-              input.cursorOffset = 0
-              return
+              if (input.scrollY + input.visualCursor.visualRow === 0) input.cursorOffset = 0
+              return false
             }
 
             const item = history.move(-1, input.plainText)
-            if (!item) return
+            if (!item) return false
             input.setText(item.input)
             setStore("prompt", item)
             setStore("mode", item.mode ?? "normal")
@@ -975,13 +970,7 @@ export function Prompt(props: PromptProps) {
       target: inputTarget,
       enabled: (() => {
         cursorVersion()
-        return (
-          inputTarget() !== undefined &&
-          !props.disabled &&
-          !auto()?.visible &&
-          input !== undefined &&
-          (input.cursorOffset === input.plainText.length || input.visualCursor.visualRow === input.height - 1)
-        )
+        return inputTarget() !== undefined && !props.disabled && !auto()?.visible && input !== undefined
       })(),
       commands: [
         {
@@ -990,12 +979,16 @@ export function Prompt(props: PromptProps) {
           category: "Prompt",
           run() {
             if (input.cursorOffset !== input.plainText.length) {
-              input.cursorOffset = input.plainText.length
-              return
+              if (
+                input.scrollY + input.visualCursor.visualRow ===
+                Math.max(0, input.editorView.getTotalVirtualLineCount() - 1)
+              )
+                input.cursorOffset = input.plainText.length
+              return false
             }
 
             const item = history.move(1, input.plainText)
-            if (!item) return
+            if (!item) return false
             input.setText(item.input)
             setStore("prompt", item)
             setStore("mode", item.mode ?? "normal")
@@ -1008,7 +1001,24 @@ export function Prompt(props: PromptProps) {
     }
   })
 
+  let submitting = false
   async function submit() {
+    // Prevent overlapping invocations (e.g. a double-pressed Enter, or the
+    // input's native onSubmit racing another dispatch). Without this guard,
+    // a second call slips past the empty-input check before the first call
+    // clears `store.prompt.input`, then awaits its own `session.create` and
+    // ultimately reads the now-empty store — sending a phantom empty prompt
+    // to a freshly created session.
+    if (submitting) return false
+    submitting = true
+    try {
+      return await submitInner()
+    } finally {
+      submitting = false
+    }
+  }
+
+  async function submitInner() {
     setWarpNotice(undefined)
 
     // IME: double-defer may fire before onContentChange flushes the last
@@ -1707,6 +1717,34 @@ export function Prompt(props: PromptProps) {
                   </box>
                   <box flexDirection="row" gap={1} flexShrink={0}>
                     {(() => {
+                      const isQueue = createMemo(() => {
+                        const s = status()
+                        if (s.type !== "retry") return false
+                        return s.message.includes("in queue")
+                      })
+                      // Snail animation for queue
+                      // macOS 🐌 faces right, Windows 🐌 faces left — put flag where snail crawls toward
+                      const snailToRight = process.platform !== "win32"
+                      const SNAIL_TRACK_WIDTH = 20
+                      const [snailPos, setSnailPos] = createSignal(0)
+                      onMount(() => {
+                        if (!kv.get("animations_enabled", true)) return
+                        const timer = setInterval(() => {
+                          setSnailPos((p) => (p + 1) % SNAIL_TRACK_WIDTH)
+                        }, 400)
+                        onCleanup(() => clearInterval(timer))
+                      })
+                      const snailFrame = createMemo(() => {
+                        const raw = snailPos()
+                        // Windows snail faces left: reverse position so it moves left toward flag
+                        const p = snailToRight ? raw : SNAIL_TRACK_WIDTH - 1 - raw
+                        const before = ".".repeat(p)
+                        const after = ".".repeat(SNAIL_TRACK_WIDTH - p - 1)
+                        return snailToRight
+                          ? `${before}🐌${after}🏁`
+                          : `🏁${before}🐌${after}`
+                      })
+
                       const retry = createMemo(() => {
                         const s = status()
                         if (s.type !== "retry") return
@@ -1756,9 +1794,22 @@ export function Prompt(props: PromptProps) {
 
                       return (
                         <Show when={retry()}>
-                          <box onMouseUp={handleMessageClick}>
-                            <text fg={theme.error}>{retryText()}</text>
-                          </box>
+                          <Switch>
+                            <Match when={isQueue()}>
+                              <box flexDirection="row" gap={1}>
+                                <text fg={theme.info}>{message() ?? ""}</text>
+                                <text fg={theme.textMuted}>[retrying {(() => { const d = formatDuration(seconds()); return d ? `in ${d} ` : "" })()}attempt #{retry()!.attempt}]</text>
+                                <Show when={kv.get("animations_enabled", true)}>
+                                  <text fg={theme.textMuted}>{snailFrame()}</text>
+                                </Show>
+                              </box>
+                            </Match>
+                            <Match when={true}>
+                              <box onMouseUp={handleMessageClick}>
+                                <text fg={theme.error}>{retryText()}</text>
+                              </box>
+                            </Match>
+                          </Switch>
                         </Show>
                       )
                     })()}
@@ -1822,7 +1873,12 @@ export function Prompt(props: PromptProps) {
                   alignItems="center"
                   flexShrink={0}
                 >
-                  <box flexShrink={0}>
+                  <box gap={2} flexDirection="row" flexShrink={0}>
+                    <Show when={editorContextLabelState() !== "none" ? editorFileLabelDisplay() : undefined}>
+                      {(file) => (
+                        <text fg={editorContextLabelState() === "pending" ? theme.secondary : theme.textMuted}>{file()}</text>
+                      )}
+                    </Show>
                     <IdleKeybindHintRow />
                   </box>
                   <Show when={props.footerRight}>

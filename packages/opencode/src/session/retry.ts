@@ -2,6 +2,7 @@ import type { NamedError } from "@opencode-ai/core/util/error"
 import { Cause, Clock, Duration, Effect, Schedule } from "effect"
 import { MessageV2 } from "./message-v2"
 import { iife } from "@/util/iife"
+import { isRecord } from "@/util/record"
 import * as Log from "@opencode-ai/core/util/log"
 
 const log = Log.create({ service: "session.retry" })
@@ -69,6 +70,10 @@ export function delay(attempt: number, error?: MessageV2.APIError) {
 export function retryable(error: Err, provider: string) {
   // context overflow errors should not be retried
   if (MessageV2.ContextOverflowError.isInstance(error)) return undefined
+  if (MessageV2.QueueError.isInstance(error)) {
+    log.error("queue error matched", {position: error.data.position, message: error.data.message})
+    return { message: `High traffic, you are #${error.data.position} in queue. Please wait.`}
+  }
   if (MessageV2.APIError.isInstance(error)) {
     const status = error.data.statusCode
     // 5xx errors are transient server failures and should always be retried,
@@ -124,7 +129,7 @@ export function retryable(error: Err, provider: string) {
   }
 
   // Check for rate limit patterns in plain text error messages
-  const msg = error.data?.message
+  const msg = isRecord(error.data) ? error.data.message : undefined
   if (typeof msg === "string") {
     const lower = msg.toLowerCase()
     if (
@@ -136,7 +141,7 @@ export function retryable(error: Err, provider: string) {
     }
   }
 
-  const json = parseJSON(error.data?.message)
+  const json = parseJSON(msg)
   if (!json || typeof json !== "object") return undefined
   const code = typeof json.code === "string" ? json.code : ""
 
@@ -187,12 +192,6 @@ export function policy(opts: {
       return Effect.gen(function* () {
         const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined)
         const now = yield* Clock.currentTimeMillis
-        log.warn("retrying request", {
-          provider: opts.provider,
-          attempt: meta.attempt,
-          delayMs: wait,
-          message: retry.message,
-        })
         yield* opts.set({
           attempt: meta.attempt,
           message: retry.message,

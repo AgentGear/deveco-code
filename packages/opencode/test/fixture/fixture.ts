@@ -87,7 +87,7 @@ export async function tmpdir<T>(options?: TmpDirOptions<T>) {
   }
   if (options?.config) {
     await Bun.write(
-      path.join(dirpath, "opencode.json"),
+      path.join(dirpath, "deveco.json"),
       JSON.stringify({
         $schema: "https://opencode.ai/config.json",
         ...options.config,
@@ -135,13 +135,13 @@ export function tmpdirScoped(options?: { git?: boolean; config?: Partial<Config.
       yield* git("config", "commit.gpgsign", "false")
       yield* git("config", "user.email", "test@opencode.test")
       yield* git("config", "user.name", "Test")
-      yield* git("commit", "--allow-empty", "-m", "root commit")
+      yield* git("commit", "--allow-empty", "-m", `root commit ${dir}`)
     }
 
     if (options?.config) {
       yield* Effect.promise(() =>
         fs.writeFile(
-          path.join(dir, "opencode.json"),
+          path.join(dir, "deveco.json"),
           JSON.stringify({ $schema: "https://opencode.ai/config.json", ...options.config }),
         ),
       )
