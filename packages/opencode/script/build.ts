@@ -53,6 +53,9 @@ async function walk(directory: string): Promise<string[]> {
   async function recurse(dir: string) {
     for (const entry of await fs.promises.readdir(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name)
+      if (entry.isSymbolicLink()) {
+        continue
+      }
       if (entry.isDirectory()) {
         await recurse(full)
       } else if (entry.name !== ".DS_Store") {
@@ -75,7 +78,7 @@ if (fs.existsSync(defaultSkillsDir)) {
     const files: Record<string, EmbeddedFile> = {}
     const skillPath = path.join(defaultSkillsDir, entry.name)
     for (const file of await walk(skillPath)) {
-      const rel = path.relative(skillPath, file)
+      const rel = path.relative(skillPath, file).replaceAll("\\", "/")
       files[rel] = binaryExtensions.has(path.extname(file).toLowerCase())
         ? { encoding: "base64", content: Buffer.from(await Bun.file(file).arrayBuffer()).toString("base64") }
         : await Bun.file(file).text()
@@ -93,7 +96,7 @@ if (fs.existsSync(defaultSpecDir)) {
       const files: Record<string, EmbeddedFile> = {}
       const specPath = path.join(defaultSpecDir, entry.name)
       for (const file of await walk(specPath)) {
-        const rel = path.relative(specPath, file)
+        const rel = path.relative(specPath, file).replaceAll("\\", "/")
         files[rel] = binaryExtensions.has(path.extname(file).toLowerCase())
           ? { encoding: "base64", content: Buffer.from(await Bun.file(file).arrayBuffer()).toString("base64") }
           : await Bun.file(file).text()
