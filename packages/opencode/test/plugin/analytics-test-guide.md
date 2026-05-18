@@ -101,9 +101,9 @@ bun run dev
 
 | 文件 | 路径 |
 |------|------|
-| 待上报事件 | `{xdgData}/codegenie/analytics/analytics.json` |
-| 设备唯一标识 | `{xdgData}/codegenie/analytics/uid` |
-| 调试日志 | `{xdgData}/codegenie/analytics/log/analytics.log` |
+| 待上报事件 | `{xdgData}/deveco/analytics/analytics.json` |
+| 设备唯一标识 | `{xdgData}/deveco/analytics/uid` |
+| 调试日志 | `{xdgData}/deveco/analytics/log/analytics.log` |
 
 其中 `xdgData` 由 `xdg-basedir` 解析，默认为 `~/.local/share`（macOS/Linux 一致），除非设置了 `XDG_DATA_HOME` 环境变量。
 

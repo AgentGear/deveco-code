@@ -11,7 +11,7 @@ import { DialogPrompt } from "@tui/ui/dialog-prompt"
 import { Link } from "../ui/link"
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from "@/plugin/deveco"
 import { useKV } from "@tui/context/kv"
-import { DEVECO_AI_PRIVACY_URL, KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED } from "@/cli/codegenie-legal"
+import { DEVECO_AI_PRIVACY_URL, KV_DEVECO_CODE_PRIVACY_ACCEPTED } from "@/cli/deveco-legal"
 import { Banner } from "./banner"
 
 type OnboardingStep = "privacy" | "entry" | "auth" | "providers" | "key"
@@ -47,7 +47,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
   const sdk = useSDK()
   const kv = useKV()
 
-  const privacyOk = () => kv.get(KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED, false) === true
+  const privacyOk = () => kv.get(KV_DEVECO_CODE_PRIVACY_ACCEPTED, false) === true
   const [step, setStep] = createSignal<OnboardingStep>(privacyOk() ? "entry" : "privacy")
   const [privacyIndex, setPrivacyIndex] = createSignal(0)
   const [entryIndex, setEntryIndex] = createSignal(0)
@@ -361,7 +361,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
       if (evt.name === "return") {
         evt.preventDefault()
         if (privacyIndex() === 0) {
-          kv.set(KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED, true)
+          kv.set(KV_DEVECO_CODE_PRIVACY_ACCEPTED, true)
           setStep("entry")
         } else {
           void exit()
