@@ -7,6 +7,8 @@ import { Auth } from "../auth"
 import { ProviderTransform } from "@/provider/transform"
 
 import PROMPT_GENERATE from "./generate.txt"
+import PROMPT_BUILD from "./prompt/build.txt"
+import PROMPT_PLAN from "./prompt/plan.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SCOUT from "./prompt/scout.txt"
@@ -135,6 +137,7 @@ export const layer = Layer.effect(
             ),
             mode: "primary",
             native: true,
+            prompt: PROMPT_BUILD,
           },
           plan: {
             name: "plan",
@@ -158,6 +161,7 @@ export const layer = Layer.effect(
             ),
             mode: "primary",
             native: true,
+            prompt: PROMPT_PLAN,
           },
           general: {
             name: "general",
