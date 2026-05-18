@@ -100,7 +100,7 @@ if (fs.existsSync(defaultSkillsDir)) {
     const files: Record<string, string> = {}
     const skillPath = path.join(defaultSkillsDir, entry.name)
     for (const file of await walk(skillPath)) {
-      const rel = path.relative(skillPath, file)
+      const rel = path.relative(skillPath, file).replaceAll("\\", "/")
       files[rel] = await Bun.file(file).text()
     }
     defaultSkillsData[entry.name] = files
@@ -120,7 +120,7 @@ if (fs.existsSync(defaultSpecDir)) {
       const files: Record<string, EmbeddedFile> = {}
       const specPath = path.join(defaultSpecDir, entry.name)
       for (const file of await walk(specPath)) {
-        const rel = path.relative(specPath, file)
+        const rel = path.relative(specPath, file).replaceAll("\\", "/")
         files[rel] = binaryExtensions.has(path.extname(file).toLowerCase())
           ? { encoding: "base64", content: Buffer.from(await Bun.file(file).arrayBuffer()).toString("base64") }
           : await Bun.file(file).text()
