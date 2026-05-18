@@ -1,6 +1,6 @@
 ---
 name: deveco-create-project
-description: Use the skill's private TypeScript script to create ArkTS projects reliably. Suitable for new project creation and empty directory initialization.
+description: MUST load this skill before creating, initializing, or scaffolding an ArkTS project, including "0-1", "from scratch", "new ArkTS project", and empty directory initialization tasks. Use the skill's private TypeScript script to create ArkTS projects reliably.
 ---
 
 # deveco-create-project
@@ -24,6 +24,22 @@ If the user does not specify one, do not let the model invent a version. Let the
 1. `DEVECO_HOME/sdk/default/sdk-pkg.json`
 2. `DEVECO_HOME/sdk/default/openharmony/*/oh-uni-package.json`
 3. fallback to `22`
+
+### Optional: Brief Requirement Checklist for Complex App Requests
+
+If the current session is already executing an approved Plan Mode plan or an existing plan file is referenced, do not create another plan, do not call `plan_enter` or `plan_write`, and do not ask for plan approval again. Treat the existing plan as the source of truth.
+
+If there is no existing approved plan and the user asks to create a new project with a complex app requirement, make a brief requirement checklist before copying or editing files.
+
+The checklist must list:
+- pages to implement
+- the first screen / entry page
+- navigation between pages
+- key feature points for each page
+- verification points for pages and navigation
+
+Keep this checklist concise and continue automatically unless required project parameters are missing or the requirement is contradictory.
+Do not expand this skill into ArkUI design guidance; load `arkui-knowledge` before implementing UI code.
 
 ## Execution Steps
 
@@ -56,16 +72,7 @@ At minimum, verify that the following file exists:
 
 If the file is missing, treat the creation as failed and do not proceed to later compile or page-generation steps.
 
-### Step 3: Report Back to the User
-
-Output:
-
-- The absolute project path
-- App name / bundle name / API Level
-- `source` of the selected API level: `user_input` / `sdk_pkg` / `oh_uni_package` / `fallback`
-- Whether the template integrity check passed
-
-### Step 4: Switch Session Project Context (Required)
+### Step 3: Switch Session Project Context (Required)
 
 After project creation succeeds, call `switch_cwd` and set the target path to the generated project root (`{projectPath}/{appName}`).
 
@@ -73,3 +80,31 @@ Reason:
 
 - `build_project` and `start_app` only work correctly when the current session context directory is the actual project root.
 - This skill creates a full project under the current path; without switching context to that generated path, subsequent build/run actions may fail or target the wrong directory.
+
+If `switch_cwd` fails, report the context switch failure and stop. Do not continue to feature implementation, `build_project`, or `start_app`.
+
+### Step 4: Continue Feature Work in the Generated Project
+
+If the user's request includes app behavior, UI, pages, or business requirements in addition to project creation, continue only after `switch_cwd` succeeds.
+
+Before implementing the feature:
+
+- Read `entry/src/main/resources/base/profile/main_pages.json` to identify the launch page list.
+- Read the launch page file, usually `entry/src/main/ets/pages/Index.ets`.
+- Modify the actual launch page or its navigation path so the requested feature is reachable from the first screen.
+- Do not finish by only creating a new named page/component unless the launch page routes to it.
+- After changes, run `build_project`; if it succeeds, run `start_app`.
+- If a device is available and visual behavior matters, use `verify_ui` or screenshots to check that the app no longer shows the untouched template `Hello World` screen.
+
+### Step 5: Report Back to the User
+
+Report after all requested creation, implementation, build, run, and verification work is complete, or immediately when a blocking failure stops the flow.
+
+Output:
+
+- The absolute project path
+- App name / bundle name / API Level
+- `source` of the selected API level: `user_input` / `sdk_pkg` / `oh_uni_package` / `fallback`
+- Whether the template integrity check passed
+- Whether `switch_cwd` succeeded
+- Build/run/verification status when feature work was requested
