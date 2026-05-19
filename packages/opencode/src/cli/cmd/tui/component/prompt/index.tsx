@@ -1530,7 +1530,7 @@ export function Prompt(props: PromptProps) {
       <box ref={(r: BoxRenderable) => (anchor = r)} visible={props.visible !== false}>
         <box
           border={isHomeRoute() ? ["top", "right", "bottom", "left"] : ["left"]}
-          borderColor={isHomeRoute() ? theme.textMuted : borderHighlight()}
+          borderColor={borderHighlight()}
           customBorderChars={
             isHomeRoute()
               ? {

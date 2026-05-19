@@ -385,28 +385,30 @@ export const ProvidersLoginCommand = effectCmd({
       enabled,
       providerNames: Object.fromEntries(Object.entries(config.provider ?? {}).map(([id, p]) => [id, p.name])),
     })
-    const options = [
-      ...pipe(
-        providers,
-        values(),
-        sortBy(
-          (x) => priority[x.id] ?? 99,
-          (x) => x.name ?? x.id,
-        ),
-        map((x) => ({
-          label: x.name,
-          value: x.id,
-          hint: {
-            openai: "ChatGPT Plus/Pro or API key",
-          }[x.id],
-        })),
-      ),
+    const mergedProviders = [
+      ...values(providers),
       ...pluginProviders.map((x) => ({
-        label: PLUGIN_PROVIDER_CONFIG[x.id]?.name ?? x.name,
-        value: x.id,
-        hint: PLUGIN_PROVIDER_CONFIG[x.id]?.hint ?? "plugin",
+        ...x,
+        name: PLUGIN_PROVIDER_CONFIG[x.id]?.name ?? x.name,
+        _hint: PLUGIN_PROVIDER_CONFIG[x.id]?.hint ?? "plugin",
+        _plugin: true as const,
       })),
     ]
+    const options = pipe(
+      mergedProviders,
+      sortBy(
+        (x) => priority[x.id] ?? 99,
+        (x) => x.name ?? x.id,
+      ),
+      map((x) => ({
+        label: x.name,
+        value: x.id,
+        hint: (x as { _hint?: string })._hint
+          ?? {
+              openai: "ChatGPT Plus/Pro or API key",
+            }[x.id],
+      })),
+    )
 
     let provider: string
     if (args.provider) {
