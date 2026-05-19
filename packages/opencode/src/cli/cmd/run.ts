@@ -17,16 +17,15 @@ import { pathToFileURL } from "url"
 import { Effect } from "effect"
 import { UI } from "../ui"
 import { effectCmd } from "../effect-cmd"
-import { Flag } from "@opencode-ai/core/flag/flag"
 import { ServerAuth } from "@/server/auth"
 import { EOL } from "os"
 import { Filesystem } from "@/util/filesystem"
 import { createOpencodeClient, type OpencodeClient, type ToolPart } from "@opencode-ai/sdk/v2"
 import { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import { FormatError, FormatUnknownError } from "../error"
 import { INTERACTIVE_INPUT_ERROR, resolveInteractiveStdin } from "./run/runtime.stdin"
-import * as Log from "@opencode-ai/core/util/log"
 
 const runtimeTask = import("./run/runtime")
 type ModelInput = Parameters<OpencodeClient["session"]["prompt"]>[0]["model"]
@@ -126,7 +125,7 @@ async function toolError(part: ToolPart) {
 
 export const RunCommand = effectCmd({
   command: "run [message..]",
-  describe: "run deveco with a message",
+  describe: "run opencode with a message",
   // --attach connects to a remote server (no local instance needed); the
   // default path runs an in-process server and needs the project instance.
   instance: (args) => !args.attach,
@@ -190,7 +189,7 @@ export const RunCommand = effectCmd({
       })
       .option("attach", {
         type: "string",
-        describe: "attach to a running deveco server (e.g., http://localhost:4096)",
+        describe: "attach to a running opencode server (e.g., http://localhost:4096)",
       })
       .option("password", {
         alias: ["p"],
@@ -200,7 +199,7 @@ export const RunCommand = effectCmd({
       .option("username", {
         alias: ["u"],
         type: "string",
-        describe: "basic auth username (defaults to DEVECO_SERVER_USERNAME or 'deveco')",
+        describe: "basic auth username (defaults to DEVECO_SERVER_USERNAME or 'opencode')",
       })
       .option("dir", {
         type: "string",
@@ -236,6 +235,7 @@ export const RunCommand = effectCmd({
       }),
   handler: Effect.fn("Cli.run")(function* (args) {
     const agentSvc = yield* Agent.Service
+    const flags = yield* RuntimeFlags.Service
     yield* Effect.promise(async () => {
       const rawMessage = [...args.message, ...(args["--"] || [])].join(" ")
       const thinking = args.interactive ? (args.thinking ?? true) : (args.thinking ?? false)
@@ -447,7 +447,7 @@ export const RunCommand = effectCmd({
       async function share(sdk: OpencodeClient, sessionID: string) {
         const cfg = await sdk.config.get()
         if (!cfg.data) return
-        if (cfg.data.share !== "auto" && !Flag.DEVECO_AUTO_SHARE && !args.share) return
+        if (cfg.data.share !== "auto" && !flags.autoShare && !args.share) return
         const res = await sdk.session.share({ sessionID }).catch((error) => {
           if (error instanceof Error && error.message.includes("disabled")) {
             UI.println(UI.Style.TEXT_DANGER_BOLD + "!  " + error.message)
@@ -738,7 +738,6 @@ export const RunCommand = effectCmd({
         if (!args.interactive) {
           const events = await client.event.subscribe()
           loop(client, events).catch((e) => {
-            Log.Default.error("run command failed", { error: e instanceof Error ? e.message : String(e) })
             console.error(e)
             process.exit(1)
           })

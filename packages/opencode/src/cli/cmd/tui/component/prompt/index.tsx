@@ -1632,15 +1632,16 @@ export function Prompt(props: PromptProps) {
               gap={1}
               justifyContent={isHomeRoute() ? "flex-start" : "space-between"}
             >
-              <box flexDirection="row" gap={isHomeRoute() ? 3 : 1}>
+              <box flexDirection="row" gap={1}>
                 <Show when={local.agent.current()} fallback={<box height={1} />}>
                   {(agent) => (
                     <>
-                      <text fg={theme.text}>
+                      <text fg={fadeColor(highlight(), agentMetaAlpha())}>
                         {store.mode === "shell" ? "Shell" : Locale.titlecase(agent().name)}
                       </text>
                       <Show when={store.mode === "normal"}>
-                        <box flexDirection="row" gap={isHomeRoute() ? 3 : 1}>
+                        <box flexDirection="row" gap={1}>
+                          <text fg={fadeColor(theme.textMuted, modelMetaAlpha())}>·</text>
                           <text
                             flexShrink={0}
                             fg={fadeColor(leader() ? theme.textMuted : theme.text, modelMetaAlpha())}

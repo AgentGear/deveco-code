@@ -11,12 +11,11 @@ import { Permission } from "@/permission"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { Config } from "@/config/config"
 import { ConfigMarkdown } from "@/config/markdown"
+import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Glob } from "@opencode-ai/core/util/glob"
 import * as Log from "@opencode-ai/core/util/log"
-import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Discovery } from "./discovery"
-import { Defaults } from "./defaults"
-import CUSTOMIZE_DEVECO_SKILL_BODY from "./prompt/customize-opencode.md" with { type: "text" }
+import CUSTOMIZE_OPENCODE_SKILL_BODY from "./prompt/customize-opencode.md" with { type: "text" }
 import { isRecord } from "@/util/record"
 
 const log = Log.create({ service: "skill" })
@@ -27,13 +26,13 @@ const DEVECO_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"
 const SKILL_PATTERN = "**/SKILL.md"
 
 // Built-in skill that ships with opencode. The model's intuition for what an
-// deveco.json should look like is often wrong, and opencode hard-fails on
+// opencode.json should look like is often wrong, and opencode hard-fails on
 // invalid config, so users hit cryptic startup errors. Loading this skill
 // when the model is asked to touch opencode's own config files gives it the
 // actual schemas instead of guesses.
-const CUSTOMIZE_DEVECO_SKILL_NAME = "customize-opencode"
-const CUSTOMIZE_DEVECO_SKILL_DESCRIPTION =
-  "Use ONLY when the user is editing or creating opencode's own configuration: deveco.json, deveco.jsonc, files under .deveco/, or files under ~/.config/opencode/. Also use when creating or fixing opencode agents, subagents, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring opencode itself."
+const CUSTOMIZE_OPENCODE_SKILL_NAME = "customize-opencode"
+const CUSTOMIZE_OPENCODE_SKILL_DESCRIPTION =
+  "Use ONLY when the user is editing or creating opencode's own configuration: opencode.json, opencode.jsonc, files under .opencode/, or files under ~/.config/opencode/. Also use when creating or fixing opencode agents, subagents, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring opencode itself."
 
 export const Info = Schema.Struct({
   name: Schema.String,
@@ -167,17 +166,15 @@ const discoverSkills = Effect.fnUntraced(function* (
   discovery: Discovery.Interface,
   fsys: AppFileSystem.Interface,
   global: Global.Interface,
+  disableClaudeCodeSkills: boolean,
   directory: string,
   worktree: string,
 ) {
   const state: ScanState = { matches: new Set(), dirs: new Set() }
 
-  const defaultDir = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
-  yield* scan(state, defaultDir, SKILL_PATTERN)
-
   const externalDirs: string[] = []
   if (!Flag.DEVECO_DISABLE_EXTERNAL_SKILLS) {
-    if (!Flag.DEVECO_DISABLE_CLAUDE_CODE_SKILLS) externalDirs.push(CLAUDE_EXTERNAL_DIR)
+    if (!disableClaudeCodeSkills) externalDirs.push(CLAUDE_EXTERNAL_DIR)
     externalDirs.push(AGENTS_EXTERNAL_DIR)
 
     for (const dir of externalDirs) {
@@ -244,9 +241,18 @@ export const layer = Layer.effect(
     const bus = yield* Bus.Service
     const fsys = yield* AppFileSystem.Service
     const global = yield* Global.Service
+    const flags = yield* RuntimeFlags.Service
     const discovered = yield* InstanceState.make(
       Effect.fn("Skill.discovery")(function* (ctx) {
-        return yield* discoverSkills(config, discovery, fsys, global, ctx.directory, ctx.worktree)
+        return yield* discoverSkills(
+          config,
+          discovery,
+          fsys,
+          global,
+          flags.disableClaudeCodeSkills,
+          ctx.directory,
+          ctx.worktree,
+        )
       }),
     )
     const state = yield* InstanceState.make(
@@ -254,11 +260,11 @@ export const layer = Layer.effect(
         const s: State = { skills: {}, dirs: new Set() }
         // Register the built-in skill BEFORE disk discovery so a user-disk
         // skill with the same name can override it.
-        s.skills[CUSTOMIZE_DEVECO_SKILL_NAME] = {
-          name: CUSTOMIZE_DEVECO_SKILL_NAME,
-          description: CUSTOMIZE_DEVECO_SKILL_DESCRIPTION,
+        s.skills[CUSTOMIZE_OPENCODE_SKILL_NAME] = {
+          name: CUSTOMIZE_OPENCODE_SKILL_NAME,
+          description: CUSTOMIZE_OPENCODE_SKILL_DESCRIPTION,
           location: "<built-in>",
-          content: CUSTOMIZE_DEVECO_SKILL_BODY,
+          content: CUSTOMIZE_OPENCODE_SKILL_BODY,
         }
         yield* loadSkills(s, yield* InstanceState.get(discovered), bus)
         return s
@@ -296,6 +302,7 @@ export const defaultLayer = layer.pipe(
   Layer.provide(Bus.layer),
   Layer.provide(AppFileSystem.defaultLayer),
   Layer.provide(Global.layer),
+  Layer.provide(RuntimeFlags.defaultLayer),
 )
 
 export function fmt(list: Info[], opts: { verbose: boolean }) {
