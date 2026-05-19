@@ -58,6 +58,47 @@ const ansiV = [
   `   \u2586\u2586\u2586\u2586   `,
 ]
 
+/** 5 rows × 4 columns per letter (▂▃▄▅▆ block heights). */
+const ansiSmallC = [
+  ` \u2582\u2582\u2582 `,
+  `\u2582   \u2582`,
+  `\u2584    `,
+  `\u2585   \u2585`,
+  ` \u2586\u2586\u2586 `,
+];
+
+const ansiSmallO = [
+  ` \u2582\u2582\u2582 `,
+  `\u2582   \u2582`,
+  `\u2584   \u2584`,
+  `\u2585   \u2585`,
+  ` \u2586\u2586\u2586 `,
+];
+
+const ansiSmallD = [
+  `\u2582\u2582\u2582\u2582 `,
+  `\u2582   \u2582`,
+  `\u2584   \u2584`,
+  `\u2585   \u2585`,
+  `\u2586\u2586\u2586\u2586 `,
+];
+
+const ansiSmallE = [
+  `\u2582\u2582\u2582\u2582`,
+  `\u2582   `,
+  `\u2584\u2584\u2584\u2584`,
+  `\u2585   `,
+  `\u2586\u2586\u2586\u2586`,
+];
+
+const ansiSmallV = [
+  `\u2582   \u2582`,
+  `\u2583   \u2583`,
+  `\u2584   \u2584`,
+  `\u2585   \u2585`,
+  ` \u2586\u2586\u2586 `,
+];
+
 export const wordFull = ansiD.map(
   (d, i) =>
     `${d}  ${ansiE[i] ?? ""}  ${ansiV[i] ?? ""}  ${ansiE[i] ?? ""}  ${ansiC[i] ?? ""}  ${ansiO[i] ?? ""}       ${ansiC[i] ?? ""}  ${ansiO[i] ?? ""}  ${ansiD[i] ?? ""}  ${ansiE[i] ?? ""}`,
@@ -68,6 +109,17 @@ export const wordDeveco = ansiD.map(
   (d, i) =>
     `${d}  ${ansiE[i] ?? ""}  ${ansiV[i] ?? ""}  ${ansiE[i] ?? ""}  ${ansiC[i] ?? ""}  ${ansiO[i] ?? ""}`,
 )
+
+/** 5×4 lettermarks — "DEVECO" only (no "CODE"). */
+export const wordDevecoSmall = ansiSmallD.map(
+  (d, i) =>
+    `${d}  ${ansiSmallE[i] ?? ''}  ${ansiSmallV[i] ?? ''}  ${ansiSmallE[i] ?? ''}  ${ansiSmallC[i] ?? ''}  ${ansiSmallO[i] ?? ''}`,
+);
+
+export const wordFullSmall = ansiSmallD.map(
+  (d, i) =>
+    `${d} ${ansiSmallE[i] ?? ''} ${ansiSmallV[i] ?? ''} ${ansiSmallE[i] ?? ''} ${ansiSmallC[i] ?? ''} ${ansiSmallO[i] ?? ''}   ${ansiSmallC[i] ?? ''} ${ansiSmallO[i] ?? ''} ${ansiSmallD[i] ?? ''} ${ansiSmallE[i] ?? ''}`,
+);
 
 function maxRowWidth(rows: readonly string[]): number {
   let m = 0
@@ -222,25 +274,43 @@ function appendAnsiFromParts(parts: Tone[], reset: string): string {
 export function formatBannerLogoAnsiLines(
   width: number,
   palette: BannerLogoPalette,
-  options?: { scanline?: boolean },
+  options?: {
+    scanline?: boolean;
+    /** With {@link scanline}, stripe spaces inside the logo only (not width padding). */
+    scanlineWithinLogo?: boolean;
+    rows?: readonly string[];
+    align?: 'start' | 'center';
+  },
 ): string[] {
-  const w = Math.max(0, Math.floor(width))
-  const rows = logoRowsForWidth(w).slice(0, LOGO_ROW_CAP)
-  const reset = "\x1b[0m"
-  const lines: string[] = []
-  const withScanline = options?.scanline === true
+  const w = Math.max(0, Math.floor(width));
+  const source = options?.rows ?? logoRowsForWidth(w);
+  const rows = source.slice(0, options?.rows ? source.length : LOGO_ROW_CAP);
+  const reset = '\x1b[0m';
+  const lines: string[] = [];
+  const withScanline = options?.scanline === true;
+  const scanLogoOnly = withScanline && options?.scanlineWithinLogo === true;
+  const left = options?.align === 'start';
 
   for (const line of rows) {
-    const clipped = line.length > w
-    const slice = clipped ? clipLogoRawLine(line, w, LOGO_HEAD_CLIP_SCROLL_OFFSET) : line
-    const parts = clipped
-      ? padTonesStart([{ t: slice, fg: palette.logoFg }], w, palette.base)
-      : padTones([{ t: slice, fg: palette.logoFg }], w, palette.base)
-    const tones = withScanline ? scanline(parts, palette.stripeLine) : parts
-    lines.push(appendAnsiFromParts(tones, reset))
+    const clipped = line.length > w;
+    const slice = clipped ? clipLogoRawLine(line, w, LOGO_HEAD_CLIP_SCROLL_OFFSET) : line;
+    const content = [{ t: slice, fg: palette.logoFg }];
+    let tones: Tone[];
+    if (scanLogoOnly) {
+      tones = scanline(content, palette.stripeLine);
+    } else if (left && !withScanline && !clipped) {
+      tones = content;
+    } else {
+      const parts =
+        clipped || left
+          ? padTonesStart(content, w, palette.base)
+          : padTones(content, w, palette.base);
+      tones = withScanline ? scanline(parts, palette.stripeLine) : parts;
+    }
+    lines.push(appendAnsiFromParts(tones, reset));
   }
 
-  return lines
+  return lines;
 }
 
 /** Dark-style palette when no TUI theme is available (e.g. `deveco -h` on stderr). */
@@ -252,8 +322,11 @@ export function cliHelpBannerLogoPalette(): BannerLogoPalette {
   }
 }
 
-/** Banner lettermark for CLI help output; no scanline/stripe. Uses terminal width or 80 columns. */
+/** Banner lettermark for CLI help output (left-aligned). Uses terminal width or 80 columns. */
 export function formatCliHelpBannerLogoBlock(columns: number | undefined): string {
-  const w = typeof columns === "number" && columns > 0 ? columns : 80
-  return formatBannerLogoAnsiLines(w, cliHelpBannerLogoPalette()).join(EOL)
+  const w = typeof columns === 'number' && columns > 0 ? columns : 80;
+  return formatBannerLogoAnsiLines(w, cliHelpBannerLogoPalette(), {
+    rows: wordFullSmall,
+    align: 'start',
+  }).join(EOL);
 }

@@ -10,19 +10,26 @@ import { DialogSelect } from '@tui/ui/dialog-select';
 import { DialogPrompt } from '@tui/ui/dialog-prompt';
 import { Link } from '../ui/link';
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from '@/plugin/deveco';
-import { Banner, BANNER_HOME_CONTENT_INSET } from './banner';
+import { useKV } from '@tui/context/kv';
+import { DEVECO_AI_PRIVACY_URL, KV_DEVECO_CODE_PRIVACY_ACCEPTED } from '@/cli/deveco-legal';
+import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH } from './banner';
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';
 
-type OnboardingStep = 'entry' | 'auth' | 'providers' | 'key';
+type OnboardingStep = 'privacy' | 'entry' | 'auth' | 'providers' | 'key';
 
 const LIST_HELP = 'Use Enter to Select';
-const CONTENT_MAX_WIDTH = 110;
-/** Nudge copy/options right so they sit under the centered banner tagline, not the logo's left edge. */
-const CONTENT_PAD_LEFT = 15;
+/** Horizontal inset so copy/options align under the centered banner tagline. */
+const CONTENT_PAD_X = 15;
 
 function OnboardingContent(props: ParentProps) {
   return (
-    <box flexDirection='column' width='100%' maxWidth={CONTENT_MAX_WIDTH} paddingLeft={CONTENT_PAD_LEFT}>
+    <box
+      flexDirection='column'
+      width='100%'
+      maxWidth={HOME_CONTENT_MAX_WIDTH}
+      paddingLeft={CONTENT_PAD_X}
+      paddingRight={CONTENT_PAD_X}
+    >
       {props.children}
     </box>
   );
@@ -214,14 +221,17 @@ async function runProviderOAuth(
   }
 }
 
-export function DevEcoOnboarding(props: { onComplete: () => void }) {
+export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight?: number }) {
   const { theme } = useTheme();
   const sync = useSync();
   const exit = useExit();
   const dialog = useDialog();
   const sdk = useSDK();
+  const kv = useKV();
 
-  const [step, setStep] = createSignal<OnboardingStep>('entry');
+  const privacyOk = () => kv.get(KV_DEVECO_CODE_PRIVACY_ACCEPTED, false) === true;
+  const [step, setStep] = createSignal<OnboardingStep>(privacyOk() ? "entry" : "privacy")
+  const [privacyIndex, setPrivacyIndex] = createSignal(0);
   const [entryIndex, setEntryIndex] = createSignal(0);
   const [authMessage, setAuthMessage] = createSignal<string | null>(null);
   const [authBusy, setAuthBusy] = createSignal(false);
@@ -263,8 +273,12 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
 
   const dimensions = useTerminalDimensions();
   const providerScrollHeight = createMemo(() => {
+    const slot = props.bodySlotHeight ?? Math.floor(dimensions().height / 2) - 12;
+    const overhead = 8;
+    const maxFromSlot = Math.max(3, slot - overhead);
     const maxHeight = Math.floor(dimensions().height / 2) - 12;
-    return Math.min(filteredProviders().length, Math.max(maxHeight, 5));
+    const cap = Math.min(maxFromSlot, maxHeight);
+    return Math.min(filteredProviders().length, Math.max(cap, 5));
   });
 
   const providerSearchBoxWidth = createMemo(() => {
@@ -402,6 +416,34 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
 
     const st = step();
 
+    if (st === 'privacy') {
+      if (evt.ctrl && evt.name === 'c') {
+        evt.preventDefault();
+        void exit();
+        return;
+      }
+      if (evt.name === 'up') {
+        evt.preventDefault();
+        setPrivacyIndex(0);
+        return;
+      }
+      if (evt.name === 'down') {
+        evt.preventDefault();
+        setPrivacyIndex(1);
+        return;
+      }
+      if (evt.name === 'return') {
+        evt.preventDefault();
+        if (privacyIndex() === 0) {
+          kv.set(KV_DEVECO_CODE_PRIVACY_ACCEPTED, true);
+          setStep('entry');
+        } else {
+          void exit();
+        }
+      }
+      return;
+    }
+
     if (st === 'entry') {
       if (evt.ctrl && evt.name === 'c') {
         evt.preventDefault();
@@ -537,20 +579,26 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
   });
 
   return (
-    <box
-      flexDirection='column'
-      gap={1}
-      paddingTop={1}
-      flexShrink={0}
-      flexGrow={1}
-      minHeight={0}
-      width='100%'
-      alignItems='center'
-    >
+    <box flexDirection='column' gap={2} flexShrink={0} width='100%' alignItems='center' justifyContent='center'>
+      <Show when={step() === 'privacy'}>
+        <OnboardingContent>
+            <text fg={theme.text} selectable={false}>
+              Please read and agree to the privacy statement to start the HarmonyOS development journey.
+            </text>
+            <Link href={DEVECO_AI_PRIVACY_URL} fg={theme.primary} />
+
+            <text fg={privacyIndex() === 0 ? theme.success : theme.text} selectable={false} marginTop={1}>
+              {selectionLead(privacyIndex() === 0)}
+              1. I agree
+            </text>
+            <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false}>
+              {selectionLead(privacyIndex() === 1)}
+              2. No, exit
+            </text>
+        </OnboardingContent>
+      </Show>
       <Show when={step() === 'entry'}>
-        <box flexDirection='column' gap={2} alignItems='center' flexShrink={0} width='100%'>
-          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
-          <OnboardingContent>
+        <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false} marginBottom={1}>
               Get started
             </text>
@@ -565,13 +613,10 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
             <text fg={theme.textMuted} selectable={false} marginTop={1}>
               {LIST_HELP}
             </text>
-          </OnboardingContent>
-        </box>
+        </OnboardingContent>
       </Show>
       <Show when={step() === 'auth'}>
-        <box flexDirection='column' gap={2} alignItems='center' flexShrink={0} width='100%'>
-          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
-          <OnboardingContent>
+        <OnboardingContent>
             <text fg={theme.text} selectable={false}>
               Login through a browser
             </text>
@@ -588,13 +633,10 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
                 Press Esc to go back
               </text>
             </Show>
-          </OnboardingContent>
-        </box>
+        </OnboardingContent>
       </Show>
       <Show when={step() === 'providers'}>
-        <box flexDirection='column' gap={2} alignItems='center' flexShrink={0} width='100%'>
-          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
-          <OnboardingContent>
+        <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false}>
               Please select provider
             </text>
@@ -630,13 +672,10 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
             <text fg={theme.textMuted} selectable={false} marginTop={1}>
               Use Enter to Select, Esc to Cancel, Type : to search
             </text>
-          </OnboardingContent>
-        </box>
+        </OnboardingContent>
       </Show>
       <Show when={step() === 'key'}>
-        <box flexDirection='column' gap={2} alignItems='center' flexShrink={0} width='100%'>
-          <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
-          <OnboardingContent>
+        <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false}>
               {pid() ? apiKeyTitle(pid()!) : 'Enter API Key'}
             </text>
@@ -671,8 +710,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void }) {
             <text fg={theme.textMuted} selectable={false} marginTop={1}>
               Use Enter to submit, Esc to Cancel, Ctrl+C to Clear
             </text>
-          </OnboardingContent>
-        </box>
+        </OnboardingContent>
       </Show>
     </box>
   );

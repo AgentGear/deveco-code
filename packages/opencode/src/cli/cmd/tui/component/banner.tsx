@@ -23,6 +23,15 @@ import {
 /** Home / onboarding horizontal padding: outer 2+2 and inner 2+2. */
 export const BANNER_HOME_CONTENT_INSET = 8
 
+/** Shared max width for banner, prompt, and onboarding body. */
+export const HOME_CONTENT_MAX_WIDTH = 110
+
+/** Minimum terminal rows for the region below the banner (prompt vs onboarding share this slot). */
+export const HOME_BODY_MIN_ROWS = 18
+
+/** Gap between banner and body slot (terminal rows). */
+export const HOME_BODY_GAP_ROWS = 2
+
 export function Banner(props?: { contentInset?: number }) {
   const { theme, mode } = useTheme()
   const dimensions = useTerminalDimensions()
