@@ -271,19 +271,19 @@ describe("RuntimeFlags", () => {
     { name: "absent", config: {}, expected: undefined },
     {
       name: "valid positive integer",
-      config: { OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "1234" },
+      config: { DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "1234" },
       expected: 1234,
     },
     {
       name: "invalid string",
-      config: { OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "nope" },
+      config: { DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "nope" },
       expected: undefined,
     },
-    { name: "zero", config: { OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "0" }, expected: undefined },
-    { name: "negative", config: { OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "-1" }, expected: undefined },
+    { name: "zero", config: { DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "0" }, expected: undefined },
+    { name: "negative", config: { DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "-1" }, expected: undefined },
     {
       name: "non-integer",
-      config: { OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "1.5" },
+      config: { DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX: "1.5" },
       expected: undefined,
     },
   ]) {
