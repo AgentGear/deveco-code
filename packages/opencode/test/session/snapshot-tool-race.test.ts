@@ -62,6 +62,7 @@ import { Format } from "../../src/format"
 import { Reference } from "../../src/reference/reference"
 import { SyncEvent } from "@/sync"
 import { RuntimeFlags } from "@/effect/runtime-flags"
+import { EventV2Bridge } from "@/event-v2-bridge"
 
 void Log.init({ print: false })
 
@@ -130,6 +131,7 @@ function makeHttp() {
     BackgroundJob.defaultLayer,
     status,
     SyncEvent.defaultLayer,
+    EventV2Bridge.defaultLayer,
   ).pipe(Layer.provideMerge(infra))
   const question = Question.layer.pipe(Layer.provideMerge(deps))
   const todo = Todo.layer.pipe(Layer.provideMerge(deps))
