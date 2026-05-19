@@ -77,7 +77,7 @@ async function main() {
       return
     }
 
-    // On non-Windows platforms, hardlink binary to bin/.codegenie
+    // On non-Windows platforms, hardlink binary to bin/.deveco
     const { binaryPath, packageDir } = findBinary()
     const target = path.join(__dirname, "bin", ".deveco")
     if (fs.existsSync(target)) fs.unlinkSync(target)

@@ -40,7 +40,7 @@ async function loadSpecResourcesFromDisk(): Promise<Record<string, EmbeddedSpecF
       const files: Record<string, EmbeddedSpecFile> = {}
       const specPath = path.join(resourceDir, entry.name)
       for (const file of await walkDir(specPath)) {
-        const rel = path.relative(specPath, file)
+        const rel = path.relative(specPath, file).replaceAll("\\", "/")
         if (binaryExtensions.has(path.extname(file).toLowerCase())) {
           const buf = await fs.readFile(file)
           files[rel] = { encoding: "base64", content: buf.toString("base64") }

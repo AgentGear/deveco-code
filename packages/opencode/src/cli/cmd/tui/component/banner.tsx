@@ -11,7 +11,7 @@ import {
 } from "./banner-logo"
 
 /**
- * CodeGenie home banner.
+ * DevEco Code home banner.
  *
  * - Renders a fixed-height (8-row) ANSI lettermark using parsed SGR spans (supports 256-color + truecolor).
  * - Logo: full "DEVECO CODE" when the terminal is wide enough; otherwise "DEVECO"; if still too narrow,

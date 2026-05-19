@@ -401,7 +401,7 @@ async function resolveConfigPath(baseDir: string, global = false) {
   const candidates = [path.join(baseDir, "deveco.json"), path.join(baseDir, "deveco.jsonc")]
 
   if (!global) {
-    candidates.push(path.join(baseDir, ".opencode", "deveco.json"), path.join(baseDir, ".opencode", "deveco.jsonc"))
+    candidates.push(path.join(baseDir, ".deveco", "deveco.json"), path.join(baseDir, ".deveco", "deveco.jsonc"))
   }
 
   for (const candidate of candidates) {

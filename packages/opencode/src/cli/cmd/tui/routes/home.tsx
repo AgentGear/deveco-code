@@ -12,7 +12,7 @@ import { usePromptRef } from "../context/prompt"
 import { useLocal } from "../context/local"
 import { DevEcoOnboarding } from "../component/deveco-onboarding"
 import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
-import { KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED } from "@/cli/codegenie-legal"
+import { KV_DEVECO_CODE_PRIVACY_ACCEPTED } from "@/cli/deveco-legal"
 
 // TODO: what is the best way to do this?
 let once = false
@@ -43,7 +43,7 @@ export function Home() {
         if (devecoChecked) return
         devecoChecked = true
 
-        const privacyAccepted = kv.get(KV_CODEGENIE_DEVECO_PRIVACY_ACCEPTED, false)
+        const privacyAccepted = kv.get(KV_DEVECO_CODE_PRIVACY_ACCEPTED, false)
         const hasCredentials = sync.data.provider.some(
           (x) => x.id !== "opencode" || Object.values(x.models).some((y) => y.cost?.input !== 0),
         )
