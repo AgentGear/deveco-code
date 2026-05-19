@@ -8,6 +8,30 @@
 <现象和解决，2-3 行>
 -->
 
+### Plan agent 权限设定 — agent.ts 每次同步需检查
+
+`packages/opencode/src/agent/agent.ts` 中 Plan agent 的权限是 DevEco Code 自定义配置，上游没有对应逻辑。每次同步如果上游修改了该文件，权限会被覆盖或冲突后丢失。**同步后必须验证以下权限配置未被还原：**
+
+- **build agent**: `plan_enter: "ask"`, `plan_write: "deny"`
+- **plan agent**: `plan_exit: "ask"`, `plan_write: "allow"`, `bash: "deny"`, `build_project: "deny"`, `check_ets_files: "deny"`, `perform_ui_action: "deny"`, `get_app_ui_tree: "deny"`, `start_app: "deny"`, `hdc_log: "deny"`, `switch_cwd: "deny"`, `arkts_knowledge_search: "deny"`, `edit: "deny"`
+
+参考提交：`6067f5a6` ("Agent权限设定")
+
+### packages/opencode/package.json 自定义依赖丢失 — 每次同步需检查
+
+`@deveco-codegenie/mcp-bridge*` 是 DevEco Code 自定义依赖，上游不存在这些包。同步时 `packages/opencode/package.json` 冲突解决如果直接接受上游版本，会同时丢失：
+
+1. **mcp-bridge 依赖**（在 `devDependencies` 和 `dependencies` 中各有 4 个包）：
+   - `@deveco-codegenie/mcp-bridge`
+   - `@deveco-codegenie/mcp-bridge-darwin-arm64`
+   - `@deveco-codegenie/mcp-bridge-darwin-x64`
+   - `@deveco-codegenie/mcp-bridge-win32-x64`
+2. **bin 字段**：会被还原为 `"opencode": "./bin/opencode"`，应为 `"deveco": "./bin/deveco"`
+
+此问题已反复发生（v1.14.44→v1.14.45、v1.14.50→v1.14.51 各丢失一次），**每次同步后必须验证上述内容完整**。
+
+参考提交：`456483d2c`（首次添加）、`2d4aac556`（v1.14.50→v1.14.51 再次丢失）
+
 ### v1.15.0 -> v1.15.1 — Instance context refactoring and flag migration
 
 上游进行了大规模 Effect instance context 重构，影响深远：
