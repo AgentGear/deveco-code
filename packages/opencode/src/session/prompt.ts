@@ -34,6 +34,7 @@ import { ConfigMarkdown } from "@/config/markdown"
 import { SessionSummary } from "./summary"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { SessionProcessor } from "./processor"
+import { ExitQueue } from "./exit-queue"
 import { Tool } from "@/tool/tool"
 import { Permission } from "@/permission"
 import { SessionStatus } from "./status"
@@ -1865,7 +1866,10 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             Effect.ensuring(instruction.clear(handle.message.id)),
             Effect.onInterrupt(() => finalizeInterruptedAssistant),
           )
-          if (outcome === "break") break
+          if (outcome === "break") {
+            yield* ExitQueue.Service.exit(sessionID, model.id).pipe(Effect.forkIn(scope), Effect.ignore)
+            break
+          }
           continue
         }
 
