@@ -412,19 +412,6 @@ class LocalAuthServer {
         return
       }
 
-      if (quit === "true" || quit === "access_denied") {
-        this.rejectCallback?.(
-          new LoginCancelledError(
-            quit === "access_denied" ? "Access denied by user" : "Login cancelled by user",
-          ),
-        )
-        res.writeHead(302, {
-          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
-        })
-        res.end()
-        return
-      }
-
       if (!tempToken || !siteId) {
         this.rejectCallback?.(new Error("Login cancelled by user"))
         res.writeHead(302, {

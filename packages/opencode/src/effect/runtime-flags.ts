@@ -2,13 +2,25 @@ import { Config, ConfigProvider, Context, Effect, Layer } from "effect"
 import { ConfigService } from "@/effect/config-service"
 
 const bool = (name: string) => Config.boolean(name).pipe(Config.withDefault(false))
+const positiveInteger = (name: string) =>
+  Config.number(name).pipe(
+    Config.map((value) => (Number.isInteger(value) && value > 0 ? value : undefined)),
+    Config.orElse(() => Config.succeed(undefined)),
+  )
 const experimental = bool("DEVECO_EXPERIMENTAL")
 const enabledByExperimental = (name: string) =>
   Config.all({ experimental, enabled: bool(name) }).pipe(Config.map((flags) => flags.experimental || flags.enabled))
 
 export class Service extends ConfigService.Service<Service>()("@opencode/RuntimeFlags", {
+  autoShare: bool("DEVECO_AUTO_SHARE"),
   pure: bool("DEVECO_PURE"),
   disableDefaultPlugins: bool("DEVECO_DISABLE_DEFAULT_PLUGINS"),
+  disableChannelDb: bool("DEVECO_DISABLE_CHANNEL_DB"),
+  disableEmbeddedWebUi: bool("DEVECO_DISABLE_EMBEDDED_WEB_UI"),
+  disableClaudeCodeSkills: Config.all({
+    broad: bool("DEVECO_DISABLE_CLAUDE_CODE"),
+    direct: bool("DEVECO_DISABLE_CLAUDE_CODE_SKILLS"),
+  }).pipe(Config.map((flags) => flags.broad || flags.direct)),
   enableExa: Config.all({
     experimental,
     enabled: bool("DEVECO_ENABLE_EXA"),
@@ -18,12 +30,18 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
     enabled: bool("DEVECO_ENABLE_PARALLEL"),
     legacy: bool("DEVECO_EXPERIMENTAL_PARALLEL"),
   }).pipe(Config.map((flags) => flags.enabled || flags.legacy)),
+  enableExperimentalModels: bool("DEVECO_ENABLE_EXPERIMENTAL_MODELS"),
   enableQuestionTool: bool("DEVECO_ENABLE_QUESTION_TOOL"),
   experimentalScout: enabledByExperimental("DEVECO_EXPERIMENTAL_SCOUT"),
+  experimentalBackgroundSubagents: enabledByExperimental("DEVECO_EXPERIMENTAL_BACKGROUND_SUBAGENTS"),
+  experimentalLspTy: bool("DEVECO_EXPERIMENTAL_LSP_TY"),
   experimentalLspTool: enabledByExperimental("DEVECO_EXPERIMENTAL_LSP_TOOL"),
+  experimentalOxfmt: enabledByExperimental("DEVECO_EXPERIMENTAL_OXFMT"),
   experimentalPlanMode: enabledByExperimental("DEVECO_EXPERIMENTAL_PLAN_MODE"),
   experimentalEventSystem: enabledByExperimental("DEVECO_EXPERIMENTAL_EVENT_SYSTEM"),
   experimentalWorkspaces: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
+  experimentalIconDiscovery: enabledByExperimental("DEVECO_EXPERIMENTAL_ICON_DISCOVERY"),
+  bashDefaultTimeoutMs: positiveInteger("DEVECO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
   client: Config.string("DEVECO_CLIENT").pipe(Config.withDefault("cli")),
 }) {}
 

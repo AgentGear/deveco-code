@@ -14,6 +14,7 @@ import { which } from "../util/which"
 import { Module } from "@opencode-ai/core/util/module"
 import { spawn } from "./launch"
 import { Npm } from "@opencode-ai/core/npm"
+import type { RuntimeFlags } from "@/effect/runtime-flags"
 
 const log = Log.create({ service: "lsp.server" })
 const pathExists = async (p: string) =>
@@ -60,7 +61,7 @@ export interface Info {
   extensions: string[]
   global?: boolean
   root: RootFunction
-  spawn(root: string, ctx: InstanceContext): Promise<Handle | undefined>
+  spawn(root: string, ctx: InstanceContext, flags: RuntimeFlags.Info): Promise<Handle | undefined>
 }
 
 export const Deno: Info = {
@@ -431,8 +432,8 @@ export const Ty: Info = {
     "Pipfile",
     "pyrightconfig.json",
   ]),
-  async spawn(root) {
-    if (!Flag.DEVECO_EXPERIMENTAL_LSP_TY) {
+  async spawn(root, _ctx, flags) {
+    if (!flags.experimentalLspTy) {
       return undefined
     }
 
@@ -680,15 +681,13 @@ export const Zls: Info = {
 
       bin = path.join(Global.Path.bin, "zls" + (platform === "win32" ? ".exe" : ""))
 
-if (!(await Filesystem.exists(bin))) {
+      if (!(await Filesystem.exists(bin))) {
         log.error("Failed to extract zls binary")
         return
       }
 
       if (platform !== "win32") {
-        await fs.chmod(bin, 0o755).catch((e) => {
-          log.warn("Failed to chmod zls binary", { bin, error: e instanceof Error ? e.message : String(e) })
-        })
+        await fs.chmod(bin, 0o755).catch(() => {})
       }
 
       log.info(`installed zls`, { bin })
@@ -699,7 +698,7 @@ if (!(await Filesystem.exists(bin))) {
         cwd: root,
       }),
     }
-},
+  },
 }
 
 export const CSharp: Info = {
@@ -1379,9 +1378,7 @@ export const KotlinLS: Info = {
       if (!ok) return
       await fs.rm(archivePath, { force: true })
       if (process.platform !== "win32") {
-        await fs.chmod(launcherScript, 0o755).catch((e) => {
-          log.warn("Failed to chmod Kotlin LS launcher", { path: launcherScript, error: e instanceof Error ? e.message : String(e) })
-        })
+        await fs.chmod(launcherScript, 0o755).catch(() => {})
       }
       log.info("Installed Kotlin Language Server", { path: launcherScript })
     }
@@ -1735,9 +1732,7 @@ export const TerraformLS: Info = {
       }
 
       if (platform !== "win32") {
-        await fs.chmod(bin, 0o755).catch((e) => {
-          log.warn("Failed to chmod terraform-ls binary", { bin, error: e instanceof Error ? e.message : String(e) })
-        })
+        await fs.chmod(bin, 0o755).catch(() => {})
       }
 
       log.info(`installed terraform-ls`, { bin })
@@ -1831,9 +1826,7 @@ export const TexLab: Info = {
       }
 
       if (platform !== "win32") {
-        await fs.chmod(bin, 0o755).catch((e) => {
-          log.warn("Failed to chmod texlab binary", { bin, error: e instanceof Error ? e.message : String(e) })
-        })
+        await fs.chmod(bin, 0o755).catch(() => {})
       }
 
       log.info("installed texlab", { bin })
@@ -2023,9 +2016,7 @@ export const Tinymist: Info = {
       }
 
       if (platform !== "win32") {
-        await fs.chmod(bin, 0o755).catch((e) => {
-          log.warn("Failed to chmod tinymist binary", { bin, error: e instanceof Error ? e.message : String(e) })
-        })
+        await fs.chmod(bin, 0o755).catch(() => {})
       }
 
       log.info("installed tinymist", { bin })

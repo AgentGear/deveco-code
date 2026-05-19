@@ -243,9 +243,9 @@ function createThemeInstaller(
     const name = path.basename(src, path.extname(src))
     const source_dir = path.dirname(meta.source)
     const local_dir =
-      path.basename(source_dir) === ".deveco"
+      path.basename(source_dir) === ".opencode"
         ? path.join(source_dir, "themes")
-        : path.join(source_dir, ".deveco", "themes")
+        : path.join(source_dir, ".opencode", "themes")
     const dest_dir = meta.scope === "local" ? local_dir : path.join(Global.Path.config, "themes")
     const dest = path.join(dest_dir, `${name}.json`)
     const stat = await Filesystem.statAsync(src)
@@ -830,7 +830,7 @@ function defaultPluginOrigin(state: RuntimeState, spec: string): ConfigPlugin.Or
   return {
     spec,
     scope: "local",
-    source: state.api.state.path.config || path.join(state.directory, ".deveco", "tui.json"),
+    source: state.api.state.path.config || path.join(state.directory, ".opencode", "tui.json"),
   }
 }
 
@@ -1067,14 +1067,16 @@ async function load(input: { api: Api; config: TuiConfig.Resolved; dispose?: () 
   }
   runtime = next
   try {
+    const flags = await Effect.runPromise(
+      Effect.gen(function* () {
+        return yield* RuntimeFlags.Service
+      }).pipe(Effect.provide(RuntimeFlags.defaultLayer)),
+    )
     const records = Flag.DEVECO_PURE ? [] : (config.plugin_origins ?? [])
     if (Flag.DEVECO_PURE && config.plugin_origins?.length) {
       log.info("skipping external tui plugins in pure mode", { count: config.plugin_origins.length })
     }
 
-    const flags = await Effect.runPromise(
-      RuntimeFlags.Service.use((flags) => Effect.succeed(flags)).pipe(Effect.provide(RuntimeFlags.defaultLayer)),
-    )
     for (const item of internalTuiPlugins(flags)) {
       log.info("loading internal tui plugin", { id: item.id })
       const entry = loadInternalPlugin(item)
