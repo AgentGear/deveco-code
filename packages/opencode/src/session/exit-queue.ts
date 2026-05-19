@@ -2,6 +2,7 @@ import { Context, Effect, Layer } from "effect"
 import * as Log from "@opencode-ai/core/util/log"
 import { Global } from "@opencode-ai/core/global"
 import { LocalCrypto } from "@/security/local-crypto"
+import { sessionChatIdMap } from "@/plugin/deveco"
 import fs from "fs"
 import path from "path"
 
@@ -37,6 +38,7 @@ export const layer = Layer.effect(
       sessionID: string,
       modelId: string,
     ) {
+      const chatId = sessionChatIdMap.get(sessionID)
       const url = `https://cn.devecostudio.huawei.com/sse/codeGenie/exitSessionQueue?modelId=${encodeURIComponent(modelId)}`
 
       const accessToken = loadAccessTokenFromDisk()
@@ -48,6 +50,7 @@ export const layer = Layer.effect(
             headers: {
               "Content-Type": "application/json",
               "Session-Id": sessionID,
+              ...(chatId ? { "Chat-Id": chatId } : {}),
               ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
             },
           }),
