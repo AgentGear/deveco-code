@@ -3,7 +3,7 @@
 面向 HarmonyOS（鸿蒙）开发场景的 AI CLI 助手。
 
 [npm 包页面](https://www.npmjs.com/package/@deveco/deveco) |
-[GitCode 仓库](https://gitcode.com/codegenie/codegenie) |
+[GitCode 仓库](https://gitcode.com/openharmony-sig/codegenie_cli) |
 [OpenCode](https://opencode.ai)
 
 ## 简介
