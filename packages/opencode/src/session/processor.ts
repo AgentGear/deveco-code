@@ -788,11 +788,6 @@ export const layer = Layer.effect(
             Effect.ensuring(cleanup()),
           )
 
-          // Request succeeded — exit queue on server
-          if (ctx.model?.id) {
-            yield* exitQueue.exit(ctx.sessionID, ctx.model.id).pipe(Effect.forkIn(scope), Effect.ignore)
-          }
-
           if (ctx.needsCompaction) return "compact"
           if (ctx.blocked || ctx.assistantMessage.error) return "stop"
           return "continue"
