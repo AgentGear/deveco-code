@@ -1867,7 +1867,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             Effect.onInterrupt(() => finalizeInterruptedAssistant),
           )
           if (outcome === "break") {
-            yield* ExitQueue.Service.exit(sessionID, model.id).pipe(Effect.forkIn(scope), Effect.ignore)
+            yield* ExitQueue.Service.use((svc) => svc.exit(sessionID, model.id)).pipe(Effect.forkIn(scope), Effect.ignore)
             break
           }
           continue

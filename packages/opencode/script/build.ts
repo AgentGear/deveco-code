@@ -313,6 +313,7 @@ for (const item of targets) {
       {
         name: `@deveco/deveco-code-${item.os === "win32" ? "windows" : item.os}-${item.arch}`,
         version: Script.version,
+        preferUnplugged: true,
         os: [item.os],
         cpu: [item.arch],
         files: [

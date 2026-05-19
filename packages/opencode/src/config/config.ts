@@ -10,8 +10,7 @@ import { Flag } from "@opencode-ai/core/flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { applyEdits, modify } from "jsonc-parser"
-import { Instance, type InstanceContext } from "../project/instance"
-import { InstanceStore } from "../project/instance-store"
+
 import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/installation/version"
 // @ts-expect-error — workspace package JSON import (resolves at build time)
 import pluginPkg from "@opencode-ai/plugin/package.json"
@@ -23,7 +22,7 @@ import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { InstanceState } from "@/effect/instance-state"
 import { Context, Duration, Effect, Exit, Fiber, Layer, Option, Schema } from "effect"
 import { EffectFlock } from "@opencode-ai/core/util/effect-flock"
-import { InstanceRef } from "@/effect/instance-ref"
+import { containsPath, type InstanceContext } from "../project/instance-context"
 import { NonNegativeInt, PositiveInt, type DeepMutable } from "@opencode-ai/core/schema"
 import { ConfigAgent } from "./agent"
 import { ConfigAttachment } from "./attachment"
@@ -486,7 +485,7 @@ export const layer = Layer.effect(
         const pluginScopeForSource = Effect.fnUntraced(function* (source: string) {
           if (source.startsWith("http://") || source.startsWith("https://")) return "global"
           if (source === "DEVECO_CONFIG_CONTENT") return "local"
-          if (yield* InstanceRef.use((ctx) => Effect.succeed(Instance.containsPath(source, ctx)))) return "local"
+          if (containsPath(source, ctx)) return "local"
           return "global"
         })
 
