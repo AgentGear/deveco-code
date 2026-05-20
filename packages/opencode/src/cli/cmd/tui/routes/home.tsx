@@ -1,7 +1,14 @@
 import { Prompt, type PromptRef } from "@tui/component/prompt"
 import { createEffect, createMemo, createSignal, Match, on, onMount, Show, Switch } from "solid-js"
+import { useTerminalDimensions } from "@opentui/solid"
 import { useTheme } from "@tui/context/theme"
-import { Banner } from "../component/banner"
+import {
+  Banner,
+  BANNER_HOME_CONTENT_INSET,
+  HOME_BODY_GAP_ROWS,
+  HOME_BODY_MIN_ROWS,
+  HOME_CONTENT_MAX_WIDTH,
+} from "../component/banner"
 import { pluralize } from "@/util/locale"
 import { useSync } from "../context/sync"
 import { useKV } from "../context/kv"
@@ -17,16 +24,28 @@ import { KV_DEVECO_CODE_PRIVACY_ACCEPTED } from "@/cli/deveco-legal"
 // TODO: what is the best way to do this?
 let once = false
 
+const placeholder = {
+  normal: ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"],
+  shell: ["ls -la", "git status", "pwd"],
+}
+
 export function Home() {
   const sync = useSync()
   const kv = useKV()
   const { theme } = useTheme()
   const route = useRouteData("home")
   const promptRef = usePromptRef()
+  const dimensions = useTerminalDimensions()
 
   // DevEco onboarding state - null = checking, false = show onboarding, true = ready
   const [devecoReady, setDevecoReady] = createSignal<boolean | null>(null)
   let devecoChecked = false
+
+  const bodySlotMinHeight = createMemo(() => {
+    const h = Math.floor(dimensions().height)
+    const reserved = 14
+    return Math.max(10, Math.min(HOME_BODY_MIN_ROWS, h - reserved))
+  })
 
   // Check if DevEco onboarding should be shown - wait for sync to complete
   createEffect(
@@ -106,51 +125,71 @@ export function Home() {
       },
     ),
   )
+
   return (
     <>
-      <box
-        flexGrow={1}
-        paddingLeft={2}
-        paddingRight={2}
-        flexDirection="column"
-        alignItems="flex-start"
-        justifyContent="flex-start"
-      >
-        <Show when={devecoReady()}>
+      <box flexGrow={1} paddingLeft={2} paddingRight={2} flexDirection="column" minHeight={0}>
+        <Show when={devecoReady() !== null}>
           <box
-            paddingLeft={2}
-            paddingRight={2}
-            width="100%"
+            flexGrow={1}
+            minHeight={0}
             flexDirection="column"
+            justifyContent="center"
             alignItems="center"
-            flexShrink={0}
-            paddingTop={1}
           >
-            <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
-              <TuiPluginRuntime.Slot name="home_logo" mode="replace">
-                <Banner />
-              </TuiPluginRuntime.Slot>
-              <box width="100%" maxWidth={110} zIndex={1000} paddingTop={2} flexShrink={0}>
-                <TuiPluginRuntime.Slot name="home_prompt" mode="replace">
-                  <Prompt
-                    ref={(r) => {
-                      if (r) {
-                        prompt = r
-                        promptRef.set(r)
-                      }
-                    }}
-                    hint={Hint}
-                  />
+            <box
+              flexDirection="column"
+              alignItems="center"
+              width="100%"
+              maxWidth={HOME_CONTENT_MAX_WIDTH}
+              flexShrink={0}
+              position="relative"
+            >
+              <box zIndex={0} flexShrink={0} width="100%" alignItems="center">
+                <TuiPluginRuntime.Slot name="home_logo" mode="replace">
+                  <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
                 </TuiPluginRuntime.Slot>
               </box>
-              <TuiPluginRuntime.Slot name="home_bottom" />
+              <box
+                zIndex={1}
+                position="relative"
+                width="100%"
+                minHeight={bodySlotMinHeight()}
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                paddingTop={HOME_BODY_GAP_ROWS}
+                flexShrink={0}
+              >
+                <Show when={devecoReady()}>
+                  <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
+                    <box width="100%" flexShrink={0}>
+                      <TuiPluginRuntime.Slot name="home_prompt" mode="replace">
+                        <Prompt
+                          ref={(r) => {
+                            if (r) {
+                              prompt = r
+                              promptRef.set(r)
+                            }
+                          }}
+                          hint={Hint}
+                          placeholders={placeholder}
+                        />
+                      </TuiPluginRuntime.Slot>
+                    </box>
+                    <TuiPluginRuntime.Slot name="home_bottom" />
+                  </box>
+                </Show>
+                <Show when={devecoReady() === false}>
+                  <DevEcoOnboarding
+                    onComplete={() => setDevecoReady(true)}
+                    bodySlotHeight={bodySlotMinHeight()}
+                  />
+                </Show>
+              </box>
             </box>
           </box>
         </Show>
-        <Show when={devecoReady() === false}>
-          <DevEcoOnboarding onComplete={() => setDevecoReady(true)} />
-        </Show>
-        <box flexGrow={1} minHeight={0} flexShrink={1} />
         <Toast />
       </box>
       <box width="100%" flexShrink={0}>

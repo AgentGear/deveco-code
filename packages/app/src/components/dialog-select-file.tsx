@@ -246,6 +246,7 @@ function createSessionEntries(props: {
             seen.add(key)
             return true
           })
+          // @ts-ignore
           .map((item) => createSessionEntry(item, category))
         state.cached = next
         return next
