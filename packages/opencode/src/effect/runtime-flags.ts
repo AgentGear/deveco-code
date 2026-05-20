@@ -50,6 +50,7 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   experimentalIconDiscovery: enabledByExperimental("DEVECO_EXPERIMENTAL_ICON_DISCOVERY"),
   outputTokenMax: positiveInteger("DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
   bashDefaultTimeoutMs: positiveInteger("DEVECO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
+  experimentalNativeLlm: enabledByExperimental("DEVECO_EXPERIMENTAL_NATIVE_LLM"),
   client: Config.string("DEVECO_CLIENT").pipe(Config.withDefault("cli")),
 }) {}
 
