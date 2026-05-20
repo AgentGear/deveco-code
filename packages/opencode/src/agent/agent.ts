@@ -18,6 +18,7 @@ import PROMPT_SCOUT from "./prompt/scout.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
 import PROMPT_SDD from "./prompt/sdd.txt"
+import PROMPT_SPEC_VERIFY from "./prompt/spec-verify.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@opencode-ai/core/global"
@@ -168,6 +169,24 @@ export const layer = Layer.effect(
             native: true,
             prompt: PROMPT_SDD,
             color: "info",
+          },
+          "spec-verify": {
+            name: "spec-verify",
+            description: "Build, deploy, and UI-verify Harmony features against spec",
+            options: {},
+            permission: Permission.merge(
+              defaults,
+              Permission.fromConfig({
+                question: "allow",
+                arkts_knowledge_search: "allow",
+              }),
+              user,
+            ),
+            mode: "subagent",
+            native: true,
+            hidden: true,
+            temperature: 0.2,
+            prompt: PROMPT_SPEC_VERIFY,
           },
           plan: {
             name: "plan",
