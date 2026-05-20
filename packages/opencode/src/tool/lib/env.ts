@@ -62,6 +62,7 @@ function defaults() {
   const home = String(process.env.USERPROFILE || "").trim();
   return [
     "D:\\DevEco Studio",
+    "C:\\Program Files\\Huawei\\DevEco Studio",
     "C:\\Program Files\\DevEco Studio",
     "C:\\Program Files (x86)\\DevEco Studio",
     home ? path.join(home, "DevEco Studio") : "",
