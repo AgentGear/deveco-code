@@ -7,8 +7,8 @@
 | 分支 | 角色 | 生命周期 | 说明 |
 |------|------|----------|------|
 | `master` | 生产环境 | 永久 | 仅通过发布流程合入，禁止直接推送。详见 [RELEASE-WORKFLOW.md](./RELEASE-WORKFLOW.md) |
-| `upstream-tracking-develop` | 主开发 | 永久 | 新特性合入目标，上游同步在此进行 |
-| `<type>/<short-description>` | 功能 | 临时 | 从 `upstream-tracking-develop` 检出，PR 合回。分支命名格式见下方 |
+| `develop` | 主开发 | 永久 | 新特性合入目标，上游同步在此进行 |
+| `<type>/<short-description>` | 功能 | 临时 | 从 `develop` 检出，PR 合回。分支命名格式见下方 |
 
 分支命名格式：`<type>/<short-description>`
 
@@ -20,12 +20,12 @@
 ## 日常开发
 
 ```text
-<type>/<short-description> ──PR──▶ upstream-tracking-develop
+<type>/<short-description> ──PR──▶ develop
 ```
 
-1. 从 `upstream-tracking-develop` 创建功能分支
-2. 开发过程中定期同步上游：`git pull --rebase origin upstream-tracking-develop`
-3. 开发完成提交 PR，目标 `upstream-tracking-develop`
+1. 从 `develop` 创建功能分支
+2. 开发过程中定期同步上游：`git pull --rebase origin develop`
+3. 开发完成提交 PR，目标 `develop`
 4. 通过 CI 和 Code Review 后合入
 
 ## Commit 规范
