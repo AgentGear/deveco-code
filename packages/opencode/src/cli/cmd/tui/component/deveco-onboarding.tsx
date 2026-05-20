@@ -40,8 +40,12 @@ function selectionLead(selected: boolean): string {
 }
 
 function providerLabel(id: string, name: string): string {
-  if (id === 'github-copilot') return 'GitHub Copilot';
-  if (id === 'opencode') return 'OpenCode Zen';
+  if (id === 'github-copilot') {
+    return 'GitHub Copilot';
+  }
+  if (id === 'opencode') {
+    return 'OpenCode Zen';
+  }
   return name;
 }
 
@@ -69,7 +73,9 @@ type ProviderAuthContext = {
 };
 
 async function pickAuthMethodIndex(dialog: AuthDialog, methods: ProviderAuthMethod[]): Promise<number | null> {
-  if (methods.length <= 1) return 0;
+  if (methods.length <= 1) {
+    return 0;
+  }
   const idx = await new Promise<number | null>((resolve) => {
     dialog.replace(
       () => (
@@ -85,7 +91,9 @@ async function pickAuthMethodIndex(dialog: AuthDialog, methods: ProviderAuthMeth
       () => resolve(null),
     );
   });
-  if (idx === null) return null;
+  if (idx === null) {
+    return null;
+  }
   dialog.clear();
   return idx;
 }
@@ -98,9 +106,13 @@ async function collectProviderAuthPrompts(
   for (const p of prompts) {
     if (p.when) {
       const prev = inputs[p.when.key];
-      if (prev === undefined) continue;
+      if (prev === undefined) {
+        continue;
+      }
       const matches = p.when.op === 'eq' ? prev === p.when.value : prev !== p.when.value;
-      if (!matches) continue;
+      if (!matches) {
+        continue;
+      }
     }
 
     if (p.type === 'select') {
@@ -120,7 +132,9 @@ async function collectProviderAuthPrompts(
           () => resolve(null),
         );
       });
-      if (value === null) return null;
+      if (value === null) {
+        return null;
+      }
       inputs[p.key] = value;
       continue;
     }
@@ -128,7 +142,9 @@ async function collectProviderAuthPrompts(
     const value = await DialogPrompt.show(dialog, p.message, {
       placeholder: p.placeholder,
     });
-    if (!value) return null;
+    if (!value) {
+      return null;
+    }
     inputs[p.key] = value;
   }
   return inputs;
@@ -150,13 +166,17 @@ async function runOAuthCodeFlow(
       </box>
     ),
   });
-  if (!code) return false;
+  if (!code) {
+    return false;
+  }
   const cbResult = await ctx.sdk.client.provider.oauth.callback({
     providerID: providerId,
     method: methodIndex,
     code,
   });
-  if (cbResult.error) return false;
+  if (cbResult.error) {
+    return false;
+  }
   await ctx.finish();
   return true;
 }
@@ -183,7 +203,9 @@ async function runOAuthAutoFlow(
     method: methodIndex,
   });
   ctx.dialog.clear();
-  if (cbResult.error) return false;
+  if (cbResult.error) {
+    return false;
+  }
   await ctx.finish();
   return true;
 }
@@ -197,7 +219,9 @@ async function runProviderOAuth(
   let inputs: Record<string, string> | undefined;
   if (method.prompts?.length) {
     const collected = await collectProviderAuthPrompts(ctx.dialog, method.prompts);
-    if (collected === null) return;
+    if (collected === null) {
+      return;
+    }
     inputs = collected;
   }
 
@@ -252,7 +276,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const filteredProviders = createMemo(() => {
     const q = providerQuery().toLowerCase().trim();
     const list = providerList();
-    if (!q) return list;
+    if (!q) {
+      return list;
+    }
     return list.filter(
       (p) =>
         providerLabel(p.id, p.name).toLowerCase().includes(q) ||
@@ -268,7 +294,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       setProviderIndex(0);
       return;
     }
-    if (idx >= list.length) setProviderIndex(list.length - 1);
+    if (idx >= list.length) {
+      setProviderIndex(list.length - 1);
+    }
   });
 
   const dimensions = useTerminalDimensions();
@@ -288,17 +316,27 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   });
 
   const fitText = (s: string, w: number) => {
-    if (w <= 0) return '';
-    if (s.length === w) return s;
-    if (s.length < w) return s + ' '.repeat(w - s.length);
+    if (w <= 0) {
+      return '';
+    }
+    if (s.length === w) {
+      return s;
+    }
+    if (s.length < w) {
+      return s + ' '.repeat(w - s.length);
+    }
     return s.slice(0, w);
   };
 
   const scrollToProvider = (index: number) => {
-    if (!providerScroll) return;
+    if (!providerScroll) {
+      return;
+    }
     const children = providerScroll.getChildren();
     const target = children[index];
-    if (!target) return;
+    if (!target) {
+      return;
+    }
     const y = target.y - providerScroll.y;
     if (y >= providerScroll.height) {
       providerScroll.scrollBy(y - providerScroll.height + 1);
@@ -317,7 +355,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     authAborted = false;
     try {
       const result = await devecoAuth.login();
-      if (authAborted) return;
+      if (authAborted) {
+        return;
+      }
       if (!result.success) {
         if (result.cancelled) {
           setStep('entry');
@@ -341,7 +381,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       setAuthBusy(false);
       props.onComplete();
     } catch (error) {
-      if (authAborted) return;
+      if (authAborted) {
+        return;
+      }
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setAuthMessage(errorMessage);
       setAuthBusy(false);
@@ -366,11 +408,17 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
 
   const [keySubmitBusy, setKeySubmitBusy] = createSignal(false);
   const trySubmitApiKey = () => {
-    if (keySubmitBusy()) return;
+    if (keySubmitBusy()) {
+      return;
+    }
     const id = pid();
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const value = (input?.plainText ?? key()).trim();
-    if (!value) return;
+    if (!value) {
+      return;
+    }
     setKeySubmitBusy(true);
     void submitKey(id, value).finally(() => setKeySubmitBusy(false));
   };
@@ -384,7 +432,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const handleProviderSelect = async (providerId: string) => {
     const methods = sync.data.provider_auth[providerId] ?? DEFAULT_AUTH_METHODS;
     const methodIndex = await pickAuthMethodIndex(dialog, methods);
-    if (methodIndex === null) return;
+    if (methodIndex === null) {
+      return;
+    }
 
     const method = methods[methodIndex];
     if (method.type === 'api') {
@@ -412,7 +462,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   };
 
   useKeyboard((evt) => {
-    if (dialog.stack.length > 0) return;
+    if (dialog.stack.length > 0) {
+      return;
+    }
 
     const st = step();
 
@@ -491,7 +543,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
         setStep('entry');
         return;
       }
-      if (authBusy()) return;
+      if (authBusy()) {
+        return;
+      }
       if (evt.name === 'return') {
         evt.preventDefault();
         void runBrowserLogin();
