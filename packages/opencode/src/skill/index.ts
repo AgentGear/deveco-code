@@ -13,7 +13,9 @@ import { ConfigMarkdown } from "@/config/markdown"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { Glob } from "@opencode-ai/core/util/glob"
 import * as Log from "@opencode-ai/core/util/log"
+import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import { Discovery } from "./discovery"
+import { Defaults } from "./defaults"
 import CUSTOMIZE_OPENCODE_SKILL_BODY from "./prompt/customize-opencode.md" with { type: "text" }
 import { isRecord } from "@/util/record"
 
@@ -171,6 +173,9 @@ const discoverSkills = Effect.fnUntraced(function* (
   worktree: string,
 ) {
   const state: ScanState = { matches: new Set(), dirs: new Set() }
+
+  const defaultDir = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
+  yield* scan(state, defaultDir, SKILL_PATTERN)
 
   const externalDirs: string[] = []
   if (!disableExternalSkills) {
