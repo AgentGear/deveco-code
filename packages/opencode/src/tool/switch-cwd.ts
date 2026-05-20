@@ -16,7 +16,7 @@
 import { Effect, Schema } from "effect"
 import path from "path"
 import * as Tool from "./tool"
-import { Instance } from "../project/instance"
+
 import { assertExternalDirectory } from "./external-directory"
 import { setSessionCwd } from "./lib/session-cwd"
 import DESCRIPTION from "./switch-cwd.txt"
@@ -29,7 +29,7 @@ function resolveTarget(projectPath: string) {
   if (path.isAbsolute(trimmed)) {
     return path.normalize(trimmed)
   }
-  return path.resolve(Instance.directory, trimmed)
+  return path.resolve(process.cwd(), trimmed)
 }
 
 /** Stage app root, or project root with hvigor OHPM metadata (not a submodule folder). */

@@ -12,3 +12,4 @@
 | Development workflow, branch strategy, commit conventions, and PR process | [DEV-WORKFLOW.md](./DEV-WORKFLOW.md) |
 | Release workflow, versioning, and hotfix procedures | [RELEASE-WORKFLOW.md](./RELEASE-WORKFLOW.md) |
 | Sync changes from the upstream OpenCode repo | [.agents/skills/upstream-sync/SKILL.md](./.agents/skills/upstream-sync/SKILL.md) |
+| Check the upstream OpenCode baseline tag version | [.agents/upstream-sync/BASELINE.md](./.agents/upstream-sync/BASELINE.md) |

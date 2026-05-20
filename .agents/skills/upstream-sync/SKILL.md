@@ -96,7 +96,7 @@ Resolve conflicts by category (batch where possible):
 |----------|-----------|-------|
 | package.json version bumps | `git checkout --theirs -- <file>` (batch) | All `**/package.json` version fields |
 | bun.lock | `git checkout --theirs bun.lock` | |
-| packages/opencode/package.json | Accept version, keep `name: "deveco"` | |
+| packages/opencode/package.json | Accept version, keep `name: "deveco"`, `bin: "deveco"`, and all `@deveco-codegenie/*` custom dependencies | Custom deps and bin field are overwritten on every sync; see Known Pitfalls |
 | packages/web/package.json | Accept version, ensure `"deveco": "workspace:*"` in `devDependencies` | Reverts to `opencode` on every sync |
 | packages/extensions/zed/extension.toml | Accept upstream version + download URL | |
 | Feature logic files | Analyze individually: accept upstream architecture, keep `DEVECO_*` branding | |
@@ -133,7 +133,7 @@ Conflicts resolved: <N> files
 Brand identifiers preserved throughout, HarmonyOS tools and plugins retained
 Baseline updated in BASELINE.md
 
-Signed-off-by: YourName <your.email@example.com>"
+Signed-off-by: GIT_USER <GIT_EMAIL>"  # use `git config user.name` and `git config user.email`
 ```
 
 All sync-related git commits must use `SKIP_SPECS_CHECK=1` prefix.
@@ -159,6 +159,18 @@ git replace -d <sync-commit>
 
 If new issues or traps encountered, add to `.agents/upstream-sync/LESSONS.md`.
 
+### Step 9: Post-Sync Assessment
+
+Launch the `upstream-sync` subagent to perform a comprehensive post-sync quality assessment. The subagent audits the sync results against all known pitfalls and brand mapping rules, then generates a structured assessment report.
+
+1. Launch the subagent via the `Agent` tool with `subagent_type="general-purpose"`. The subagent prompt is located at `.agents/skills/upstream-sync/assessment-agent-prompt.md`.
+2. The subagent will produce a report covering: brand identifier audit, custom dependency verification, workspace dependency check, agent permission audit, import path integrity, TUI branding check, and known pitfalls cross-check.
+3. **After receiving the report**, the main Agent must:
+   - Review all issues in the report
+   - Apply fixes for each issue, prioritizing Critical → Branding → Config → Recommendations
+   - Re-run verification (Step 7) to confirm all fixes are effective
+   - Amend the sync commit if fixes were applied: `SKIP_SPECS_CHECK=1 git commit --amend --no-edit`
+
 ## Conflict Resolution Priority (highest to lowest)
 
 1. **DevEco Code custom features** (branding `DEVECO_*`/`DevEco Code`, HarmonyOS, custom flags) — always keep local
@@ -171,10 +183,16 @@ If new issues or traps encountered, add to `.agents/upstream-sync/LESSONS.md`.
 
 ### Critical — will cause silent breakage
 
+- **packages/opencode/package.json custom dependencies lost** *(Step 4)*: upstream does not have `@deveco-codegenie/*` packages, so accepting upstream's package.json drops them from both `dependencies` and `devDependencies`. Additionally, the `bin` field reverts from `"deveco"` to `"opencode"`. After resolving package.json conflicts, always verify these are present:
+  - `"bin": { "deveco": "./bin/deveco" }` (not `"opencode"`)
+  - In both `devDependencies` and `dependencies`: `@deveco-codegenie/mcp-bridge`, `@deveco-codegenie/mcp-bridge-darwin-arm64`, `@deveco-codegenie/mcp-bridge-darwin-x64`, `@deveco-codegenie/mcp-bridge-win32-x64`
 - **Auto-merge overwrites brand identifiers** *(Step 4, Step 7)*: git auto-merges `OPENCODE_` env var prefixes without conflict, silently overwriting `DEVECO_` renames. New files from upstream also carry `OPENCODE_`. Always grep all packages (not just conflicted files) — see Step 7 verification.
 - **Typecheck is mandatory** *(Step 7)*: upstream API changes (signatures, imports, renames, module migrations to `packages/core`) produce type errors in auto-merged files. `bun run typecheck` catches what merge conflict markers don't.
 - **Upstream renames hide import breakage** *(Step 3, Step 4)*: when upstream moves modules (e.g. `util/schema.ts` → `packages/core/src/`), git shows rename but auto-merged referencing files keep old import paths. Check `git diff --stat` rename lines.
 - **workspace dep name resets** *(Step 4)*: `packages/web/package.json` reverts to `"opencode": "workspace:*"` on every sync. Always verify.
+- **Agent tool permission overwrites** *(Step 3, Step 4)*: `packages/opencode/src/agent/agent.ts` — DevEco Code customizes permissions for two agents. When upstream restructures the permission format, naive conflict resolution drops these rules. **Accept upstream's new permission structure, but always re-add all custom permissions:**
+  - **build agent**: `plan_enter: "ask"`, `plan_write: "deny"` (upstream defaults: `"allow"` / absent)
+  - **plan agent**: `plan_exit: "ask"`, `plan_write: "allow"`, `edit: "deny"`, plus 9 HarmonyOS tool deny rules (`bash`, `build_project`, `check_ets_files`, `perform_ui_action`, `get_app_ui_tree`, `start_app`, `hdc_log`, `switch_cwd`, `arkts_knowledge_search`)
 
 ### Moderate — causes errors or incorrect behavior
 
