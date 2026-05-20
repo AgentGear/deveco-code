@@ -5,7 +5,6 @@ import * as McpWebSearch from "./mcp-websearch"
 import DESCRIPTION from "./websearch.txt"
 import { checksum } from "@opencode-ai/core/util/encode"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
-import { Flag } from "@opencode-ai/core/flag/flag"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 
 export const Parameters = Schema.Struct({
@@ -28,10 +27,7 @@ export const Parameters = Schema.Struct({
 const WebSearchProviderSchema = Schema.Literals(["exa", "parallel"])
 export type WebSearchProvider = Schema.Schema.Type<typeof WebSearchProviderSchema>
 
-export function selectWebSearchProvider(
-  sessionID: string,
-  flags = { exa: Flag.DEVECO_ENABLE_EXA, parallel: Flag.DEVECO_ENABLE_PARALLEL },
-): WebSearchProvider {
+export function selectWebSearchProvider(sessionID: string, flags = { exa: false, parallel: false }): WebSearchProvider {
   const override = process.env.DEVECO_WEBSEARCH_PROVIDER
   if (override === "exa" || override === "parallel") return override
   if (flags.parallel) return "parallel"

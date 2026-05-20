@@ -17,6 +17,13 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   disableDefaultPlugins: bool("DEVECO_DISABLE_DEFAULT_PLUGINS"),
   disableChannelDb: bool("DEVECO_DISABLE_CHANNEL_DB"),
   disableEmbeddedWebUi: bool("DEVECO_DISABLE_EMBEDDED_WEB_UI"),
+  disableExternalSkills: bool("DEVECO_DISABLE_EXTERNAL_SKILLS"),
+  disableLspDownload: bool("DEVECO_DISABLE_LSP_DOWNLOAD"),
+  skipMigrations: bool("DEVECO_SKIP_MIGRATIONS"),
+  disableClaudeCodePrompt: Config.all({
+    broad: bool("DEVECO_DISABLE_CLAUDE_CODE"),
+    direct: bool("DEVECO_DISABLE_CLAUDE_CODE_PROMPT"),
+  }).pipe(Config.map((flags) => flags.broad || flags.direct)),
   disableClaudeCodeSkills: Config.all({
     broad: bool("DEVECO_DISABLE_CLAUDE_CODE"),
     direct: bool("DEVECO_DISABLE_CLAUDE_CODE_SKILLS"),
@@ -41,6 +48,7 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   experimentalEventSystem: enabledByExperimental("DEVECO_EXPERIMENTAL_EVENT_SYSTEM"),
   experimentalWorkspaces: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
   experimentalIconDiscovery: enabledByExperimental("DEVECO_EXPERIMENTAL_ICON_DISCOVERY"),
+  outputTokenMax: positiveInteger("DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
   bashDefaultTimeoutMs: positiveInteger("DEVECO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
   client: Config.string("DEVECO_CLIENT").pipe(Config.withDefault("cli")),
 }) {}
