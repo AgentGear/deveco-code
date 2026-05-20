@@ -17,6 +17,7 @@ import { Filesystem } from "@/util/filesystem"
 import { useLocal } from "@tui/context/local"
 import { tint, useTheme } from "@tui/context/theme"
 import { EmptyBorder, SplitBorder } from "@tui/component/border"
+import { homeBodySlotRows, homePromptTextareaRows } from "@tui/component/banner"
 import { Spinner } from "@tui/component/spinner"
 import { useSDK } from "@tui/context/sdk"
 import { useRoute } from "@tui/context/route"
@@ -79,6 +80,10 @@ export type PromptProps = {
     normal?: string[]
     shell?: string[]
   }
+  /** Home: shared body slot rows; used to size the textarea. */
+  homeBodySlotHeight?: number
+  /** Home: rows to leave for `home_bottom` tips (0 when tips are hidden). */
+  homeTipsReserveRows?: number
 }
 
 export type PromptRef = {
@@ -213,7 +218,12 @@ export function Prompt(props: PromptProps) {
     const hintReserve = Math.min(32, Math.max(22, Math.floor(panel * 0.42)))
     return Math.max(24, panel - hintReserve - 2)
   })
-  const homePromptRows = 4
+  const homePromptRows = createMemo(() => {
+    if (!isHomeRoute()) return 4
+    const slot = props.homeBodySlotHeight ?? homeBodySlotRows(dimensions().height)
+    const tips = props.homeTipsReserveRows
+    return homePromptTextareaRows(slot, tips)
+  })
   const defaultWorkspaceID = createMemo(() => props.workspaceID ?? project.workspace.current())
 
   function selectWorkspace(selection: WorkspaceSelection | undefined) {
@@ -1561,8 +1571,8 @@ export function Prompt(props: PromptProps) {
               placeholderColor={theme.textMuted}
               textColor={leader() ? theme.textMuted : theme.text}
               focusedTextColor={leader() ? theme.textMuted : theme.text}
-              minHeight={isHomeRoute() ? homePromptRows : 1}
-              maxHeight={isHomeRoute() ? homePromptRows : 6}
+              minHeight={isHomeRoute() ? homePromptRows() : 1}
+              maxHeight={isHomeRoute() ? homePromptRows() : 6}
               onContentChange={() => {
                 const value = input.plainText
                 setStore("prompt", "input", value)
