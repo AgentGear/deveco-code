@@ -1866,7 +1866,11 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             Effect.onInterrupt(() => finalizeInterruptedAssistant),
           )
           if (outcome === "break") {
-            yield* ExitQueue.Service.use((svc) => svc.exit(sessionID, model.id)).pipe(Effect.forkIn(scope), Effect.ignore)
+            yield* ExitQueue.Service.use((svc) => svc.exit(sessionID, model.id)).pipe(
+              Effect.provide(ExitQueue.defaultLayer),
+              Effect.forkIn(scope),
+              Effect.ignore,
+            )
             break
           }
           continue
@@ -2049,6 +2053,7 @@ export const defaultLayer = Layer.suspend(() =>
         Bus.layer,
         CrossSpawnSpawner.defaultLayer,
         RuntimeFlags.defaultLayer,
+        ExitQueue.defaultLayer,
       ),
     ),
   ),
