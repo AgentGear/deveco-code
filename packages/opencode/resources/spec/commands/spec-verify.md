@@ -12,7 +12,7 @@ agent: sdd
 4. **Device Check**: **Strictly forbid `hdc` command**. Use `start_app` tool to check device status.
 5. **Path Binding**: Always use `Confirmed_Feature_Dir` for all subsequent file checks.
 6. **Post-verify**: Immediately halt after `verify_ui`. No auto-execution of downstream commands. Await explicit user instruction.
-7. **Dual Confirmation**: Test Plan (Phase 2) require explicit `question` tool approval. Default approval is forbidden.
+7. **Dual Confirmation**: **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Proceed with the generated test plan immediately without pausing.** If available, Test Plan (Phase 2) requires explicit `question` tool approval. Default approval is forbidden when `question` is available.
 8. **Knowledge Query Rule**: When `arkts_knowledge_search` is available, verify all ArkTS syntax, official HarmonyOS APIs, specs, compatibility rules and design guidelines with this tool before replying.
 
 ## Safety & constraint & Compliance (Strict Redlines)
@@ -44,14 +44,14 @@ Validate in order using `Confirmed_Feature_Dir`. Skip on failure (except critica
 3. **`verify_ui` Prep & Approval** (Triggered only if eligible):
     - Read `.specs/{Confirmed_Feature_Dir}/spec.md`.
     - Generate only simple UI smoke test cases, covering core page rendering and basic mainstream user interaction flows exclusively.
-    - Call `question` tool to present plan. **Pause workflow**.
+    - **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Proceed to step 4 immediately without pausing.** If available, call the `question` tool to present plan. **Pause workflow**.
     - *Approved* → Proceed to step 4.
     - *Rejected* → Log reason, skip `verify_ui`, terminate UI workflow.
 4. **`verify_ui`**: Execute only upon plan approval + valid envs.
 
 ### Phase 3: Result Review & Re-Verification Loop
 1. **Report**: Output summary covering: directory confirmation status, step-by-step results (executed/skipped/failed + reasons), test plan overview, approval result, and verification outputs/errors.
-2. **Review Gate**: Call `question` tool with these options:
+2. **Review Gate**: **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Immediately mark workflow as `completed` without pausing.** If available, call the `question` tool with these options:
     - "Wrap up and finish"
     - "There are remaining issues"
     - "I want to do more testing"
@@ -59,6 +59,7 @@ Validate in order using `Confirmed_Feature_Dir`. Skip on failure (except critica
     - *"Wrap up and finish"* → Halt. Await user instruction.
     - *"There are remaining issues"* → Proceed to step 4.
     - *"I want to do more testing"* → Return to Phase 2 step 3 (regenerate test plan and re-run `verify_ui` with existing package).
+    - **If `question` was NOT available → Mark workflow as `completed` immediately. Halt.**
 4. **Fix → Re-verify Cycle** (triggered by "There are remaining issues"):
     1. Apply code fixes in `src/` to address the reported `verify_ui` failures.
     2. Execute `build_project` to recompile with the fixed code.
