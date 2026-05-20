@@ -13,7 +13,7 @@ agent: sdd
 5. **Path Binding**: Always use `Confirmed_Feature_Dir` for all subsequent file checks.
 6. **Post-verify**: Immediately halt after `verify_ui`. No auto-execution of downstream commands. Await explicit user instruction.
 7. **Dual Confirmation**: Test Plan (Phase 2) require explicit `question` tool approval. Default approval is forbidden.
-8. **Knowledge Query Rule**: When `arkts_knowledge_search` is available, verify all ArkTS syntax, official HarmonyOS APIs, specs, compatibility rules and design guidelines with this tool before replying.
+8. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 
 ## Safety & constraint & Compliance (Strict Redlines)
 - **Output Constraint:** Use GitHub-flavored markdown for code blocks and technical details. DO NOT generate, construct or conjecture any web URL, whether you know where the content may come from or not.
