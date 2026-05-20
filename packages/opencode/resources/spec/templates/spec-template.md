@@ -4,6 +4,15 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+## Overview
+
+<!--
+  ACTION REQUIRED: Provide a high-level summary of the feature.
+  Keep it concise (2-3 sentences). Focus on WHAT and WHY.
+-->
+
+[High-level description of the feature and its purpose]
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -125,3 +134,14 @@
 - [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
 - [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
 - [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]
+
+## Open Questions
+
+<!--
+  ACTION REQUIRED: List any open questions, unresolved decisions, or items
+  that need further clarification. Limit to max 3 critical items.
+-->
+
+- [Open question about scope, security, UX, or technical detail]
+- [Another open question if applicable]
+- [Another open question if applicable]

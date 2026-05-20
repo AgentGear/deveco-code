@@ -47,7 +47,8 @@ $ARGUMENTS
     - Phased tasks (Setup → Foundational → Stories → Polish)
     - Dependency graph & parallel execution guide
     - Summary report & format validation confirmation
-4. **Report**: Output final path to `tasks.md` and append a summary block containing: total tasks, per-story count, parallel opportunities, independent test criteria, suggested MVP scope.
+4. **Write Tasks Artifact**: Use the `spec_write` tool with `file: "tasks.md"` to write the completed task list. Do NOT use the generic `write` tool for tasks artifacts.
+5. **Report**: Output final path to `tasks.md` and append a summary block containing: total tasks, per-story count, parallel opportunities, independent test criteria, suggested MVP scope.
 
 ## Task Generation Rules
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.

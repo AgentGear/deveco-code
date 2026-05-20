@@ -48,7 +48,7 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
 
 3. **Load Template**:
     - Load `{CONFIG_ROOT}/specs/templates/spec-template.md`.
-    - **Fallback**: If missing/unreadable, use the default structure: `# Title, ## Overview, ## User Scenarios & Testing, ## Functional Requirements, ## Success Criteria, ## Key Entities, ## Assumptions, ## Open Questions`.
+    - **Fallback**: If missing/unreadable, use the default structure: `# Feature Specification: [FEATURE NAME], ## Overview, ## User Scenarios & Testing, ## Requirements (with ### Functional Requirements and ### Key Entities), ## Success Criteria, ## Assumptions, ## Open Questions`.
 
 4. **Handle Existing Specs**:
   - If `spec.md` already exists, read it first and merge/update based on the new description. Otherwise, create fresh.
@@ -60,7 +60,7 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
     - [ ] Generate Functional Requirements → Each must be testable. Document defaults in Assumptions.
     - [ ] Define Success Criteria → Measurable, tech-agnostic, user-focused.
     - [ ] Identify Key Entities (if applicable).
-    - [ ] Finalize & Write → Fill template, preserving section order/headings. Replace placeholders with concrete details derived from input.
+    - [ ] Finalize & Write → Use the `spec_write` tool with `file: "spec.md"` to write the completed specification. Do NOT use the generic `write` tool for spec artifacts.
 
 6. **Report Completion**:
    Output exactly the following block (no extra text):
