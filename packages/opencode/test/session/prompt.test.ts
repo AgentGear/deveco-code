@@ -26,6 +26,7 @@ import { SessionMessageTable } from "../../src/session/session.sql"
 import { LLM } from "../../src/session/llm"
 import { MessageV2 } from "../../src/session/message-v2"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
+import { ExitQueue } from "../../src/session/exit-queue"
 import { SessionCompaction } from "../../src/session/compaction"
 import { SessionSummary } from "../../src/session/summary"
 import { Instruction } from "../../src/session/instruction"
@@ -232,7 +233,7 @@ function makeHttp(input?: { processor?: "blocking" }) {
       Layer.provide(RuntimeFlags.layer({ experimentalEventSystem: true })),
       Layer.provideMerge(deps),
     ),
-  ).pipe(Layer.provide(summary))
+  ).pipe(Layer.provide(summary), Layer.provide(ExitQueue.defaultLayer))
 }
 
 // @ts-ignore

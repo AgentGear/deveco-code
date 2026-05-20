@@ -1641,8 +1641,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       throw new Error("Impossible")
     })
 
-    const runLoop: (sessionID: SessionID) => Effect.Effect<MessageV2.WithParts> = Effect.fn("SessionPrompt.run")(
-      function* (sessionID: SessionID) {
+    const runLoop = Effect.fn("SessionPrompt.run")(function* (sessionID: SessionID) {
         const ctx = yield* InstanceState.context
         const slog = elog.with({ sessionID })
         let structured: unknown
@@ -1867,7 +1866,10 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             Effect.onInterrupt(() => finalizeInterruptedAssistant),
           )
           if (outcome === "break") {
-            yield* ExitQueue.Service.exit(sessionID, model.id).pipe(Effect.forkIn(scope), Effect.ignore)
+            yield* Effect.gen(function* () {
+              const exitQueue = yield* ExitQueue.Service
+              yield* exitQueue.exit(sessionID, model.id)
+            }).pipe(Effect.provide(ExitQueue.defaultLayer), Effect.forkIn(scope), Effect.ignore)
             break
           }
           continue
