@@ -45,7 +45,7 @@ $ARGUMENTS
 3. **Load Context & Template**:
     - Read `FEATURE_SPEC`.
     - Load plan template from `{CONFIG_ROOT}/specs/templates/plan-template.md`.
-    - **Fallback:** If the template is missing, initialize `IMPL_PLAN` with the minimal required structure: `## Technical Context`, `## Research & Decisions`, `## Data Model`, `## Contracts & Interfaces`, `## Quickstart`.
+    - **Fallback:** If the template is missing, initialize `IMPL_PLAN` with the minimal required structure: `## Summary`, `## Technical Context`, `## Project Structure`, `## Complexity Tracking`, `## Research & Decisions`, `## Data Model`, `## Contracts & Interfaces`, `## Quickstart`.
 
 4. **Execute Plan Workflow**: Follow the loaded/initialized template structure to:
     - Fill `Technical Context` section
@@ -53,7 +53,9 @@ $ARGUMENTS
     - Execute Phase 1: Design data structures, interfaces, and setup guidelines inline
     - Finalize and validate the complete plan
 
-5. **Stop and Report**: Command ends after Phase 1 Design & Contracts. Report the absolute path of `IMPL_PLAN` and list all generated artifacts. Do not trigger further actions.
+5. **Write Plan Artifact**: Use the `spec_write` tool with `file: "plan.md"` to write the completed implementation plan. Do NOT use the generic `write` tool for plan artifacts.
+
+6. **Stop and Report**: Command ends after Phase 1 Design & Contracts. Report the absolute path of `IMPL_PLAN` and list all generated artifacts. Do not trigger further actions.
 
 ## Phases
 ### Phase 0: Research & Resolution

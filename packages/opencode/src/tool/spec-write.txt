@@ -1,0 +1,14 @@
+Create or overwrite a spec artifact file for the SDD workflow.
+
+Use this tool to write spec workflow artifacts (spec.md, plan.md, tasks.md) to the `.specs/` directory. The tool automatically resolves the current feature directory from `.specs/feature.json`, or falls back to `.specs/default/`.
+
+Call this tool when:
+- Creating a new spec, plan, or tasks artifact
+- Updating an existing artifact (always write the full content)
+- Checking off completed tasks in tasks.md
+- Appending content to an existing artifact
+
+The file parameter must be one of: spec.md, plan.md, tasks.md.
+The content parameter is the content to write or append.
+The directory parameter (optional): override the target directory. When not provided, the tool reads `.specs/feature.json` for the current feature path.
+The append parameter (optional): set to true to append to the existing file instead of overwriting.
