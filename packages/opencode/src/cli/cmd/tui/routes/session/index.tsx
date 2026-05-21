@@ -1480,7 +1480,7 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
                   filetype="markdown"
                   drawUnstyledText={false}
                   syntaxStyle={subtleSyntax()}
-                  content="•  AI-generated content. For reference only"
+                  content="⚠︎ AI-generated content. For reference only"
                   fg={theme.textMuted}
                 />
               </box>
