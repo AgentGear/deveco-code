@@ -15,6 +15,9 @@
 
 import fs from "fs/promises";
 import path from "path";
+import { Global } from "@opencode-ai/core/global";
+
+const savedDevEcoHomeFile = () => path.join(Global.Path.state, "deveco-home.json");
 
 function binary(name: string) {
   return process.platform === "win32" ? `${name}.exe` : name;
@@ -114,10 +117,44 @@ export async function findDevEcoHomes(): Promise<string[]> {
   return result;
 }
 
+async function readSavedDevEcoHomeRaw(): Promise<string | undefined> {
+  try {
+    const text = await fs.readFile(savedDevEcoHomeFile(), "utf8");
+    const data = JSON.parse(text) as { deveco_home?: unknown };
+    const home = typeof data.deveco_home === "string" ? data.deveco_home.trim() : "";
+    return home || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function clearSavedDevEcoHome(): Promise<void> {
+  await fs.unlink(savedDevEcoHomeFile()).catch(() => undefined);
+}
+
+export async function loadSavedDevEcoHome(): Promise<string | undefined> {
+  const raw = await readSavedDevEcoHomeRaw();
+  if (!raw) return undefined;
+  const resolved = await resolveDevEcoHome(raw);
+  if (resolved) return resolved;
+  await clearSavedDevEcoHome();
+  return undefined;
+}
+
+export async function saveDevEcoHome(home: string): Promise<string | undefined> {
+  const resolved = await resolveDevEcoHome(home);
+  if (!resolved) return undefined;
+  await fs.writeFile(savedDevEcoHomeFile(), JSON.stringify({ deveco_home: resolved }, null, 2), "utf8");
+  return resolved;
+}
+
 export async function findDevEcoHome(): Promise<string | undefined> {
   const env = envPath();
   const home = await resolveDevEcoHome(env);
   if (home) return home;
+
+  const saved = await loadSavedDevEcoHome();
+  if (saved) return saved;
 
   return (await findDevEcoHomes())[0];
 }
