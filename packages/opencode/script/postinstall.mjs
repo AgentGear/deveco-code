@@ -24,9 +24,9 @@ const archMap = {
 
 const platform = platformMap[os.platform()] ?? os.platform()
 const arch = archMap[os.arch()] ?? os.arch()
-const base = `opencode-${platform}-${arch}`
-const sourceBinary = platform === "windows" ? "opencode.exe" : "opencode"
-const targetBinary = path.join(__dirname, "bin", "opencode.exe")
+const base = `@deveco/deveco-code-${platform}-${arch}`
+const sourceBinary = platform === "windows" ? "deveco.exe" : "deveco"
+const targetBinary = path.join(__dirname, "bin", "deveco.exe")
 
 function supportsAvx2() {
   if (arch !== "x64") return false
@@ -116,11 +116,36 @@ function packageNames() {
   return [base]
 }
 
-function resolveBinary(name) {
+function resolvePackageDir(name) {
   const packageJsonPath = require.resolve(`${name}/package.json`)
-  const binaryPath = path.join(path.dirname(packageJsonPath), "bin", sourceBinary)
+  return path.dirname(packageJsonPath)
+}
+
+function resolveBinary(name) {
+  const binaryPath = path.join(resolvePackageDir(name), "bin", sourceBinary)
   if (!fs.existsSync(binaryPath)) throw new Error(`Binary not found at ${binaryPath}`)
   return binaryPath
+}
+
+function copyDir(src, dst) {
+  if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name)
+    const dstPath = path.join(dst, entry.name)
+    if (entry.isDirectory()) {
+      copyDir(srcPath, dstPath)
+    } else {
+      fs.copyFileSync(srcPath, dstPath)
+    }
+  }
+}
+
+function copyVendor(packageDir) {
+  const vendorSrc = path.join(packageDir, "vendor")
+  const vendorDst = path.join(__dirname, "vendor")
+  if (fs.existsSync(vendorSrc)) {
+    copyDir(vendorSrc, vendorDst)
+  }
 }
 
 function installPackage(name) {
@@ -137,6 +162,7 @@ function installPackage(name) {
     if (result.status !== 0) return
     const packageDir = path.join(temp, "node_modules", name)
     copyBinary(path.join(packageDir, "bin", sourceBinary), targetBinary)
+    copyVendor(packageDir)
     return true
   } finally {
     fs.rmSync(temp, { recursive: true, force: true })
@@ -168,6 +194,7 @@ function main() {
   for (const name of packageNames()) {
     try {
       copyBinary(resolveBinary(name), targetBinary)
+      copyVendor(resolvePackageDir(name))
       if (verifyBinary()) return
     } catch {
       if (installPackage(name) && verifyBinary()) return
