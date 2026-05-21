@@ -17,6 +17,7 @@ import { Filesystem } from "@/util/filesystem"
 import { useLocal } from "@tui/context/local"
 import { tint, useTheme } from "@tui/context/theme"
 import { EmptyBorder, SplitBorder } from "@tui/component/border"
+import { homeBodySlotRows, homePromptTextareaRows } from "@tui/component/banner"
 import { Spinner } from "@tui/component/spinner"
 import { useSDK } from "@tui/context/sdk"
 import { useRoute } from "@tui/context/route"
@@ -28,7 +29,7 @@ import { MessageID, PartID } from "@/session/schema"
 import { createStore, produce, unwrap } from "solid-js/store"
 import { usePromptHistory, type PromptInfo } from "./history"
 import { computePromptTraits } from "./traits"
-import { assign } from "./part"
+import { assign, expandPastedTextPlaceholders } from "./part"
 import { usePromptStash } from "./stash"
 import { DialogStash } from "../dialog-stash"
 import { type AutocompleteRef, Autocomplete } from "./autocomplete"
@@ -79,6 +80,10 @@ export type PromptProps = {
     normal?: string[]
     shell?: string[]
   }
+  /** Home: shared body slot rows; used to size the textarea. */
+  homeBodySlotHeight?: number
+  /** Home: rows to leave for `home_bottom` tips (0 when tips are hidden). */
+  homeTipsReserveRows?: number
 }
 
 export type PromptRef = {
@@ -213,7 +218,12 @@ export function Prompt(props: PromptProps) {
     const hintReserve = Math.min(32, Math.max(22, Math.floor(panel * 0.42)))
     return Math.max(24, panel - hintReserve - 2)
   })
-  const homePromptRows = 4
+  const homePromptRows = createMemo(() => {
+    if (!isHomeRoute()) return 4
+    const slot = props.homeBodySlotHeight ?? homeBodySlotRows(dimensions().height)
+    const tips = props.homeTipsReserveRows
+    return homePromptTextareaRows(slot, tips)
+  })
   const defaultWorkspaceID = createMemo(() => props.workspaceID ?? project.workspace.current())
 
   function selectWorkspace(selection: WorkspaceSelection | undefined) {
@@ -1561,8 +1571,8 @@ export function Prompt(props: PromptProps) {
               placeholderColor={theme.textMuted}
               textColor={leader() ? theme.textMuted : theme.text}
               focusedTextColor={leader() ? theme.textMuted : theme.text}
-              minHeight={isHomeRoute() ? homePromptRows : 1}
-              maxHeight={isHomeRoute() ? homePromptRows : 6}
+              minHeight={isHomeRoute() ? homePromptRows() : 1}
+              maxHeight={isHomeRoute() ? homePromptRows() : 6}
               onContentChange={() => {
                 const value = input.plainText
                 setStore("prompt", "input", value)
@@ -1609,6 +1619,9 @@ export function Prompt(props: PromptProps) {
               }}
               ref={(r: TextareaRenderable) => {
                 input = r
+                Object.assign(r, {
+                  getClipboardText: (text: string) => expandPastedTextPlaceholders(text, store.prompt.parts),
+                })
                 setInputTarget(r)
                 if (promptPartTypeId === 0) {
                   promptPartTypeId = input.extmarks.registerType("prompt-part")

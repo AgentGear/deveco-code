@@ -6,8 +6,9 @@ import {
   Banner,
   BANNER_HOME_CONTENT_INSET,
   HOME_BODY_GAP_ROWS,
-  HOME_BODY_MIN_ROWS,
+  HOME_BODY_MAX_ROWS,
   HOME_CONTENT_MAX_WIDTH,
+  homeBodySlotRows,
 } from "../component/banner"
 import { pluralize } from "@/util/locale"
 import { useSync } from "../context/sync"
@@ -41,11 +42,7 @@ export function Home() {
   const [devecoReady, setDevecoReady] = createSignal<boolean | null>(null)
   let devecoChecked = false
 
-  const bodySlotMinHeight = createMemo(() => {
-    const h = Math.floor(dimensions().height)
-    const reserved = 14
-    return Math.max(10, Math.min(HOME_BODY_MIN_ROWS, h - reserved))
-  })
+  const bodySlotHeight = createMemo(() => homeBodySlotRows(dimensions().height))
 
   // Check if DevEco onboarding should be shown - wait for sync to complete
   createEffect(
@@ -154,7 +151,8 @@ export function Home() {
                 zIndex={1}
                 position="relative"
                 width="100%"
-                minHeight={bodySlotMinHeight()}
+                height={bodySlotHeight()}
+                maxHeight={HOME_BODY_MAX_ROWS}
                 flexDirection="column"
                 justifyContent="center"
                 alignItems="center"
@@ -174,6 +172,7 @@ export function Home() {
                           }}
                           hint={Hint}
                           placeholders={placeholder}
+                          homeBodySlotHeight={bodySlotHeight()}
                         />
                       </TuiPluginRuntime.Slot>
                     </box>
@@ -183,7 +182,7 @@ export function Home() {
                 <Show when={devecoReady() === false}>
                   <DevEcoOnboarding
                     onComplete={() => setDevecoReady(true)}
-                    bodySlotHeight={bodySlotMinHeight()}
+                    bodySlotHeight={bodySlotHeight()}
                   />
                 </Show>
               </box>

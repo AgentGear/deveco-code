@@ -23,7 +23,7 @@ import {
   sanitizedProcessEnv,
 } from "@opencode-ai/core/util/opencode-process"
 import { validateSession } from "./validate-session"
-import { findDevEcoHomes, resolveDevEcoHome } from "@/tool/lib/env"
+import { findDevEcoHomes, isDevEcoHome, resolveDevEcoHome } from "@/tool/lib/env"
 
 declare global {
   const DEVECO_WORKER_PATH: string
@@ -122,7 +122,10 @@ async function selectDevEcoHome(candidates: string[]): Promise<string | undefine
 }
 
 async function ensureDevEcoHomeForTuiStartup() {
-  if (process.env.DEVECO_HOME?.trim()) return
+  const configured = process.env.DEVECO_HOME?.trim()
+  if (configured) {
+    if (await isDevEcoHome(configured)) return
+  }
   const candidates = await findDevEcoHomes()
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     if (candidates[0]) process.env.DEVECO_HOME = candidates[0]

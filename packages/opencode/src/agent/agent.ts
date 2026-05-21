@@ -17,6 +17,7 @@ import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SCOUT from "./prompt/scout.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
+import PROMPT_SDD from "./prompt/sdd.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@opencode-ai/core/global"
@@ -146,6 +147,27 @@ export const layer = Layer.effect(
             mode: "primary",
             native: true,
             prompt: PROMPT_BUILD,
+          },
+          sdd: {
+            name: "sdd",
+            description: "Spec-Driven Development (SDD) agent for implementing complex requirements",
+            options: {},
+            permission: Permission.merge(
+              defaults,
+              Permission.fromConfig({
+                question: "allow",
+                plan_enter: "allow",
+                webfetch: "allow",
+                websearch: "allow",
+                todowrite: "allow",
+                spec_write: "allow",
+              }),
+              user,
+            ),
+            mode: "primary",
+            native: true,
+            prompt: PROMPT_SDD,
+            color: "info",
           },
           plan: {
             name: "plan",

@@ -1,4 +1,4 @@
-import { PlanExitTool } from "./plan"
+import { PlanExitTool, PlanWriteTool, PlanEnterTool } from "./plan"
 import { Session } from "@/session/session"
 import { QuestionTool } from "./question"
 import { ShellTool } from "./shell"
@@ -13,6 +13,10 @@ import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
+import { HdcLogTool } from "./hdc_log"
+import { SwitchCwdTool } from "./switch-cwd"
+import { OhKnowledgeTool } from "./oh_knowledge"
+import { Auth } from "@/auth"
 import * as Tool from "./tool"
 import { Config } from "@/config/config"
 import { type ToolContext as PluginToolContext, type ToolDefinition } from "@opencode-ai/plugin"
@@ -25,6 +29,7 @@ import { ProviderID, type ModelID } from "../provider/schema"
 import { WebSearchTool } from "./websearch"
 import { RepoCloneTool } from "./repo_clone"
 import { RepoOverviewTool } from "./repo_overview"
+import { RepositoryCache } from "@/reference/repository-cache"
 import * as Log from "@opencode-ai/core/util/log"
 import { LspTool } from "./lsp"
 import * as Truncate from "./truncate"
@@ -40,6 +45,7 @@ import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Ripgrep } from "../file/ripgrep"
 import { Format } from "../format"
 import { InstanceState } from "@/effect/instance-state"
+import { EffectBridge } from "@/effect/bridge"
 import { Question } from "../question"
 import { Todo } from "../session/todo"
 import { LSP } from "@/lsp/lsp"
@@ -94,6 +100,7 @@ export const layer: Layer.Layer<
   | BackgroundJob.Service
   | Provider.Service
   | Git.Service
+  | RepositoryCache.Service
   | Reference.Service
   | LSP.Service
   | Instruction.Service
@@ -105,6 +112,7 @@ export const layer: Layer.Layer<
   | Format.Service
   | Truncate.Service
   | RuntimeFlags.Service
+  | Auth.Service
 > = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -123,6 +131,8 @@ export const layer: Layer.Layer<
     const todo = yield* TodoWriteTool
     const lsptool = yield* LspTool
     const plan = yield* PlanExitTool
+    const planwrite = yield* PlanWriteTool
+    const planenter = yield* PlanEnterTool
     const webfetch = yield* WebFetchTool
     const websearch = yield* WebSearchTool
     const repoClone = yield* RepoCloneTool
@@ -135,6 +145,9 @@ export const layer: Layer.Layer<
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
     const specwrite = yield* SpecWriteTool
+    const hdclog = yield* HdcLogTool
+    const switchcwd = yield* SwitchCwdTool
+    const ohknowledge = yield* OhKnowledgeTool
     const agent = yield* Agent.Service
 
     const state = yield* InstanceState.make<State>(
@@ -158,9 +171,12 @@ export const layer: Layer.Layer<
             description: def.description,
             execute: (args, toolCtx) =>
               Effect.gen(function* () {
+                // Bridge the host's Effect-based `ask` into a Promise-returning
+                // function for the plugin to make sure context persists
+                const bridge = yield* EffectBridge.make()
                 const pluginCtx: PluginToolContext = {
                   ...toolCtx,
-                  ask: (req) => toolCtx.ask(req),
+                  ask: (req) => bridge.promise(toolCtx.ask(req)),
                   directory: ctx.directory,
                   worktree: ctx.worktree,
                 }
@@ -239,7 +255,12 @@ export const layer: Layer.Layer<
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
           plan: Tool.init(plan),
+          planwrite: Tool.init(planwrite),
+          planenter: Tool.init(planenter),
           spec_write: Tool.init(specwrite),
+          hdclog: Tool.init(hdclog),
+          switchcwd: Tool.init(switchcwd),
+          ohknowledge: Tool.init(ohknowledge),
         })
 
         return {
@@ -263,7 +284,11 @@ export const layer: Layer.Layer<
             tool.patch,
             tool.spec_write,
             ...(flags.experimentalLspTool ? [tool.lsp] : []),
-            ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
+            ...(flags.client === "cli" ? [tool.plan, tool.planwrite, tool.planenter] : []),
+            // HarmonyOS tools
+            tool.hdclog,
+            tool.switchcwd,
+            tool.ohknowledge,
           ],
           task: tool.task,
           read: tool.read,
@@ -382,10 +407,11 @@ export const defaultLayer = Layer.suspend(() =>
       Layer.provide(Session.defaultLayer),
       Layer.provide(Layer.mergeAll(SessionStatus.defaultLayer, BackgroundJob.defaultLayer)),
       Layer.provide(Provider.defaultLayer),
-      Layer.provide(Git.defaultLayer),
+      Layer.provide(Layer.mergeAll(Git.defaultLayer, RepositoryCache.defaultLayer)),
       Layer.provide(Reference.defaultLayer),
       Layer.provide(LSP.defaultLayer),
       Layer.provide(Instruction.defaultLayer),
+      Layer.provide(Auth.defaultLayer),
       Layer.provide(AppFileSystem.defaultLayer),
       Layer.provide(Bus.layer),
       Layer.provide(FetchHttpClient.layer),

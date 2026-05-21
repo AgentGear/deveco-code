@@ -929,6 +929,8 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
               headers.set("authorization", `Bearer ${currentAuth.access}`)
             }
 
+            headers.set("lang", "en")
+
             const sessionId = headers.get("x-deveco-session") || headers.get("x-session-affinity")
             const chatId = (sessionId && sessionChatIdMap.get(sessionId)) || crypto.randomUUID().replace(/-/g, "")
             headers.set("Chat-Id", chatId)

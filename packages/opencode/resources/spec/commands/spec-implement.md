@@ -17,7 +17,7 @@ $ARGUMENTS
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
 5. **Implement Phase Tool Restriction**: The `verify_ui` tool is strictly forbidden in the `spec-implement` phase. All verification must be completed in the next phase via subagent `spec-verify`.
-6. **Knowledge Query Rule**: When `arkts_knowledge_search` is available, verify all ArkTS syntax, official HarmonyOS APIs, specs, compatibility rules and design guidelines with this tool before replying.
+6. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 7. **Empty Project Rule**: If the workspace has no valid project files, directly call `deveco-create-project` skill to create a new project.
 
 ## Safety & constraint & Compliance (Strict Redlines)
