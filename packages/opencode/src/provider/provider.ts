@@ -1520,6 +1520,11 @@ export const layer = Layer.effect(
             )
               delete provider.models[modelID]
 
+            // Filter opencode free models (cost.input === 0)
+            if (providerID === ProviderID.opencode && model.cost?.input === 0) {
+              delete provider.models[modelID]
+            }
+
             if (!model.variants || Object.keys(model.variants).length === 0) {
               model.variants = mapValues(ProviderTransform.variants(model), (v) => v)
             }
