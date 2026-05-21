@@ -23,7 +23,7 @@ import {
   sanitizedProcessEnv,
 } from "@opencode-ai/core/util/opencode-process"
 import { validateSession } from "./validate-session"
-import { findDevEcoHomes, isDevEcoHome, resolveDevEcoHome } from "@/tool/lib/env"
+import { findDevEcoHomes, isDevEcoHome, loadSavedDevEcoHome, resolveDevEcoHome, saveDevEcoHome } from "@/tool/lib/env"
 
 declare global {
   const DEVECO_WORKER_PATH: string
@@ -121,14 +121,26 @@ async function selectDevEcoHome(candidates: string[]): Promise<string | undefine
   return selected
 }
 
+async function applyDevEcoHome(home: string) {
+  const resolved = await saveDevEcoHome(home)
+  if (resolved) process.env.DEVECO_HOME = resolved
+}
+
 async function ensureDevEcoHomeForTuiStartup() {
   const configured = process.env.DEVECO_HOME?.trim()
   if (configured) {
     if (await isDevEcoHome(configured)) return
   }
+
+  const saved = await loadSavedDevEcoHome()
+  if (saved) {
+    process.env.DEVECO_HOME = saved
+    return
+  }
+
   const candidates = await findDevEcoHomes()
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    if (candidates[0]) process.env.DEVECO_HOME = candidates[0]
+    if (candidates[0]) await applyDevEcoHome(candidates[0])
     return
   }
   UI.println(
@@ -137,7 +149,7 @@ async function ensureDevEcoHomeForTuiStartup() {
       UI.Style.TEXT_NORMAL,
   )
   const selected = await selectDevEcoHome(candidates)
-  if (selected) process.env.DEVECO_HOME = selected
+  if (selected) await applyDevEcoHome(selected)
 }
 
 export const TuiThreadCommand = cmd({
