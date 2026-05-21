@@ -148,6 +148,7 @@ export const layer: Layer.Layer<
     const hdclog = yield* HdcLogTool
     const switchcwd = yield* SwitchCwdTool
     const ohknowledge = yield* OhKnowledgeTool
+    const auth = yield* Auth.Service
     const agent = yield* Agent.Service
 
     const state = yield* InstanceState.make<State>(
@@ -235,6 +236,9 @@ export const layer: Layer.Layer<
         yield* config.get()
         const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
 
+        const authInfo = yield* auth.get("deveco").pipe(Effect.orElseSucceed(() => undefined))
+        const ohknowledgeEnabled = authInfo !== undefined && authInfo.type === "oauth"
+
         const tool = yield* Effect.all({
           invalid: Tool.init(invalid),
           shell: Tool.init(shell),
@@ -288,7 +292,7 @@ export const layer: Layer.Layer<
             // HarmonyOS tools
             tool.hdclog,
             tool.switchcwd,
-            tool.ohknowledge,
+            ...(ohknowledgeEnabled ? [tool.ohknowledge] : []),
           ],
           task: tool.task,
           read: tool.read,
