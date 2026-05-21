@@ -7,8 +7,8 @@ agent: sdd
 1. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
-2. **Strict Order**: Phase 0 → Phase 1 → Phase 2 (`build` → `start` → `plan/confirm` → `verify`).
-3. **Environment Vars**: Never use defaults or autoconfigure. Skip step if required vars are missing.
+2. **Strict Order**: Phase 1 (`build` → `start` → `plan/confirm` → `verify`) → Phase 2 (review/fix loop).
+3. **Environment Vars**: Do not check environment variables via shell commands. Tool preconditions are validated internally by the tools themselves at execution time.
 4. **Device Check**: **Strictly forbid `hdc` command**. Use `start_app` tool to check device status.
 5. **Path Binding**: Always use `Confirmed_Feature_Dir` for all subsequent file checks.
 6. **Post-verify**: Immediately halt after `verify_ui`. No auto-execution of downstream commands. Await explicit user instruction.
@@ -23,34 +23,20 @@ agent: sdd
 
 ## Execution Phases
 
-### Phase 0: Feature Directory Selection & Confirmation (Mandatory First Step)
-1. **Determine Candidate**:
-    - If `$ARGUMENTS` provided & `.specs/{ARGUMENTS}` exists → Use it.
-    - Otherwise → Read default from `.specs/feature.json`.
-2. Lock path as `Confirmed_Feature_Dir`.
-
-### Phase 1: Precondition Validation
-Validate in order using `Confirmed_Feature_Dir`. Skip on failure (except critical `verify_ui` file check).
-- `build_project`: Valid if `DEVECO_HOME` exists.
-- `start_app`: Valid if device/emulator online (platform-native check only).
-- `verify_ui` (Critical):
-    - Requires `ADDITIONAL_TOOL_GROUPS`
-    - **Mandatory File Check**: `.specs/{Confirmed_Feature_Dir}/` and `spec.md` must exist. If missing → **Terminate workflow with error**.
-- Output execution schedule marking each step as `executable` or `skipped`.
-
-### Phase 2: Sequential Execution
-1. **`build_project`**: Execute if valid; else skip & log.
-2. **`start_app`**: Execute if valid; else skip & log.
-3. **`verify_ui` Prep & Approval** (Triggered only if eligible):
-    - Read `.specs/{Confirmed_Feature_Dir}/spec.md`.
-    - Generate only simple UI smoke test cases, covering core page rendering and basic mainstream user interaction flows exclusively.
-    - **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Proceed to step 4 immediately without pausing.** If available, call the `question` tool to present plan. **Pause workflow**.
+### Phase 1: Build, Deploy & Verify
+0. **Resolve `Confirmed_Feature_Dir`**: Use the value provided by the parent agent. If not provided, fall back to reading `.specs/feature.json`.
+1. **`build_project`**: Call directly. If the tool returns an error (e.g., `DEVECO_HOME` not configured), log the error, mark as `skipped`, and continue.
+2. **`start_app`**: Call directly. If the tool reports no device/emulator available, log the error, mark as `skipped`, and continue.
+3. **`verify_ui` Prep & Approval** (only if `verify_ui` appears in the available tool list; if absent, skip all UI verification and log the reason):
+    - **If the parent agent provided UI test cases**: use them directly as the test plan. Do NOT regenerate from spec.md.
+    - **If no UI test cases were provided**: fall back to reading `.specs/{Confirmed_Feature_Dir}/spec.md` and generating simple UI smoke test cases covering core page rendering and basic mainstream user interaction flows.
+    - **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Proceed to step 4 immediately without pausing.** If available, call the `question` tool to present the test plan. **Pause workflow**.
     - *Approved* → Proceed to step 4.
     - *Rejected* → Log reason, skip `verify_ui`, terminate UI workflow.
-4. **`verify_ui`**: Execute only upon plan approval + valid envs.
+4. **`verify_ui`**: Execute only upon plan approval.
 
-### Phase 3: Result Review & Re-Verification Loop
-1. **Report**: Output summary covering: directory confirmation status, step-by-step results (executed/skipped/failed + reasons), test plan overview, approval result, and verification outputs/errors.
+### Phase 2: Result Review & Re-Verification Loop
+1. **Report**: Output summary covering: step-by-step results (executed/skipped/failed + reasons), test plan overview, approval result, and verification outputs/errors.
 2. **Review Gate**: **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Immediately mark workflow as `completed` without pausing.** If available, call the `question` tool with these options:
     - "Wrap up and finish"
     - "There are remaining issues"
@@ -58,13 +44,14 @@ Validate in order using `Confirmed_Feature_Dir`. Skip on failure (except critica
 3. **Gate Action**:
     - *"Wrap up and finish"* → Halt. Await user instruction.
     - *"There are remaining issues"* → Proceed to step 4.
-    - *"I want to do more testing"* → Return to Phase 2 step 3 (regenerate test plan and re-run `verify_ui` with existing package).
+    - *"I want to do more testing"* → Return to Phase 1 step 3 (regenerate test plan and re-run `verify_ui` with existing package).
     - **If `question` was NOT available → Mark workflow as `completed` immediately. Halt.**
 4. **Fix → Re-verify Cycle** (triggered by "There are remaining issues"):
-    1. Apply code fixes in `src/` to address the reported `verify_ui` failures.
-    2. Execute `build_project` to recompile with the fixed code.
-    3. Execute `start_app` to push the new package to the device/emulator.
-    4. Execute `verify_ui` with the same (or user-adjusted) test plan.
+    Every step below is **mandatory and sequential** — skipping any step means `verify_ui` will test stale code:
+    1. Apply code fixes in `src/` to address the reported failures.
+    2. **`build_project`** — recompile with the fixed source code. A new HAP/package must be produced.
+    3. **`start_app`** — push the newly built package to the device/emulator and restart the application. This ensures the running app reflects the latest code.
+    4. **`verify_ui`** — run the test plan against the freshly deployed app. Use the same (or user-adjusted) test cases.
     5. Output re-verification summary comparing previous and current results.
     6. Return to step 2 (Review Gate) of this phase.
 5. **Loop Limit**: Maximum **3 iterations**. If issues persist after 3 rounds, halt and output a detailed failure report for manual intervention.
