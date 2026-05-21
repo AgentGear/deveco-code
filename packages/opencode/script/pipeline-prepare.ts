@@ -25,6 +25,8 @@ const neededWorkspaces = [
   "packages/app",
   "packages/ui",
   "packages/web",
+  "packages/http-recorder",
+  "packages/llm",
 ]
 
 const rootPkgPath = path.join(monorepoRoot, "package.json")
