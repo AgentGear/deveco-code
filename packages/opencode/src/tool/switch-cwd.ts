@@ -16,8 +16,8 @@
 import { Effect, Schema } from "effect"
 import path from "path"
 import * as Tool from "./tool"
-
-import { assertExternalDirectory } from "./external-directory"
+import { realpathSync } from "fs"
+import { assertExternalDirectoryEffect } from "./external-directory"
 import { setSessionCwd } from "./lib/session-cwd"
 import DESCRIPTION from "./switch-cwd.txt"
 
@@ -55,13 +55,13 @@ export const SwitchCwdTool = Tool.define("switch_cwd", Effect.gen(function* () {
     parameters: Parameters,
     execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
       Effect.gen(function* () {
-        const target = resolveTarget(args.project_path)
+        const target = realpathSync(resolveTarget(args.project_path))
         const stat = yield* Effect.tryPromise(() => import("fs/promises").then((fs) => fs.stat(target)))
         if (!stat?.isDirectory()) {
           throw new Error(`Not a directory or not found: ${target}`)
         }
 
-        yield* Effect.tryPromise(() => assertExternalDirectory(ctx, target, { kind: "directory" }))
+        yield* assertExternalDirectoryEffect(ctx, target, { kind: "directory" })
         setSessionCwd(ctx.sessionID, target)
 
         const isHarmony = yield* Effect.tryPromise(() => isHarmonyApplicationRoot(target))
