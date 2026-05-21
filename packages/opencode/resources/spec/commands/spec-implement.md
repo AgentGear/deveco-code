@@ -34,7 +34,7 @@ $ARGUMENTS
 2. If user did NOT pass any arguments via `$ARGUMENTS`:
    - Directly read the candidate feature directory from `.specs/feature.json`.
 3. **Fallback & Validation:**
-   - If `.specs/feature.json` is missing, invalid, or points to a non-existent path, immediately halt and call the `question` tool to request a valid directory path from the user.
+      - **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Halt and output an error requesting manual directory configuration — do NOT attempt any workaround to solicit user input.** If available, call the `question` tool to request a valid directory path from the user.
 
 ## Execution Outline
 1. **Context Initialization:**
