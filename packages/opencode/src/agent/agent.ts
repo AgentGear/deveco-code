@@ -99,6 +99,7 @@ export const layer = Layer.effect(
         const skillDirs = yield* skill.dirs()
         const whitelistedDirs = [
           Truncate.GLOB,
+          path.join(Global.Path.config, "*"),
           path.join(Global.Path.tmp, "*"),
           ...skillDirs.map((dir) => path.join(dir, "*")),
         ]
