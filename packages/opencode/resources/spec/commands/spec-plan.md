@@ -53,7 +53,7 @@ $ARGUMENTS
     - Execute Phase 1: Design data structures, interfaces, and setup guidelines inline
     - Finalize and validate the complete plan
 
-5. **Write Plan Artifact**: Use the `spec_write` tool with `file: "plan.md"` to write the completed implementation plan. Do NOT use the generic `write` tool for plan artifacts.
+5. **Write Plan Artifact**: Use the `spec_write` tool with `filePath: "{IMPL_PLAN}"` to write the completed implementation plan. Do NOT use the generic `write` tool for plan artifacts.
 
 6. **Stop and Report**: Command ends after Phase 1 Design & Contracts. Report the absolute path of `IMPL_PLAN` and list all generated artifacts. Do not trigger further actions.
 

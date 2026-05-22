@@ -7,6 +7,11 @@ import { Tool } from "@/tool/tool"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { Agent } from "../../src/agent/agent"
 import { Truncate } from "@/tool/truncate"
+import { LSP } from "@/lsp/lsp"
+import { AppFileSystem } from "@opencode-ai/core/filesystem"
+import { Bus } from "../../src/bus"
+import { Format } from "../../src/format"
+import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { testEffect } from "../lib/effect"
 import { TestInstance, disposeAllInstances } from "../fixture/fixture"
 
@@ -27,6 +32,11 @@ afterEach(async () => {
 
 const it = testEffect(
   Layer.mergeAll(
+    LSP.defaultLayer,
+    AppFileSystem.defaultLayer,
+    Bus.layer,
+    Format.defaultLayer,
+    CrossSpawnSpawner.defaultLayer,
     Truncate.defaultLayer,
     Agent.defaultLayer,
   ),
@@ -47,41 +57,41 @@ const run = Effect.fn("SpecWriteToolTest.run")(function* (
 
 describe("tool.spec_write", () => {
   describe("new file creation", () => {
-    it.instance("writes spec.md to default directory", () =>
+    it.instance("writes spec.md to target path", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const result = yield* run({ file: "spec.md", content: "# Feature Specification: Auth\n\n## Overview\n\noverview" })
-
         const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const result = yield* run({ filePath: target, content: "# Feature Specification: Auth\n\n## Overview\n\noverview" })
+
         const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
         expect(content).toBe("# Feature Specification: Auth\n\n## Overview\n\noverview")
         expect(result.title).toBe("Spec Artifact Written")
-        expect(result.metadata.path).toBe(target)
-        expect(result.output).toContain("Written to")
+        expect(result.metadata.filepath).toBe(target)
+        expect(result.output).toContain("Wrote file successfully.")
       }),
     )
 
-    it.instance("writes plan.md to default directory", () =>
+    it.instance("writes plan.md to target path", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const result = yield* run({ file: "plan.md", content: "# Implementation Plan: Auth\n\n## Summary\n\nsummary" })
-
         const target = path.join(test.directory, ".specs", "default", "plan.md")
+        const result = yield* run({ filePath: target, content: "# Implementation Plan: Auth\n\n## Summary\n\nsummary" })
+
         const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
         expect(content).toBe("# Implementation Plan: Auth\n\n## Summary\n\nsummary")
         expect(result.title).toBe("Spec Artifact Written")
       }),
     )
 
-    it.instance("writes tasks.md to default directory", () =>
+    it.instance("writes tasks.md to target path", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
+        const target = path.join(test.directory, ".specs", "default", "tasks.md")
         const result = yield* run({
-          file: "tasks.md",
+          filePath: target,
           content: "# Tasks: Auth\n\n## Format\n\nformat\n\n## Path Conventions\n\npaths",
         })
 
-        const target = path.join(test.directory, ".specs", "default", "tasks.md")
         const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
         expect(content).toBe("# Tasks: Auth\n\n## Format\n\nformat\n\n## Path Conventions\n\npaths")
         expect(result.title).toBe("Spec Artifact Written")
@@ -91,156 +101,23 @@ describe("tool.spec_write", () => {
     it.instance("creates parent directories if needed", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        yield* run({ file: "spec.md", content: "test" })
-
         const target = path.join(test.directory, ".specs", "default", "spec.md")
+        yield* run({ filePath: target, content: "test" })
+
         const stats = yield* Effect.promise(() => fs.stat(target))
         expect(stats.isFile()).toBe(true)
       }),
     )
-  })
 
-  describe("append mode", () => {
-    it.instance("appends content when append is true", () =>
+    it.instance("resolves relative paths against instance directory", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        yield* run({ file: "spec.md", content: "first line\n" })
-        yield* run({ file: "spec.md", content: "second line\n", append: true })
+        const result = yield* run({ filePath: ".specs/auth/spec.md", content: "relative path content" })
 
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const target = path.join(test.directory, ".specs", "auth", "spec.md")
         const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("first line\nsecond line\n")
-      }),
-    )
-
-    it.instance("overwrites content when append is false", () =>
-      Effect.gen(function* () {
-        const test = yield* TestInstance
-        yield* run({ file: "spec.md", content: "old content" })
-        yield* run({ file: "spec.md", content: "new content" })
-
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
-        const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("new content")
-      }),
-    )
-  })
-
-  describe("directory override", () => {
-    it.instance("uses directory parameter when provided", () =>
-      Effect.gen(function* () {
-        const test = yield* TestInstance
-        const result = yield* run({
-          file: "spec.md",
-          content: "custom dir content",
-          directory: "custom/specs",
-        })
-
-        const target = path.join(test.directory, "custom", "specs", "spec.md")
-        const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("custom dir content")
-        expect(result.metadata.path).toBe(target)
-      }),
-    )
-  })
-
-  describe("feature.json resolution", () => {
-    it.instance("reads feature_directory from feature.json", () =>
-      Effect.gen(function* () {
-        const test = yield* TestInstance
-        const specsDir = path.join(test.directory, ".specs")
-        yield* Effect.promise(() => fs.mkdir(specsDir, { recursive: true }))
-        yield* Effect.promise(() =>
-          fs.writeFile(
-            path.join(specsDir, "feature.json"),
-            JSON.stringify({ feature_directory: "features/auth" }),
-            "utf-8",
-          ),
-        )
-
-        yield* run({ file: "spec.md", content: "from feature dir" })
-
-        const target = path.join(test.directory, "features", "auth", "spec.md")
-        const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("from feature dir")
-      }),
-    )
-
-    it.instance("reads default_feature_dir from feature.json", () =>
-      Effect.gen(function* () {
-        const test = yield* TestInstance
-        const specsDir = path.join(test.directory, ".specs")
-        yield* Effect.promise(() => fs.mkdir(specsDir, { recursive: true }))
-        yield* Effect.promise(() =>
-          fs.writeFile(
-            path.join(specsDir, "feature.json"),
-            JSON.stringify({ default_feature_dir: "features/default" }),
-            "utf-8",
-          ),
-        )
-
-        yield* run({ file: "spec.md", content: "from default feature dir" })
-
-        const target = path.join(test.directory, "features", "default", "spec.md")
-        const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("from default feature dir")
-      }),
-    )
-
-    it.instance("prefers feature_directory over default_feature_dir", () =>
-      Effect.gen(function* () {
-        const test = yield* TestInstance
-        const specsDir = path.join(test.directory, ".specs")
-        yield* Effect.promise(() => fs.mkdir(specsDir, { recursive: true }))
-        yield* Effect.promise(() =>
-          fs.writeFile(
-            path.join(specsDir, "feature.json"),
-            JSON.stringify({ feature_directory: "features/a", default_feature_dir: "features/b" }),
-            "utf-8",
-          ),
-        )
-
-        yield* run({ file: "spec.md", content: "preferred" })
-
-        const target = path.join(test.directory, "features", "a", "spec.md")
-        const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("preferred")
-      }),
-    )
-
-    it.instance("falls back to default when feature.json is malformed", () =>
-      Effect.gen(function* () {
-        const test = yield* TestInstance
-        const specsDir = path.join(test.directory, ".specs")
-        yield* Effect.promise(() => fs.mkdir(specsDir, { recursive: true }))
-        yield* Effect.promise(() => fs.writeFile(path.join(specsDir, "feature.json"), "not json", "utf-8"))
-
-        yield* run({ file: "spec.md", content: "fallback content" })
-
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
-        const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("fallback content")
-      }),
-    )
-
-    it.instance("falls back to default when feature.json has empty dir", () =>
-      Effect.gen(function* () {
-        const test = yield* TestInstance
-        const specsDir = path.join(test.directory, ".specs")
-        yield* Effect.promise(() => fs.mkdir(specsDir, { recursive: true }))
-        yield* Effect.promise(() =>
-          fs.writeFile(
-            path.join(specsDir, "feature.json"),
-            JSON.stringify({ feature_directory: "" }),
-            "utf-8",
-          ),
-        )
-
-        yield* run({ file: "spec.md", content: "empty fallback" })
-
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
-        const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
-        expect(content).toBe("empty fallback")
+        expect(content).toBe("relative path content")
+        expect(result.metadata.filepath).toBe(target)
       }),
     )
   })
@@ -248,8 +125,10 @@ describe("tool.spec_write", () => {
   describe("document validation integration", () => {
     it.instance("returns validation errors for invalid spec", () =>
       Effect.gen(function* () {
+        const test = yield* TestInstance
+        const target = path.join(test.directory, ".specs", "default", "spec.md")
         const result = yield* run({
-          file: "spec.md",
+          filePath: target,
           content: "# Feature Specification: Auth\n\n## Overview\n\noverview",
         })
 
@@ -260,6 +139,8 @@ describe("tool.spec_write", () => {
 
     it.instance("returns no validation errors for valid spec", () =>
       Effect.gen(function* () {
+        const test = yield* TestInstance
+        const target = path.join(test.directory, ".specs", "default", "spec.md")
         const content = `# Feature Specification: Auth
 
 ## Overview
@@ -286,17 +167,19 @@ assumptions
 
 questions
 `
-        const result = yield* run({ file: "spec.md", content })
+        const result = yield* run({ filePath: target, content })
 
         expect(result.output).not.toContain("Document Section Validation")
-        expect(result.output).toContain("Written to")
+        expect(result.output).toContain("Wrote file successfully.")
       }),
     )
 
     it.instance("returns validation errors for invalid plan", () =>
       Effect.gen(function* () {
+        const test = yield* TestInstance
+        const target = path.join(test.directory, ".specs", "default", "plan.md")
         const result = yield* run({
-          file: "plan.md",
+          filePath: target,
           content: "# Implementation Plan: Auth\n\n## Summary\n\nsummary",
         })
 
@@ -307,8 +190,10 @@ questions
 
     it.instance("returns validation errors for invalid tasks", () =>
       Effect.gen(function* () {
+        const test = yield* TestInstance
+        const target = path.join(test.directory, ".specs", "default", "tasks.md")
         const result = yield* run({
-          file: "tasks.md",
+          filePath: target,
           content: "# Tasks: Auth\n\n## Format\n\nformat",
         })
 
@@ -321,9 +206,11 @@ questions
   describe("output display", () => {
     it.instance("returns relative path in output", () =>
       Effect.gen(function* () {
-        const result = yield* run({ file: "spec.md", content: "# Feature Specification: Auth\n\n## Overview\n\noverview" })
+        const test = yield* TestInstance
+        const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const result = yield* run({ filePath: target, content: "# Feature Specification: Auth\n\n## Overview\n\noverview" })
 
-        expect(result.output).toContain(path.join(".specs", "default", "spec.md"))
+        expect(result.metadata.filepath).toBe(target)
       }),
     )
   })

@@ -32,7 +32,7 @@ const SECTION_ALIASES: Record<string, string[]> = {
   "Tasks:": ["任务:", "任务列表:", "Tasks"],
   Format: ["格式", "Format: `[ID] [P?] [Story] Description`"],
   "Path Conventions": ["路径约定", "路径规范"],
-  "Dependencies & Execution Order": ["依赖与执行顺序", "依赖和执行顺序", "Dependencies and Execution Order"],
+  "Dependencies & Execution Order": ["📊 Dependencies & Execution Order", "依赖与执行顺序", "依赖和执行顺序", "Dependencies and Execution Order"],
   "Parallel Example": ["并行示例", "Parallel Example:", "Parallel Examples"],
   "Dependency Graph": ["📊 Dependency Graph", "依赖图"],
   "Parallel Execution Guide": ["⚡ Parallel Execution Guide", "并行执行指南"],

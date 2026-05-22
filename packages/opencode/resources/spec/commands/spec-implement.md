@@ -54,6 +54,7 @@ $ARGUMENTS
    - **Logical Parallelism `[P]` Rule:** Tasks marked `[P]` have no output dependency on each other. Execute them sequentially in the listed order to prevent file I/O conflicts, treating them as independent units.
    - **File Conflict Rule:** If multiple tasks (sequential or `[P]`) target the same file, enforce strict sequential execution to maintain code integrity.
    - Follow TDD rigorously: Execute test generation/tasks before their corresponding implementation tasks.
+   - **Phase Completion Protocol (MANDATORY):** After completing all tasks within a phase (Setup, Tests, Core, Integration, Polish), call the `edit` tool once to update `tasks.md` and change the checkboxes of all completed tasks in that phase from `- [ ]` to `- [X]`.
 
 4. **Implementation Workflow:**
    - **Setup:** Initialize project structure, dependencies, and base configuration.
