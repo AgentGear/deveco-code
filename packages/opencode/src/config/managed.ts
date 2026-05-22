@@ -9,7 +9,7 @@ import { warn } from "console"
 
 const log = Log.create({ service: "config" })
 
-const MANAGED_PLIST_DOMAIN = "ai.opencode.managed"
+const MANAGED_PLIST_DOMAIN = "ai.deveco.managed"
 
 // Keys injected by macOS/MDM into the managed plist that are not OpenCode config
 const PLIST_META = new Set([
@@ -24,11 +24,11 @@ const PLIST_META = new Set([
 function systemManagedConfigDir(): string {
   switch (process.platform) {
     case "darwin":
-      return "/Library/Application Support/opencode"
+      return "/Library/Application Support/deveco"
     case "win32":
-      return path.join(process.env.ProgramData || "C:\\ProgramData", "opencode")
+      return path.join(process.env.ProgramData || "C:\\ProgramData", "deveco")
     default:
-      return "/etc/opencode"
+      return "/etc/deveco"
   }
 }
 
