@@ -46,30 +46,37 @@ const log = Log.create({ service: "harmony-napi" })
 let gate: Promise<void> = Promise.resolve()
 let bound = ""
 
-export async function resolveUIVerifyParams() {
+export async function resolveUIVerifyParams(worktree: string) {
   try {
     const { Effect } = await import("effect")
     const { AppRuntime } = await import("@/effect/app-runtime")
     const { Config } = await import("@/config/config")
     const { Provider } = await import("@/provider/provider")
-    const cfg = await AppRuntime.runPromise(Effect.gen(function* () {
-      const config = yield* Config.Service
-      return yield* config.get()
-    }))
-    const modelStr = cfg.agent?.["ui_verification"]?.model
-    if (modelStr) {
-      const { providerID, modelID } = Provider.parseModel(modelStr)
-      const [provider, model] = await Promise.all([
-        AppRuntime.runPromise(Effect.gen(function* () { const svc = yield* Provider.Service; return yield* svc.getProvider(providerID) })).catch(() => null),
-        AppRuntime.runPromise(Effect.gen(function* () { const svc = yield* Provider.Service; return yield* svc.getModel(providerID, modelID) })).catch(() => null),
-      ])
-      if (provider && model) {
-        const baseURL = (provider.options?.baseURL as string | undefined) ?? model.api.url ?? null
-        const apiKey = provider.key ?? (provider.options?.apiKey as string | undefined) ?? null
-        const modelName = model.api.id ?? null
-        return { baseURL, apiKey, modelName }
-      }
-    }
+    const { InstanceStore } = await import("@/project/instance-store")
+    const result = await AppRuntime.runPromise(
+      InstanceStore.Service.use((store) =>
+        store.provide({ directory: worktree }, Effect.gen(function* () {
+          const config = yield* Config.Service
+          const cfg = yield* config.get()
+          const modelStr = cfg.agent?.["ui_verification"]?.model
+          if (!modelStr) {
+            return null as unknown as { baseURL: string | null; apiKey: string | null; modelName: string | null }
+          }
+          const { providerID, modelID } = Provider.parseModel(modelStr)
+          const svc = yield* Provider.Service
+          const provider = yield* svc.getProvider(providerID).pipe(Effect.catch(() => Effect.succeed(null)))
+          const model = yield* svc.getModel(providerID, modelID).pipe(Effect.catch(() => Effect.succeed(null)))
+          if (provider && model) {
+            const baseURL = (provider.options?.baseURL as string | undefined) ?? model.api.url ?? null
+            const apiKey = provider.key ?? (provider.options?.apiKey as string | undefined) ?? null
+            const modelName = model.api.id ?? null
+            return { baseURL, apiKey, modelName }
+          }
+          return null as unknown as { baseURL: string | null; apiKey: string | null; modelName: string | null }
+        }))
+      )
+    )
+    if (result) { return result }
   } catch {}
 
   // fallback 1: 环境变量
@@ -128,7 +135,7 @@ async function runInit(worktree: string) {
   }
   const logDir = path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share', 'deveco'), 'log', 'deveco-mcp')
   fs.mkdirSync(logDir, { recursive: true })
-  const { baseURL, apiKey, modelName } = await resolveUIVerifyParams()
+  const { baseURL, apiKey, modelName } = await resolveUIVerifyParams(worktree)
   log.info("ui_verification model", { baseURL, modelName })
   await bridge.init(logDir, worktree, devecoHome, baseURL, apiKey, modelName)
 }
