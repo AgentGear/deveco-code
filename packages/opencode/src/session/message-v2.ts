@@ -1104,7 +1104,15 @@ export function fromError(
   ctx: { providerID: ProviderID; aborted?: boolean },
 ): NonNullable<Assistant["error"]> {
 
-  const isQueueErrorString = (e: unknown): e is string => typeof e === "string" && e.includes("排队")
+  const isQueueErrorString = (e: unknown): e is string =>
+    typeof e === "string" &&
+    (/position\s+\d+\s+(?:of|in)\s+(?:the\s+)?queue/i.test(e) ||
+      /high demand.*queue/i.test(e))
+
+  const extractQueuePosition = (s: string): number => {
+    const match = s.match(/position\s+(\d+)\s+(?:of|in)\s+(?:the\s+)?queue/i)
+    return match ? parseInt(match[1], 10) : 0
+  }
 
   switch (true) {
     case e instanceof DOMException && e.name === "AbortError":
@@ -1179,10 +1187,18 @@ export function fromError(
         { cause: e },
       ).toObject()
     case e instanceof Error:
+      if (isQueueErrorString(e.message)) {
+        return new QueueError(
+          {
+            position: extractQueuePosition(e.message),
+            message: e.message,
+          },
+          { cause: e },
+        ).toObject()
+      }
       return new NamedError.Unknown({ message: errorMessage(e) }, { cause: e }).toObject()
     case isQueueErrorString(e):
-      const match = e.match(/第\s*(\d+)\s*位/)
-      const position = match ? parseInt(match[1], 10) : 0
+      const position = extractQueuePosition(e)
       return new QueueError(
         {
           position,
