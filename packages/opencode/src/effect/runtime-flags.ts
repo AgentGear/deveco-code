@@ -2,6 +2,7 @@ import { Config, ConfigProvider, Context, Effect, Layer } from "effect"
 import { ConfigService } from "@/effect/config-service"
 
 const bool = (name: string) => Config.boolean(name).pipe(Config.withDefault(false))
+const boolTrue = (name: string) => Config.boolean(name).pipe(Config.withDefault(true));
 const positiveInteger = (name: string) =>
   Config.number(name).pipe(
     Config.map((value) => (Number.isInteger(value) && value > 0 ? value : undefined)),
@@ -21,12 +22,12 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   disableLspDownload: bool("DEVECO_DISABLE_LSP_DOWNLOAD"),
   skipMigrations: bool("DEVECO_SKIP_MIGRATIONS"),
   disableClaudeCodePrompt: Config.all({
-    broad: bool("DEVECO_DISABLE_CLAUDE_CODE"),
-    direct: bool("DEVECO_DISABLE_CLAUDE_CODE_PROMPT"),
+    broad: boolTrue("DEVECO_DISABLE_CLAUDE_CODE"),
+    direct: boolTrue("DEVECO_DISABLE_CLAUDE_CODE_PROMPT"),
   }).pipe(Config.map((flags) => flags.broad || flags.direct)),
   disableClaudeCodeSkills: Config.all({
-    broad: bool("DEVECO_DISABLE_CLAUDE_CODE"),
-    direct: bool("DEVECO_DISABLE_CLAUDE_CODE_SKILLS"),
+    broad: boolTrue("DEVECO_DISABLE_CLAUDE_CODE"),
+    direct: boolTrue("DEVECO_DISABLE_CLAUDE_CODE_SKILLS"),
   }).pipe(Config.map((flags) => flags.broad || flags.direct)),
   enableExa: Config.all({
     experimental,
