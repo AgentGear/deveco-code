@@ -211,6 +211,7 @@ export const FORMAT_RULES: Record<string, DocumentFormatRules> = {
       "Notes",
       "Dependency Graph",
       "Parallel Execution Guide",
+      "Summary Report",
     ],
     maxSectionLevel2: 50,
   },

@@ -60,7 +60,7 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
     - [ ] Generate Functional Requirements → Each must be testable. Document defaults in Assumptions.
     - [ ] Define Success Criteria → Measurable, tech-agnostic, user-focused.
     - [ ] Identify Key Entities (if applicable).
-    - [ ] Finalize & Write → Use the `spec_write` tool with `file: "spec.md"` to write the completed specification. Do NOT use the generic `write` tool for spec artifacts.
+    - [ ] Finalize & Write → Use the `spec_write` tool with `filePath: "{SPEC_FILE}"` to write the completed specification. Do NOT use the generic `write` tool for spec artifacts.
 
 6. **Report Completion**:
    Output exactly the following block (no extra text):
