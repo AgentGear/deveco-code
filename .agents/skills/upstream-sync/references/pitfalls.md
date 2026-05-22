@@ -10,6 +10,9 @@
   - `"bin": { "deveco": "./bin/deveco" }` (not `"opencode"`)
   - In both `devDependencies` and `dependencies` (inserted in dictionary order): `@deveco-codegenie/mcp-bridge`, `@deveco-codegenie/mcp-bridge-darwin-arm64`, `@deveco-codegenie/mcp-bridge-darwin-x64`, `@deveco-codegenie/mcp-bridge-win32-x64`
 - **Auto-merge overwrites brand identifiers** *(Step 4, Step 7)*: git auto-merges `OPENCODE_` env var prefixes without conflict, silently overwriting `DEVECO_` renames. New files from upstream also carry `OPENCODE_`. Always grep all packages (not just conflicted files) — see Step 7 verification.
+- **Database filename reverts** *(Step 4, Step 7)*: `packages/opencode/src/storage/db.ts` — upstream uses `"opencode.db"` / `"opencode-${channel}.db"`, we use `"deveco.db"` / `"deveco-${channel}.db"`. Auto-merge may silently revert these. **After every sync, verify database filename uses `deveco`.**
+- **Managed config directory reverts** *(Step 4, Step 7)*: `packages/opencode/src/config/managed.ts` — upstream uses `"ai.opencode.managed"` plist domain, `"/Library/Application Support/opencode"`, `"/etc/opencode"`, etc. We use `deveco` equivalents. Auto-merge may revert these paths. **After every sync, verify managed config paths and plist domain use `deveco`.**
+- **`.opencode/` directory patterns re-introduced** *(Step 4, Step 7)*: `packages/opencode/src/config/agent.ts` and `command.ts` — upstream searches `/.opencode/agent/` and `/.opencode/command/` patterns. DevEco Code only uses `/.deveco/` patterns. When upstream modifies these pattern arrays, `/.opencode/` entries may reappear via auto-merge. **After every sync, verify pattern arrays only contain `/.deveco/` entries (no `/.opencode/`).**
 - **Typecheck is mandatory** *(Step 7)*: upstream API changes (signatures, imports, renames, module migrations to `packages/core`) produce type errors in auto-merged files. `bun run typecheck` catches what merge conflict markers don't.
 - **Upstream renames hide import breakage** *(Step 3, Step 4)*: when upstream moves modules (e.g. `util/schema.ts` → `packages/core/src/`), git shows rename but auto-merged referencing files keep old import paths. Check `git diff --stat` rename lines.
 - **workspace dep name resets** *(Step 4)*: `packages/web/package.json` reverts to `"opencode": "workspace:*"` on every sync. Always verify.
@@ -32,6 +35,12 @@
 - **Plan tools gating condition overwritten** *(Step 3, Step 4, Step 7)*: upstream v1.15.0 added `experimentalPlanMode` to the Plan tools builtin condition. DevEco Code does not require this flag — Plan mode is a shipped feature. **After every sync, verify plan tools are gated only by client type, without experimentalPlanMode.**
   - Correct: `...(flags.client === "cli" ? [tool.plan, tool.planwrite, tool.planenter] : [])`
   - Wrong: `...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan, tool.planwrite, tool.planenter] : [])`
+- **postinstall.mjs branding and copyVendor dropped** *(Step 3, Step 4, Step 7)*: `packages/opencode/script/postinstall.mjs` — upstream does not have DevEco Code branding or vendor directory support. When upstream modifies this file, git auto-merges or creates conflicts that revert:
+  - Package name base: `@deveco/deveco-code-${platform}-${arch}` (not `opencode-${platform}-${arch}`)
+  - Binary names: `deveco`/`deveco.exe` (not `opencode`/`opencode.exe`)
+  - `copyVendor()` function and its invocation — copies `vendor/` directory from platform-specific packages (e.g. HarmonyOS native tools) to the install location. This function and both call sites (direct resolve path and npm temp install path) are DevEco Code only.
+  - `resolvePackageDir()` helper (extracted for `copyVendor` use)
+  **After every sync, verify all three: brand identifiers, copyVendor function + both call sites.**
 - **Default skills extraction call dropped** *(Step 3, Step 4, Step 7)*: `packages/opencode/src/skill/index.ts` — upstream does not have `defaults.ts` (DevEco Code only), so when upstream refactors the `discoverSkills` function signature or body (e.g. Flag→RuntimeFlags migration), merging adopts upstream's function body and silently drops the `Defaults.ensure()` call. This has happened twice (v1.14.48→v1.14.49, v1.15.0→v1.15.1). **After every sync, verify:**
   - `defaults.ts` file exists with `DEVECO_DEFAULT_SKILLS` declare
   - `index.ts` imports: `import { Defaults } from "./defaults"` and `import { InstallationVersion } from "@opencode-ai/core/installation/version"`
@@ -40,6 +49,9 @@
     const defaultDir = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
     yield* scan(state, defaultDir, SKILL_PATTERN)
     ```
+
+- **Claude config defaults reverted to opt-in** *(Step 3, Step 4, Step 7)*: `packages/opencode/src/effect/runtime-flags.ts` — DevEco Code uses `boolTrue` (default `true`) for `disableClaudeCodePrompt` and `disableClaudeCodeSkills` to prevent automatically inheriting user's `.claude/` configuration. Upstream uses `bool` (default `false`). When upstream modifies `runtime-flags.ts`, auto-merge silently reverts these back to `bool`, re-enabling `.claude/skills/` scanning and Claude prompt injection. **After every sync, verify `disableClaudeCodePrompt` and `disableClaudeCodeSkills` use `boolTrue`, not `bool`.**
+- **customize-opencode built-in skill re-introduced** *(Step 3, Step 4)*: `packages/opencode/src/skill/index.ts` — upstream registers a `customize-opencode` built-in skill that teaches the model how to edit opencode.json config. DevEco Code removed this skill entirely (including the `customize-opencode.md` file). When upstream modifies the skill registration logic in `index.ts`, the built-in skill block may re-appear via auto-merge. **After every sync, verify no `CUSTOMIZE_OPENCODE_SKILL_*` constants or registration block exists in index.ts.**
 
 ## Moderate — causes errors or incorrect behavior
 

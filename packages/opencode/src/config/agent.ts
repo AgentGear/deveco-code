@@ -116,7 +116,7 @@ export async function load(dir: string) {
     })
     if (!md) continue
 
-    const patterns = ["/.deveco/agent/", "/.deveco/agents/", "/.opencode/agent/", "/.opencode/agents/", "/agent/", "/agents/"]
+    const patterns = ["/.deveco/agent/", "/.deveco/agents/", "/agent/", "/agents/"]
     const name = configEntryNameFromPath(item, patterns)
 
     const config = {
