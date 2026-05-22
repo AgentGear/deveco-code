@@ -159,13 +159,16 @@ const discoverSkills = Effect.fnUntraced(function* (
   global: Global.Interface,
   disableExternalSkills: boolean,
   disableClaudeCodeSkills: boolean,
+  disableDefaultSkills: boolean,
   directory: string,
   worktree: string,
 ) {
   const state: ScanState = { matches: new Set(), dirs: new Set() }
 
-  const defaultDir = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
-  yield* scan(state, defaultDir, SKILL_PATTERN)
+  if (!disableDefaultSkills) {
+    const defaultDir = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
+    yield* scan(state, defaultDir, SKILL_PATTERN)
+  }
 
   const externalDirs: string[] = []
   if (!disableExternalSkills) {
@@ -246,6 +249,7 @@ export const layer = Layer.effect(
           global,
           flags.disableExternalSkills,
           flags.disableClaudeCodeSkills,
+          flags.disableDefaultSkills,
           ctx.directory,
           ctx.worktree,
         )
