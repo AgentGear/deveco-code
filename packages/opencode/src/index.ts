@@ -109,9 +109,6 @@ const cli = yargs(args)
     process.env.AGENT = "1"
     process.env.DEVECO = "1"
     process.env.DEVECO_PID = String(process.pid)
-    if (!process.env.DEVECO_ALWAYS_NOTIFY_UPDATE) {
-      process.env.DEVECO_ALWAYS_NOTIFY_UPDATE = "1"
-    }
 
     Log.Default.info("deveco", {
       version: InstallationVersion,
