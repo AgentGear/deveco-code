@@ -56,7 +56,7 @@ async function findDevEcoHome() {
 }
 
 function ok(apiLevel) {
-  return Number.isInteger(apiLevel) && apiLevel >= 17 && apiLevel <= 22;
+  return Number.isInteger(apiLevel) && apiLevel >= 17 && apiLevel <= 24;
 }
 
 function parse(raw) {

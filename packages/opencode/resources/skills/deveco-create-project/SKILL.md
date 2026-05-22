@@ -21,8 +21,8 @@ Confirm the following parameters before execution. Ask the user if any required 
 If the user explicitly specifies an SDK/API level, pass it through directly.
 If the user does not specify one, do not let the model invent a version. Let the script detect it using this fixed priority:
 
-1. `DEVECO_HOME/sdk/default/sdk-pkg.json`
-2. `DEVECO_HOME/sdk/default/openharmony/*/oh-uni-package.json`
+1. `DEVECO_HOME/sdk/default/sdk-pkg.json` → `data` → `apiVersion`
+2. `DEVECO_HOME/sdk/default/openharmony/*/oh-uni-package.json` → `apiVersion`
 3. fallback to `22`
 
 ### Optional: Brief Requirement Checklist for Complex App Requests
@@ -90,9 +90,28 @@ If the user's request includes app behavior, UI, pages, or business requirements
 Before implementing the feature:
 
 - Read `entry/src/main/resources/base/profile/main_pages.json` to identify the launch page list.
-- Read the launch page file, usually `entry/src/main/ets/pages/Index.ets`.
+- Read the launch page file, usually `entry/src/main/ets/pages/Index.ets` and `entry/src/main/ets/entryability/EntryAbility.ets`.
 - Modify the actual launch page or its navigation path so the requested feature is reachable from the first screen.
+
+> **CRITICAL: `EntryAbility.ets` and `main_pages.json` must stay in sync.**
+>
+> `EntryAbility.ets` calls `windowStage.loadContent('pages/SomePage', ...)` to load the first screen.
+> That page path **must** appear in `main_pages.json`'s `src` array — otherwise the framework silently fails to load the page, resulting in a **white screen**.
+>
+> When you create custom pages and update `main_pages.json`, you **must** also update `EntryAbility.ets`:
+> - If you **rename or replace** the first entry in `main_pages.json`, update `loadContent()` to match the new first page.
+> - If you **prepend** a new splash/landing page to `main_pages.json`, update `loadContent()` to point to that page.
+>
+> Always re-read both files after editing to confirm they are consistent.
+
 - Do not finish by only creating a new named page/component unless the launch page routes to it.
+
+> **CRITICAL: Desktop app name — both `app_name` and `EntryAbility_label` must be updated.**
+>
+> The desktop icon label is controlled by `EntryAbility_label`, not `app_name`:
+> - `AppScope/resources/base/element/string.json` → `app_name` — used as the **application-level** label (settings, etc.).
+> - `entry/src/main/resources/base/element/string.json` → `EntryAbility_label` — used as the **Ability-level** label (**this is what appears on the desktop icon**).
+
 - After changes, run `build_project`; if it succeeds, run `start_app`.
 - If a device is available and visual behavior matters, use `verify_ui` or screenshots to check that the app no longer shows the untouched template `Hello World` screen.
 
