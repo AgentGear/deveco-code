@@ -1,6 +1,6 @@
 ---
 name: deveco-create-project
-description: MUST load this skill before creating, initializing, or scaffolding an ArkTS project, including "0-1", "from scratch", "new ArkTS project", and empty directory initialization tasks. Use the skill's private TypeScript script to create ArkTS projects reliably.
+description: MUST load this skill before creating, initializing, or scaffolding an ArkTS project, including "0-1", "from scratch", "new ArkTS project", "新建工程", "创建项目", and empty directory initialization tasks. Load this skill EVEN IF the target directory already exists — never assume an existing same-named directory is the user's intended project and skip to build_project/start_app. If the user provides a Chinese or other non-ASCII project name (e.g. 购物车, 天气预报), you MUST propose 2-3 UpperCamelCase ASCII candidates (e.g. 购物车 → ShoppingCart / ShopCart / Cart) and let the user choose via AskUserQuestion BEFORE invoking the script — never pass non-ASCII names through to the script, and never pick a single translation on the user's behalf. Use the skill's private TypeScript script to create ArkTS projects reliably.
 ---
 
 # deveco-create-project
@@ -17,6 +17,19 @@ Confirm the following parameters before execution. Ask the user if any required 
 | `appName` | Required | — | `HelloWorld` |
 | `bundleName` | Auto-derived, no need to ask | `com.example.{appName lowercase}` | `com.example.helloworld` |
 | `apiLevel` | Optional | Auto-detect from DevEco SDK metadata, fallback to `22` | `21` |
+
+### appName rules
+
+`appName` must match `^[A-Za-z][A-Za-z0-9_]{0,127}$`. Chinese / non-ASCII names are NOT allowed — the script will reject them (exit code `4`, `APP_NAME_INVALID`).
+
+When the user provides a Chinese or other non-ASCII name, you MUST:
+1. Propose 2-3 UpperCamelCase ASCII candidates based on meaning (e.g. `购物车` → `ShoppingCart` / `ShopCart` / `Cart`; `天气预报` → `WeatherForecast` / `Weather` / `Forecast`). Fall back to pinyin only when meaning is unclear.
+2. Let the user pick one via `AskUserQuestion` before invoking the script — do NOT pick on the user's behalf, even if one option seems obviously best.
+3. Never pass the original non-ASCII name to the script.
+
+### Target directory conflict
+
+If `{projectPath}/{appName}` already exists and is not empty, the script will exit with code `2` and emit a `PROJECT_EXISTS` JSON payload. When you see it, ask the user via `AskUserQuestion` whether to overwrite, rename, or cancel — do NOT silently re-run or delete the directory yourself.
 
 If the user explicitly specifies an SDK/API level, pass it through directly.
 If the user does not specify one, do not let the model invent a version. Let the script detect it using this fixed priority:

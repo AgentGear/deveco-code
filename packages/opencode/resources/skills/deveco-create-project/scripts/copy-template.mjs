@@ -38,6 +38,8 @@ const REQUIRED_FILES = [
   'entry/src/main/resources/base/media/foreground.png',
 ];
 
+const APP_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,127}$/;
+
 function parseArgs(argv) {
   const values = new Map();
   for (let index = 0; index < argv.length; index += 1) {
@@ -144,6 +146,17 @@ function verifyFiles(targetRoot) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+
+  if (!APP_NAME_PATTERN.test(args.appName)) {
+    console.error(JSON.stringify({
+      code: 'APP_NAME_INVALID',
+      message: `appName "${args.appName}" is invalid. It must start with an English letter and contain only [A-Za-z0-9_], length 1-128.`,
+      rawAppName: args.appName,
+      hint: '请通过 AskUserQuestion 给出 2-3 个符合规范的 UpperCamelCase 英文候选名（中文按语义翻译，如 "购物车" → ShoppingCart / ShopCart / Cart），让用户选择，然后用新的 --app-name 重新运行脚本。不要自己替用户决定。',
+    }, null, 2));
+    process.exit(4);
+  }
+
   const resolved = await resolve(args);
   if (!fs.existsSync(args.templateDir)) {
     throw new Error(`Template directory not found: ${args.templateDir}`);
@@ -151,6 +164,17 @@ async function main() {
 
   fs.mkdirSync(args.projectPath, { recursive: true });
   const targetRoot = path.join(args.projectPath, args.appName);
+
+  if (fs.existsSync(targetRoot) && fs.readdirSync(targetRoot).length > 0) {
+    console.error(JSON.stringify({
+      code: 'PROJECT_EXISTS',
+      message: `Target "${targetRoot}" already exists and is not empty.`,
+      targetRoot,
+      hint: '请通过 AskUserQuestion 向用户提供"覆盖 / 重命名 / 取消"三个选项后再决定如何继续。Never overwrite without explicit user confirmation.',
+    }, null, 2));
+    process.exit(2);
+  }
+
   copyDirectoryContents(args.templateDir, targetRoot);
 
   replaceInFile(path.join(targetRoot, 'AppScope/resources/base/element/string.json'), [
