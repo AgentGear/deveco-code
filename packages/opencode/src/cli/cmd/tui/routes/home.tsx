@@ -44,12 +44,12 @@ export function Home() {
 
   const bodySlotHeight = createMemo(() => homeBodySlotRows(dimensions().height))
 
-  // Check if DevEco onboarding should be shown - wait for sync to complete
+  // Check if DevEco onboarding should be shown - wait for sync blocking phase to complete
   createEffect(
     on(
       () => sync.status,
       (status) => {
-        if (status !== "complete") return
+        if (status === "loading") return
         // Only check once
         if (devecoChecked) return
         devecoChecked = true
