@@ -37,18 +37,18 @@ type ListedTool = {
 function jsonSchemaPropertyToEffectSchema(prop: Record<string, unknown>): Schema.Decoder<unknown> {
   const type = prop.type as string | undefined
   const nullable = prop.nullable as boolean | undefined
-  
+
   switch (type) {
     case 'string':
       return Schema.String as Schema.Decoder<unknown>
-    
+
     case 'boolean':
       return Schema.Boolean as Schema.Decoder<unknown>
-    
+
     case 'number':
     case 'integer':
       return Schema.Number as Schema.Decoder<unknown>
-    
+
     case 'array': {
       const items = prop.items as Record<string, unknown> | undefined
       if (items && typeof items === 'object') {
@@ -57,7 +57,7 @@ function jsonSchemaPropertyToEffectSchema(prop: Record<string, unknown>): Schema
       }
       return Schema.Array(Schema.Unknown) as Schema.Decoder<unknown>
     }
-    
+
     case 'object': {
       const properties = prop.properties as Record<string, Record<string, unknown>> | undefined
       if (properties && typeof properties === 'object') {
@@ -69,7 +69,7 @@ function jsonSchemaPropertyToEffectSchema(prop: Record<string, unknown>): Schema
       }
       return Schema.Unknown as Schema.Decoder<unknown>
     }
-    
+
     default:
       return Schema.Unknown as Schema.Decoder<unknown>
   }
@@ -83,22 +83,22 @@ function jsonSchemaToEffectSchema(inputSchema: unknown): Schema.Decoder<unknown>
   if (!inputSchema || typeof inputSchema !== 'object' || Array.isArray(inputSchema)) {
     return null
   }
-  
+
   const schema = inputSchema as Record<string, unknown>
   const type = schema.type as string | undefined
-  
+
   // Only handle object type at the top level
   if (type !== 'object') {
     return null
   }
-  
+
   const properties = schema.properties as Record<string, Record<string, unknown>> | undefined
   if (!properties || typeof properties !== 'object') {
     return null
   }
-  
+
   const required = schema.required as string[] | undefined
-  
+
   // Build property schemas
   const schemaObj: Record<string, Schema.Decoder<unknown>> = {}
   for (const [key, prop] of Object.entries(properties)) {
@@ -106,11 +106,11 @@ function jsonSchemaToEffectSchema(inputSchema: unknown): Schema.Decoder<unknown>
       schemaObj[key] = Schema.Unknown as Schema.Decoder<unknown>
       continue
     }
-    
+
     const propSchema = jsonSchemaPropertyToEffectSchema(prop as Record<string, unknown>)
     const isRequired = required ? required.includes(key) : false
     const isNullable = (prop as Record<string, unknown>).nullable as boolean | undefined
-    
+
     // Handle optional/nullable fields
     if (!isRequired || isNullable) {
       schemaObj[key] = Schema.optional(propSchema) as Schema.Decoder<unknown>
@@ -118,7 +118,7 @@ function jsonSchemaToEffectSchema(inputSchema: unknown): Schema.Decoder<unknown>
       schemaObj[key] = propSchema
     }
   }
-  
+
   return Schema.Struct(schemaObj) as Schema.Decoder<unknown>
 }
 
@@ -141,22 +141,22 @@ function parseArgsJson(input?: string, inputSchema?: unknown): Record<string, un
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('argsJson must be a JSON object string');
   }
-  
+
   // Validate against inputSchema if provided
   if (inputSchema && typeof inputSchema === 'object') {
     const effectSchema = jsonSchemaToEffectSchema(inputSchema)
-    
+
     if (effectSchema) {
       // Use Effect.Schema to validate
       const decoded = Schema.decodeUnknownExit(effectSchema)(value, { errors: "all" })
-      
+
       if (Exit.isFailure(decoded)) {
         const error = Cause.squash(decoded.cause)
         throw new Error(`Args validation failed: ${formatSchemaError(error)}`)
       }
     }
   }
-  
+
   return value as Record<string, unknown>;
 }
 
@@ -171,38 +171,38 @@ function parseArgsJson(input?: string, inputSchema?: unknown): Record<string, un
 function sanitizeFilePath(filePath: string, worktree: string): string {
   // Resolve the path relative to worktree
   const resolved = path.resolve(worktree, filePath);
-  
+
   // Get real paths to handle symlinks and normalize
   let realResolved: string;
   let realWorktree: string;
-  
+
   try {
     realResolved = fs.realpathSync(resolved);
   } catch {
     // Path doesn't exist yet - use resolved path for comparison
     realResolved = resolved;
   }
-  
+
   try {
     realWorktree = fs.realpathSync(worktree);
   } catch {
     realWorktree = worktree;
   }
-  
+
   // Normalize paths for comparison (ensure consistent separators)
   const normalizedResolved = path.normalize(realResolved);
   const normalizedWorktree = path.normalize(realWorktree);
-  
+
   // Check if resolved path starts with worktree path
   // Use path.sep to ensure we're comparing directory boundaries correctly
-  const worktreePrefix = normalizedWorktree.endsWith(path.sep) 
-    ? normalizedWorktree 
+  const worktreePrefix = normalizedWorktree.endsWith(path.sep)
+    ? normalizedWorktree
     : normalizedWorktree + path.sep;
-  
+
   if (normalizedResolved !== normalizedWorktree && !normalizedResolved.startsWith(worktreePrefix)) {
     throw new Error(`Path traversal detected: ${filePath} resolves to ${resolved}, which is outside worktree ${worktree}`);
   }
-  
+
   return realResolved;
 }
 
@@ -213,7 +213,7 @@ function sanitizeFilePath(filePath: string, worktree: string): string {
 function validatePathParameters(args: Record<string, unknown>, worktree: string): void {
   // Known path parameter names that need validation
   const pathParams = ['log_path', 'dirname', 'filePath', 'filepath', 'path'];
-  
+
   for (const paramName of pathParams) {
     if (paramName in args && typeof args[paramName] === 'string') {
       const filePath = args[paramName] as string;
@@ -349,19 +349,19 @@ const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
         },
         async execute(args, ctx) {
           if (!process.env.DEVECO_HOME?.trim()) throw new Error('DEVECO_HOME environment variable is not configured. PLEASE set your DEVECO_HOME path manually and restart.');
+          const worktree = resolveWorktree(ctx as { sessionID?: string; directory?: string; worktree?: string });
           if (name === 'verify_ui') {
-            const params = await resolveUIVerifyParams();
+            const params = await resolveUIVerifyParams(worktree);
             if (!params.baseURL || !params.apiKey || !params.modelName) {
               return "工具调用失败。请将以下内容原文告知用户，不要修改或补充，告知后立即停止，不要再调用任何工具：「UI 意图校验功能不可用：未配置多模态模型。请在配置文件中为 ui_verification agent 配置一个支持多模态的模型，或登录账号以使用内置多模态模型。」"
             }
           }
           // Parse and validate args against inputSchema
           const payload = parseArgsJson((args as { argsJson?: string }).argsJson, inputSchema);
-          const worktree = resolveWorktree(ctx as { sessionID?: string; directory?: string; worktree?: string });
-          
+
           // Validate file path parameters to prevent path traversal attacks
           validatePathParameters(payload, worktree);
-          
+
           const result = await callHarmonyNapiTool({ worktree, toolName: name, args: payload });
           return textFromCallResult(result);
         },
