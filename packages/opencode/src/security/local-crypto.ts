@@ -108,18 +108,6 @@ function loadDek(): Buffer {
   return next
 }
 
-function rebuildKeyMaterials() {
-  ensureDirectories()
-  for (const keyId of rootKeyIds) {
-    const filePath = getRootKeyPath(keyId)
-    if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, crypto.randomBytes(kekLength), { mode: 0o600 })
-  }
-  if (fs.existsSync(wrappedDekPath)) return
-  const dek = crypto.randomBytes(dekLength)
-  const wrapped = wrapDekWithKek(dek, rootKeyIds[0])
-  fs.writeFileSync(wrappedDekPath, JSON.stringify(wrapped, null, 2), { mode: 0o600 })
-}
-
 export function encryptForLocalStorage(plaintext: string): EncryptedBlob {
   const dek = loadDek()
   const iv = crypto.randomBytes(ivLength)
@@ -145,9 +133,8 @@ export function decryptForLocalStorage(blob: EncryptedBlob): string {
     const decipher = crypto.createDecipheriv(algorithm, dek, iv) as crypto.DecipherGCM
     decipher.setAuthTag(authTag)
     return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8")
-  } catch {
-    rebuildKeyMaterials()
-    throw new Error("Failed to decrypt local ciphertext")
+  } catch (cause) {
+    throw new Error("Failed to decrypt local ciphertext", { cause })
   }
 }
 
@@ -172,15 +159,17 @@ function encryptAuthRecord(info: Record<string, unknown>): Record<string, unknow
   )
 }
 
-function decryptAuthRecord(info: Record<string, unknown>): Record<string, unknown> {
+function decryptAuthRecord(provider: string, info: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(info).map(([field, value]) => {
       if (!SENSITIVE_AUTH_KEYS.has(field)) return [field, value]
       if (!isEncryptedBlob(value)) return [field, value]
       try {
         return [field, decryptForLocalStorage(value)]
-      } catch {
-        return [field, ""]
+      } catch (cause) {
+        throw new Error(`Failed to decrypt auth field "${field}" for provider "${provider}"`, {
+          cause,
+        })
       }
     }),
   )
@@ -199,7 +188,7 @@ export function decryptAuthData(data: Record<string, unknown>): Record<string, u
   return Object.fromEntries(
     Object.entries(data).map(([provider, info]) => {
       if (!info || typeof info !== "object") return [provider, info]
-      return [provider, decryptAuthRecord(info as Record<string, unknown>)]
+      return [provider, decryptAuthRecord(provider, info as Record<string, unknown>)]
     }),
   )
 }

@@ -1,4 +1,5 @@
 import { Auth } from "../../auth"
+import { localCredentialsResetPaths, resetLocalCredentials } from "@/auth/reset"
 import { cmd } from "./cmd"
 import { CliError, effectCmd, fail } from "../effect-cmd"
 import { UI } from "../ui"
@@ -244,7 +245,12 @@ export const ProvidersCommand = cmd({
   aliases: ["auth"],
   describe: "manage AI providers and credentials",
   builder: (yargs) =>
-    yargs.command(ProvidersListCommand).command(ProvidersLoginCommand).command(ProvidersLogoutCommand).demandCommand(),
+    yargs
+      .command(ProvidersListCommand)
+      .command(ProvidersLoginCommand)
+      .command(ProvidersLogoutCommand)
+      .command(ProvidersResetCommand)
+      .demandCommand(),
   async handler() {},
 })
 
@@ -516,5 +522,53 @@ export const ProvidersLogoutCommand = effectCmd({
     })
     yield* Effect.orDie(authSvc.remove(yield* promptValue(selected)))
     yield* Prompt.outro("Logout successful")
+  }),
+})
+
+export const ProvidersResetCommand = effectCmd({
+  command: "reset",
+  describe: "reset local provider credentials",
+  builder: (yargs) =>
+    yargs.option("yes", {
+      alias: ["y"],
+      describe: "skip confirmation",
+      type: "boolean",
+    }),
+  instance: false,
+  handler: Effect.fn("Cli.providers.reset")(function* (args) {
+    UI.empty()
+    yield* Prompt.intro("Reset credentials")
+    const paths = localCredentialsResetPaths()
+    yield* Prompt.log.warn("This removes local provider credentials and encryption key material.")
+    yield* Prompt.log.info(paths.auth)
+    yield* Prompt.log.info(paths.tokenDek)
+    yield* Prompt.log.info(paths.tokenEnc)
+    yield* Prompt.log.info(path.join(paths.keys, "*.bin"))
+
+    if (!args.yes) {
+      const confirmed = yield* Prompt.confirm({
+        message: "Continue?",
+        initialValue: false,
+      })
+      if (!(yield* promptValue(confirmed))) {
+        yield* Prompt.outro("Cancelled")
+        return
+      }
+    }
+
+    const result = yield* Effect.tryPromise({
+      try: () => resetLocalCredentials(),
+      catch: (error) => new CliError({ message: "Failed to reset credentials: " + errorMessage(error) }),
+    })
+
+    for (const failure of result.failed) {
+      yield* Prompt.log.error(`${failure.path}: ${failure.message}`)
+    }
+    if (result.failed.length > 0) {
+      return yield* fail("Failed to remove one or more credential files")
+    }
+
+    yield* Prompt.log.success(`Removed ${result.removed.length} local credential file(s)`)
+    yield* Prompt.outro("Run `auth login` or add a provider in the TUI")
   }),
 })
