@@ -18,6 +18,7 @@ import type {
   ProviderAuthMethod,
   VcsInfo,
 } from "@opencode-ai/sdk/v2"
+import { Effect } from "effect"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useProject } from "@tui/context/project"
 import { useEvent } from "@tui/context/event"
@@ -33,6 +34,8 @@ import { emptyConsoleState, type ConsoleState } from "@/config/console-state"
 import path from "path"
 import { useKV } from "./kv"
 import { aggregateFailures } from "./aggregate-failures"
+import { Auth } from "@/auth"
+import { LOCAL_CREDENTIALS_CORRUPTED_MESSAGE } from "@/auth/messages"
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
   name: "Sync",
@@ -44,6 +47,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       provider_next: ProviderListResponse
       console_state: ConsoleState
       provider_auth: Record<string, ProviderAuthMethod[]>
+      local_auth_error?: string
       agent: Agent[]
       command: Command[]
       permission: {
@@ -375,9 +379,33 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     const exit = useExit()
     const args = useArgs()
 
+    async function readLocalAuthError() {
+      try {
+        await Effect.runPromise(
+          Effect.gen(function* () {
+            const auth = yield* Auth.Service
+            yield* auth.all()
+          }).pipe(Effect.provide(Auth.defaultLayer)),
+        )
+        return undefined
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message.includes(LOCAL_CREDENTIALS_CORRUPTED_MESSAGE)) return LOCAL_CREDENTIALS_CORRUPTED_MESSAGE
+        throw error
+      }
+    }
+
     async function bootstrap(input: { fatal?: boolean } = {}) {
       const fatal = input.fatal ?? true
       const workspace = project.workspace.current()
+      const localAuthError = await readLocalAuthError()
+      if (localAuthError) {
+        batch(() => {
+          setStore("local_auth_error", localAuthError)
+          setStore("status", "partial")
+        })
+        return
+      }
       const projectPromise = project.sync()
       const sessionListPromise = projectPromise.then(() => listSessions())
 

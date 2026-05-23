@@ -68,6 +68,8 @@ import { createTuiAttention } from "@/cli/cmd/tui/attention"
 import { FormatError, FormatUnknownError } from "@/cli/error"
 import { CommandPaletteProvider, useCommandPalette } from "./context/command-palette"
 import { OpencodeKeymapProvider, registerOpencodeKeymap, useBindings, useOpencodeKeymap } from "./keymap"
+import { localCredentialsResetPaths, resetLocalCredentials } from "@/auth/reset"
+import path from "path"
 
 import type { EventSource } from "./context/sdk"
 import { DialogVariant } from "./component/dialog-variant"
@@ -302,6 +304,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     attention,
   })
   const [ready, setReady] = createSignal(false)
+  let localAuthDialogShown = false
   TuiPluginRuntime.init({
     api,
     config: tuiConfig,
@@ -313,6 +316,64 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     .finally(() => {
       setReady(true)
     })
+
+  createEffect(() => {
+    const message = sync.data.local_auth_error
+    if (!message || localAuthDialogShown) return
+    localAuthDialogShown = true
+    void (async () => {
+      const choice = await DialogConfirm.show(
+        dialog,
+        "Local credentials are corrupted",
+        [
+          "Local credentials cannot be decrypted. Saved provider credentials are unavailable.",
+          "",
+          "Select Reset to review and clear local auth storage now. You can also exit and run `deveco auth reset` manually.",
+          "",
+          "After reset, login again or add a provider in the TUI.",
+        ].join("\n"),
+        { confirmLabel: "exit", cancelLabel: "reset" },
+      )
+      if (choice !== false) {
+        exit()
+        return
+      }
+
+      const paths = localCredentialsResetPaths()
+      const confirmed = await DialogConfirm.show(
+        dialog,
+        "Reset local credentials?",
+        [
+          "This removes local provider credentials and encryption key material.",
+          "",
+          paths.auth,
+          paths.tokenDek,
+          paths.tokenEnc,
+          path.join(paths.keys, "*.bin"),
+          "",
+          "Continue?",
+        ].join("\n"),
+        { confirmLabel: "reset", cancelLabel: "cancel", initialActive: "cancel" },
+      )
+      if (confirmed !== true) {
+        exit()
+        return
+      }
+
+      const result = await resetLocalCredentials()
+      if (result.failed.length > 0) {
+        await DialogAlert.show(
+          dialog,
+          "Failed to reset credentials",
+          result.failed.map((failure) => `${failure.path}: ${failure.message}`).join("\n"),
+        )
+      }
+      exit()
+    })().catch(async (error) => {
+      await DialogAlert.show(dialog, "Failed to reset credentials", errorMessage(error))
+      exit()
+    })
+  })
 
   // Let selection copy/dismiss win ahead of normal bindings when the feature flag is on.
   const offSelectionKeys = keymap.intercept(
