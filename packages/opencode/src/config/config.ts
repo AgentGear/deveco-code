@@ -240,6 +240,28 @@ export const Info = Schema.Struct({
       url: Schema.optional(Schema.String).annotate({ description: "Enterprise URL" }),
     }),
   ),
+  agreement: Schema.optional(
+    Schema.Struct({
+      tms_url: Schema.optional(Schema.String).annotate({
+        description: "TMS agreement service API base URL. Overrides built-in default.",
+      }),
+      privacy_url: Schema.optional(Schema.String).annotate({
+        description: "DevEco Code AI privacy statement URL. Overrides built-in default.",
+      }),
+      terms_url: Schema.optional(Schema.String).annotate({
+        description: "DevEco Code AI user agreement URL. Overrides built-in default.",
+      }),
+      privacy_id: Schema.optional(Schema.String).annotate({
+        description: "Privacy agreement ID for TMS query. Overrides built-in default.",
+      }),
+      terms_id: Schema.optional(Schema.String).annotate({
+        description: "Terms of use agreement ID for TMS query. Overrides built-in default.",
+      }),
+    }),
+  ).annotate({
+    description:
+      "Agreement/legal configuration for DevEco Code onboarding. All fields optional — absent values fall back to built-in defaults.",
+  }),
   tool_output: Schema.optional(
     Schema.Struct({
       max_lines: Schema.optional(PositiveInt).annotate({

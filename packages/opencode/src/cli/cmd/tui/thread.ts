@@ -1,6 +1,7 @@
 import { cmd } from "@/cli/cmd/cmd"
 import * as prompts from "@clack/prompts"
 import { tui } from "./app"
+import { requireLogin } from "@/plugin/deveco"
 import { Rpc } from "@/util/rpc"
 import { type rpc } from "./worker"
 import path from "path"
@@ -189,6 +190,11 @@ export const TuiThreadCommand = cmd({
         describe: "agent to use",
       }),
   handler: async (args) => {
+    const loggedIn = await requireLogin()
+    if (!loggedIn) {
+      process.exit(1)
+    }
+
     await ensureDevEcoHomeForTuiStartup()
 
     // Keep ENABLE_PROCESSED_INPUT cleared even if other code flips it.

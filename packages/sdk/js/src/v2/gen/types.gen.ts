@@ -1283,6 +1283,13 @@ export type Config = {
   enterprise?: {
     url?: string
   }
+  agreement?: {
+    tms_url?: string
+    privacy_url?: string
+    terms_url?: string
+    privacy_id?: string
+    terms_id?: string
+  }
   tool_output?: {
     max_lines?: number
     max_bytes?: number
