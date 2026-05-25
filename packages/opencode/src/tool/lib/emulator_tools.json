@@ -99,6 +99,11 @@
           "nullable": true,
           "type": "string"
         },
+        "device": {
+          "description": "接受设备名称（支持子串匹配）或序列号（例如 127.0.0.1:5555）；仅连接一台设备时自动选中，多设备环境下必须指定。",
+          "nullable": true,
+          "type": "string"
+        },
         "freshStart": {
           "default": false,
           "description": "是否在测试前重新启动应用",
