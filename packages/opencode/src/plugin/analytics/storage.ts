@@ -118,13 +118,6 @@ export function getOsVersion(): string {
   return os.release()
 }
 
-export async function getVersion(): Promise<string> {
-  try {
-    const pkgPath = path.join(process.cwd(), "package.json")
-    const content = await fs.readFile(pkgPath, "utf-8")
-    const pkg = JSON.parse(content)
-    return pkg.version || "0.0.0"
-  } catch {
-    return "0.0.0"
-  }
+export function getVersion(): string {
+  return typeof DEVECO_VERSION === "string" ? DEVECO_VERSION : "0.0.0"
 }

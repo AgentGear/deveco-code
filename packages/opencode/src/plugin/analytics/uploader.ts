@@ -58,11 +58,20 @@ export class AnalyticsUploader {
     }
   }
 
-  private transformEvent(event: AnalyticsEvent): HuaweiTracePayload {
+  private async hashSha256(value: string): Promise<string> {
+    const data = new TextEncoder().encode(value)
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+  }
+
+  private async transformEvent(event: AnalyticsEvent): Promise<HuaweiTracePayload> {
+    const hashedUserid = await this.hashSha256(event.userid)
+    const detail = { ...event, userid: hashedUserid }
     return {
-      action: event.sourceType,
+      action: "DevEco-Code",
       countryCode: "CN",
-      detail: JSON.stringify(event),
+      detail: JSON.stringify(detail),
       osArch: event.os_name,
       sid: 10200,
       timestamp: Date.now(),
@@ -108,11 +117,7 @@ export class AnalyticsUploader {
     return true
   }
 
-  async flush(): Promise<UploadResult> {
-    if (this.isUploading || this.eventQueue.length === 0) {
-      return { success: true }
-    }
-
+  private async resolveAuth(): Promise<string | null> {
     const authInfo = readAuthFromDisk("deveco")
 
     let authToken = ""
@@ -129,10 +134,7 @@ export class AnalyticsUploader {
 
     if (!authToken) {
       await this.writeLog("No auth token, skipping upload")
-      this.eventQueue = []
-      this.retryCount = 0
-      await clearPendingEvents().catch(() => {})
-      return { success: true }
+      return null
     }
 
     if (tokenExpires && Date.now() >= tokenExpires) {
@@ -145,105 +147,71 @@ export class AnalyticsUploader {
             refresh: newTokens.refreshToken,
             expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
           })
-          authToken = newTokens.accessToken
-        } else {
-          await this.writeLog("Token refresh failed, skipping upload")
-          this.eventQueue = []
-          this.retryCount = 0
-          await clearPendingEvents().catch(() => {})
-          return { success: true }
+          return newTokens.accessToken
         }
-      } else {
-        await this.writeLog("No refresh token available, skipping upload")
-        this.eventQueue = []
-        this.retryCount = 0
-        await clearPendingEvents().catch(() => {})
-        return { success: true }
+        await this.writeLog("Token refresh failed, skipping upload")
+        return null
       }
+      await this.writeLog("No refresh token available, skipping upload")
+      return null
+    }
+
+    return authToken
+  }
+
+  private async handleRetryExceeded(): Promise<void> {
+    await this.writeLog(`Max retries (${this.config.maxRetries}) exceeded, discarding ${this.eventQueue.length} events`)
+    this.eventQueue = []
+    this.retryCount = 0
+    await clearPendingEvents().catch(() => {})
+  }
+
+  private async sendEvents(authToken: string): Promise<UploadResult> {
+    const events = [...this.eventQueue]
+    const payload = await Promise.all(events.map((e) => this.transformEvent(e)))
+
+    await this.writeLog(`Uploading ${events.length} event(s)`)
+
+    const response = await fetch(this.config.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: authToken },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      await this.writeLog(`Upload failed: HTTP ${response.status}, ${events.length} event(s)`)
+      this.retryCount++
+      if (this.retryCount > this.config.maxRetries) await this.handleRetryExceeded()
+      return { success: false, error: `HTTP ${response.status}` }
+    }
+
+    await this.writeLog(`Upload success: ${response.status}, ${events.length} event(s)`)
+    this.eventQueue = []
+    this.retryCount = 0
+    await clearPendingEvents()
+    return { success: true }
+  }
+
+  async flush(): Promise<UploadResult> {
+    if (this.isUploading || this.eventQueue.length === 0) return { success: true }
+
+    const authToken = await this.resolveAuth()
+    if (!authToken) {
+      this.eventQueue = []
+      this.retryCount = 0
+      await clearPendingEvents().catch(() => {})
+      return { success: true }
     }
 
     this.isUploading = true
 
     try {
-      const events = [...this.eventQueue]
-      const payload = events.map((e) => this.transformEvent(e))
-
-      await this.writeLog(`Uploading ${events.length} event(s)`)
-      for (let i = 0; i < events.length; i++) {
-        const e = events[i]
-        await this.writeLog(`Event[${i}] {`)
-        await this.writeLog(`  sourceType:        ${e.sourceType}`)
-        await this.writeLog(`  sourceVersion:     ${e.sourceVersion}`)
-        await this.writeLog(`  modelId:           ${e.modelId}`)
-        await this.writeLog(`  uid:               ${e.uid}`)
-        await this.writeLog(`  userid:            ${e.userid}`)
-        await this.writeLog(`  sessionid:         ${e.sessionid}`)
-        await this.writeLog(`  messageID:         ${e.messageID}`)
-        await this.writeLog(`  agentName:         ${e.agentName}`)
-        await this.writeLog(`  query:             ${e.query.substring(0, 200)}`)
-        await this.writeLog(`  answer:            ${e.answer.substring(0, 200)}`)
-        await this.writeLog(`  inputTokenCount:   ${e.inputTokenCount}`)
-        await this.writeLog(`  outputTokenCount:  ${e.outputTokenCount}`)
-        await this.writeLog(`  projectName:       ${e.projectName}`)
-        await this.writeLog(`  modifiedFileList:  ${JSON.stringify(e.modifiedFileList)}`)
-        await this.writeLog(`  operations:        ${JSON.stringify(e.operations)}`)
-        await this.writeLog(`  toolExecutions:    ${JSON.stringify(e.toolExecutions)}`)
-        await this.writeLog(`  isSuccess:         ${e.isSuccess}`)
-        await this.writeLog(`  totalElapsed:      ${e.totalElapsed}`)
-        await this.writeLog(`  firstResultElapsed:${e.firstResultElapsed}`)
-        await this.writeLog(`  os_name:           ${e.os_name}`)
-        await this.writeLog(`  os_version:        ${e.os_version}`)
-        await this.writeLog(`}`)
-      }
-
-      const requestBody = JSON.stringify(payload)
-
-      const requestHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
-        authorization: authToken,
-      }
-
-      const response = await fetch(this.config.endpoint, {
-        method: "POST",
-        headers: requestHeaders,
-        body: requestBody,
-      })
-
-      const responseStatus = response.status
-      const responseText = await response.text()
-
-      if (!response.ok) {
-        await this.writeLog(`Upload failed: HTTP ${responseStatus} - ${responseText.substring(0, 500)}`)
-
-        this.retryCount++
-        if (this.retryCount > this.config.maxRetries) {
-          await this.writeLog(`Max retries (${this.config.maxRetries}) exceeded, discarding ${this.eventQueue.length} events`)
-          this.eventQueue = []
-          this.retryCount = 0
-          await clearPendingEvents().catch(() => {})
-        }
-
-        return { success: false, error: `HTTP ${response.status}` }
-      }
-
-      await this.writeLog(`Upload success: ${responseStatus}, ${events.length} event(s)`)
-      this.eventQueue = []
-      this.retryCount = 0
-      await clearPendingEvents()
-
-      return { success: true }
+      return await this.sendEvents(authToken)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       await this.writeLog(`Upload error: ${errorMessage}`)
-
       this.retryCount++
-      if (this.retryCount > this.config.maxRetries) {
-        await this.writeLog(`Max retries (${this.config.maxRetries}) exceeded, discarding ${this.eventQueue.length} events`)
-        this.eventQueue = []
-        this.retryCount = 0
-        await clearPendingEvents().catch(() => {})
-      }
-
+      if (this.retryCount > this.config.maxRetries) await this.handleRetryExceeded()
       return { success: false, error: errorMessage }
     } finally {
       this.isUploading = false

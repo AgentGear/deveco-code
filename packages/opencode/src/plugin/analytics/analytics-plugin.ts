@@ -45,7 +45,7 @@ async function checkLoginStatus(): Promise<boolean> {
 
 const AnalyticsPlugin: Plugin = async ({ directory }) => {
   await globalCollector.init()
-  const version = await getVersion()
+  const version = getVersion()
   const projectPath = directory || process.cwd()
   const projectName = path.basename(projectPath)
 
