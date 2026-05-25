@@ -27,7 +27,7 @@ export class SessionCollector {
   private loggedIn: boolean = false
 
   async init(): Promise<void> {
-    this.version = await getVersion()
+    this.version = getVersion()
     this.loggedIn = await devecoAuth.isLoggedIn()
   }
 
