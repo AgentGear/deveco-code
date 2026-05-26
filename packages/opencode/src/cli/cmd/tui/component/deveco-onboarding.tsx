@@ -1,4 +1,4 @@
-import { Show, createSignal, createMemo, For, createEffect, type ParentProps } from 'solid-js';
+import { Show, createSignal, createMemo, For, createEffect, onMount, type ParentProps } from 'solid-js';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { ScrollBoxRenderable, TextareaRenderable } from '@opentui/core';
 import { useTheme } from '@tui/context/theme';
@@ -11,7 +11,9 @@ import { DialogPrompt } from '@tui/ui/dialog-prompt';
 import { Link } from '../ui/link';
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from '@/plugin/deveco';
 import { useKV } from '@tui/context/kv';
-import { DEVECO_AI_PRIVACY_URL, KV_DEVECO_CODE_PRIVACY_ACCEPTED } from '@/cli/deveco-legal';
+import { resolveAgreementConfig, KV_DEVECO_CODE_PRIVACY_ACCEPTED, type AgreementConfig } from '@/cli/deveco-legal';
+import { agreementService, AgreementStatus } from '@/cli/deveco-agreement';
+import type { AgreementCheckResult } from '@/cli/deveco-agreement';
 import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH } from './banner';
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';
 
@@ -245,7 +247,7 @@ async function runProviderOAuth(
   }
 }
 
-export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight?: number }) {
+export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight?: number; initialStep?: OnboardingStep }) {
   const { theme } = useTheme();
   const sync = useSync();
   const exit = useExit();
@@ -253,9 +255,20 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const sdk = useSDK();
   const kv = useKV();
 
-  const privacyOk = () => kv.get(KV_DEVECO_CODE_PRIVACY_ACCEPTED, false) === true;
-  const [step, setStep] = createSignal<OnboardingStep>(privacyOk() ? "entry" : "privacy")
+  // Merge project-level agreement config overrides with built-in defaults
+  const agreementConfig = createMemo(() =>
+    resolveAgreementConfig(sync.data.config.agreement as AgreementConfig | undefined)
+  )
+
+  // Initial step determined by caller: 'entry' if not logged in, 'privacy' if logged in but agreement pending
+  const [step, setStep] = createSignal<OnboardingStep>(props.initialStep ?? 'entry')
   const [privacyIndex, setPrivacyIndex] = createSignal(0);
+  const [checkboxChecked, setCheckboxChecked] = createSignal(false);
+  const [signBusy, setSignBusy] = createSignal(false);
+  const [signError, setSignError] = createSignal<string | null>(null);
+  const [checkingStatus, setCheckingStatus] = createSignal(step() === 'privacy');
+  const [agreementCheckResult, setAgreementCheckResult] = createSignal<AgreementCheckResult | null>(null);
+  const [networkErrorNoCache, setNetworkErrorNoCache] = createSignal(false);
   const [entryIndex, setEntryIndex] = createSignal(0);
   const [authMessage, setAuthMessage] = createSignal<string | null>(null);
   const [authBusy, setAuthBusy] = createSignal(false);
@@ -266,6 +279,82 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const [key, setKey] = createSignal('');
   let input: TextareaRenderable | undefined;
   let providerScroll: ScrollBoxRenderable | undefined;
+
+  // Async agreement status check — runs when entering privacy step
+  const checkAgreementStatus = async () => {
+    setCheckingStatus(true)
+    setNetworkErrorNoCache(false)
+    setSignError(null)
+
+    const session = await devecoAuth.getSession()
+    const accessToken = session?.accessToken || ''
+
+    if (!accessToken) {
+      // Not logged in → should not be here, go back to entry
+      setCheckingStatus(false)
+      setStep('entry')
+      return
+    }
+
+    const checkResult = await agreementService.checkAllAgreements(accessToken, kv)
+    setAgreementCheckResult(checkResult)
+
+    if (checkResult.overallStatus === AgreementStatus.COMPLIANT) {
+      // Agreements compliant → complete onboarding, enter conversation page
+      setCheckingStatus(false)
+      props.onComplete()
+      return
+    }
+
+    // NETWORK_ERROR (regardless of local cache) → show network error page
+    // User sees the error and can choose to cancel (exit) or retry
+    if (checkResult.overallStatus === AgreementStatus.NETWORK_ERROR) {
+      setNetworkErrorNoCache(true)
+      setCheckingStatus(false)
+      return
+    }
+
+    setCheckingStatus(false)
+  }
+
+  // Kick off agreement check on mount when initial step is privacy
+  onMount(() => {
+    if (step() === 'privacy') {
+      void checkAgreementStatus()
+    }
+  })
+
+  // Sign agreement via TMS API
+  const runSignAgreement = async () => {
+    setSignBusy(true)
+    setSignError(null)
+
+    const session = await devecoAuth.getSession()
+    const accessToken = session?.accessToken || ''
+
+    if (!accessToken) {
+      setSignError('Please login first')
+      setSignBusy(false)
+      return
+    }
+
+    const signResult = await agreementService.signAgreement(accessToken, false)
+
+    if (signResult.isUpload) {
+      // Update KV cache (failure only logs, doesn't block)
+      try {
+        kv.set(KV_DEVECO_CODE_PRIVACY_ACCEPTED, true)
+      } catch (err) {
+        console.error('Failed to update local KV cache after signing', err)
+      }
+      // Signing success → complete onboarding, enter conversation page
+      props.onComplete()
+      return
+    }
+
+    setSignError(signResult.error ?? 'Failed to sign agreement. Please try again.')
+    setSignBusy(false)
+  }
 
   const providerList = createMemo(() => {
     return [...sync.data.provider_next.all]
@@ -356,6 +445,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     try {
       const result = await devecoAuth.login();
       if (authAborted) {
+        // Escape handler already reset authBusy/step, nothing more to do
         return;
       }
       if (!result.success) {
@@ -364,7 +454,10 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
           setAuthBusy(false);
           return;
         }
+        // Login failed (e.g. network error, port conflict) → go back to entry so
+        // the user can see both Login and Exit options and retry cleanly
         setAuthMessage(result.error ?? 'Login failed');
+        setStep('entry');
         setAuthBusy(false);
         return;
       }
@@ -379,13 +472,16 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       await sdk.client.instance.dispose();
       await sync.bootstrap();
       setAuthBusy(false);
-      props.onComplete();
+      // Login success → jump to privacy step for agreement check
+      setStep('privacy');
+      void checkAgreementStatus();
     } catch (error) {
       if (authAborted) {
         return;
       }
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setAuthMessage(errorMessage);
+      setStep('entry');
       setAuthBusy(false);
     }
   };
@@ -474,6 +570,12 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
         void exit();
         return;
       }
+      // Space toggles checkbox
+      if (evt.name === 'space') {
+        evt.preventDefault();
+        setCheckboxChecked(!checkboxChecked());
+        return;
+      }
       if (evt.name === 'up') {
         evt.preventDefault();
         setPrivacyIndex(0);
@@ -486,17 +588,23 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       }
       if (evt.name === 'return') {
         evt.preventDefault();
+        if (signBusy() || checkingStatus()) {
+          return;
+        }
         if (privacyIndex() === 0) {
-          kv.set(KV_DEVECO_CODE_PRIVACY_ACCEPTED, true);
-          setStep('entry');
+          // Agree — requires checkbox checked
+          if (checkboxChecked()) {
+            void runSignAgreement();
+          }
         } else {
+          // Cancel
           void exit();
         }
       }
       return;
     }
 
-    if (st === 'entry') {
+if (st === 'entry') {
       if (evt.ctrl && evt.name === 'c') {
         evt.preventDefault();
         void exit();
@@ -504,25 +612,23 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       }
       if (evt.name === 'up') {
         evt.preventDefault();
-        setEntryIndex(0);
+        setEntryIndex(Math.max(0, entryIndex() - 1));
         return;
       }
       if (evt.name === 'down') {
         evt.preventDefault();
-        setEntryIndex(1);
+        setEntryIndex(Math.min(1, entryIndex() + 1));
         return;
       }
       if (evt.name === 'return') {
         evt.preventDefault();
-        const idx = entryIndex();
-        if (idx === 0) {
+        if (entryIndex() === 0) {
           setStep('auth');
           void runBrowserLogin();
-          return;
+        } else {
+          void exit();
         }
-        setProviderQuery('');
-        setProviderIndex(0);
-        setStep('providers');
+        return;
       }
       return;
     }
@@ -636,36 +742,84 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     <box flexDirection='column' gap={2} flexShrink={0} width='100%' alignItems='center' justifyContent='center'>
       <Show when={step() === 'privacy'}>
         <OnboardingContent>
-            <text fg={theme.text} selectable={false}>
-              Please read and agree to the privacy statement to start the HarmonyOS development journey.
-            </text>
-            <Link href={DEVECO_AI_PRIVACY_URL} fg={theme.primary} />
+            <Show when={checkingStatus()}>
+              <text fg={theme.textMuted} selectable={false}>
+                Checking agreement status...
+              </text>
+            </Show>
+            <Show when={!checkingStatus() && networkErrorNoCache()}>
+              <text fg={theme.error} selectable={false}>
+                Network error: Cannot reach agreement service.
+              </text>
+              <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false} marginTop={1}>
+                {selectionLead(privacyIndex() === 1)}
+                Cancel
+              </text>
+            </Show>
+            <Show when={!checkingStatus() && !networkErrorNoCache()}>
+              <text fg={theme.text} selectable={false}>
+                Please read and agree to the following agreements to start the HarmonyOS development journey.
+              </text>
+              <text fg={theme.textMuted} selectable={false} marginTop={1}>
+                User Agreement:
+              </text>
+              <Link href={agreementConfig().terms_url} fg={theme.primary}>DevEco Code AI User Agreement</Link>
+              <text fg={theme.textMuted} selectable={false} marginTop={1}>
+                Privacy Policy:
+              </text>
+              <Link href={agreementConfig().privacy_url} fg={theme.primary}>DevEco Code AI Privacy Policy</Link>
 
-            <text fg={privacyIndex() === 0 ? theme.success : theme.text} selectable={false} marginTop={1}>
-              {selectionLead(privacyIndex() === 0)}
-              1. I agree
-            </text>
-            <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false}>
-              {selectionLead(privacyIndex() === 1)}
-              2. No, exit
-            </text>
+              <text fg={theme.text} selectable={false} marginTop={1}>
+                {checkboxChecked() ? '☑' : '☐'} I have read and agree to the above agreements
+              </text>
+              <text fg={theme.textMuted} selectable={false}>
+                (Press Space to check)
+              </text>
+
+              <text fg={privacyIndex() === 0 && checkboxChecked() ? theme.success : theme.textMuted} selectable={false} marginTop={1}>
+                {selectionLead(privacyIndex() === 0)}
+                1. Agree {!checkboxChecked() ? '(check first)' : ''}
+              </text>
+              <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false}>
+                {selectionLead(privacyIndex() === 1)}
+                2. Cancel
+              </text>
+
+              <text fg={theme.textMuted} selectable={false} marginTop={1}>
+                Use Enter to Select, Space to Check
+              </text>
+
+              <Show when={signBusy()}>
+                <text fg={theme.textMuted} selectable={false}>
+                  Signing agreement...
+                </text>
+              </Show>
+              <Show when={signError() !== null}>
+                <text fg={theme.error} selectable={false}>
+                  {signError()}
+                </text>
+              </Show>
+            </Show>
         </OnboardingContent>
       </Show>
       <Show when={step() === 'entry'}>
         <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false} marginBottom={1}>
-              Get started
+              Welcome to DevEco Code
+            </text>
+            <text fg={theme.textMuted} selectable={false} marginBottom={1}>
+              Login with your Huawei account to continue.
             </text>
             <text fg={entryIndex() === 0 ? theme.success : theme.text} selectable={false}>
               {selectionLead(entryIndex() === 0)}
-              1. Login through a browser
+              Login through a browser
             </text>
             <text fg={entryIndex() === 1 ? theme.success : theme.text} selectable={false}>
               {selectionLead(entryIndex() === 1)}
-              2. Other providers
+              Exit
             </text>
             <text fg={theme.textMuted} selectable={false} marginTop={1}>
-              {LIST_HELP}
+              Use Enter to Select, Up/Down to navigate
             </text>
         </OnboardingContent>
       </Show>
