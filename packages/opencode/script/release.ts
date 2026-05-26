@@ -101,6 +101,17 @@ await Promise.all(tasks)
 await $`cd ./dist/${pkg.name} && bun pm pack && npm publish *.tgz --access public --tag ${Script.channel}`
 console.log(`  ✔ @deveco/deveco-code@${Script.version}`)
 
+// ─── Step 3: Sync npmmirror ──────────────────────────────────────────
+const moduleName = "@deveco/deveco-code"
+const hasCnpm = (await $`which cnpm`.nothrow()).exitCode === 0
+if (hasCnpm) {
+  console.log(`\n>>> Syncing npmmirror via cnpm ...`)
+  await $`cnpm sync ${moduleName}`
+} else {
+  console.log(`\ncnpm not found, opening browser to sync manually...`)
+  await $`open https://npmmirror.com/sync/${moduleName}`.nothrow()
+}
+
 console.log()
 console.log("=== Release complete ===")
 console.log(`  @deveco/deveco-code@${Script.version}`)
