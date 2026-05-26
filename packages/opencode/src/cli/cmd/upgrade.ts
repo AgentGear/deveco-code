@@ -1,5 +1,6 @@
 import type { Argv } from "yargs"
 import { UI } from "../ui"
+import { formatCliHelpBannerLogoBlock } from "./tui/component/banner-logo"
 import * as prompts from "@clack/prompts"
 import { Installation } from "../../installation"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
@@ -22,7 +23,8 @@ export const UpgradeCommand = {
   },
   handler: async (args: { target?: string; method?: string }) => {
     UI.empty()
-    UI.println(UI.logo("  "))
+    const cols = process.stderr.columns ?? process.stdout.columns
+    UI.println(formatCliHelpBannerLogoBlock(cols))
     UI.empty()
     prompts.intro("Upgrade")
     const detectedMethod = await Installation.method()
