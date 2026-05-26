@@ -72,6 +72,41 @@ it.instance("build agent has correct default properties", () =>
     expect(evalPerm(build, "bash")).toBe("allow")
     expect(evalPerm(build, "repo_clone")).toBe("deny")
     expect(evalPerm(build, "repo_overview")).toBe("deny")
+    expect(evalPerm(build, "verify_ui")).toBe("allow")
+    expect(evalPerm(build, "save_ui_screenshot")).toBe("allow")
+    expect(evalPerm(build, "get_ui_verification_log")).toBe("allow")
+  }),
+)
+
+it.instance("only build and spec-verify agents allow UI verification tools by default", () =>
+  Effect.gen(function* () {
+    const uiTools = ["verify_ui", "save_ui_screenshot", "get_ui_verification_log"] as const
+    const agents = yield* load((svc) =>
+      Effect.all([
+        svc.get("build"),
+        svc.get("spec-verify"),
+        svc.get("sdd"),
+        svc.get("plan"),
+        svc.get("general"),
+        svc.get("explore"),
+        svc.get("compaction"),
+        svc.get("title"),
+        svc.get("summary"),
+      ]),
+    )
+
+    const [build, specVerify, sdd, plan, general, explore, compaction, title, summary] = agents
+
+    for (const tool of uiTools) {
+      expect(evalPerm(build, tool)).toBe("allow")
+      expect(evalPerm(specVerify, tool)).toBe("allow")
+    }
+
+    for (const agent of [sdd, plan, general, explore, compaction, title, summary]) {
+      for (const tool of uiTools) {
+        expect(evalPerm(agent, tool)).toBe("deny")
+      }
+    }
   }),
 )
 

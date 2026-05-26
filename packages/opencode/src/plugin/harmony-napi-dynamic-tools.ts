@@ -330,11 +330,9 @@ function resolveWorktree(ctx: { sessionID?: string; directory?: string; worktree
   return process.cwd();
 }
 
-const gated = new Set(['verify_ui', 'save_ui_screenshot', 'get_ui_verification_log']);
 
 const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
-  const uiTest = process.env.ADDITIONAL_TOOL_GROUPS === 'ui_integration_test';
-  const listed = normalizeToolList(emulatorTools).filter((t) => uiTest || !gated.has(t.name));
+  const listed = normalizeToolList(emulatorTools);
   const tools = Object.fromEntries(
     listed.map(({ name, description, inputSchema }) => {
       const t = tool({
