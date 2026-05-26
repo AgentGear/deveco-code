@@ -118,13 +118,6 @@ Before implementing the feature:
 > Always re-read both files after editing to confirm they are consistent.
 
 - Do not finish by only creating a new named page/component unless the launch page routes to it.
-
-> **CRITICAL: Desktop app name — both `app_name` and `EntryAbility_label` must be updated.**
->
-> The desktop icon label is controlled by `EntryAbility_label`, not `app_name`:
-> - `AppScope/resources/base/element/string.json` → `app_name` — used as the **application-level** label (settings, etc.).
-> - `entry/src/main/resources/base/element/string.json` → `EntryAbility_label` — used as the **Ability-level** label (**this is what appears on the desktop icon**).
-
 - After changes, run `build_project`; if it succeeds, run `start_app`.
 
 ### Step 5: Report Back to the User
