@@ -35,8 +35,8 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
   - **Base path**: `.specs` (unless `SPECIFY_FEATURE_DIRECTORY` is explicitly provided).
   - **Format**: `.specs/<short-name>`
   - **Pre-Action Verification (Mandatory)**:
-    - **Before** creating any directories or writing files: **If `question` is NOT available, DO NOT ask the user for confirmation in any form. Proceed with the proposed path immediately without pausing.** If available, call the `question` tool to present the proposed path (e.g., `.specs/003-auth-logic`) to the user and obtain their explicit approval.
-  - **Action (Execute after user approval, or immediately if `question` is unavailable)**:
+    - **Before** creating any directories or writing files, you **must** call the `question` tool to present the proposed path (e.g., `.specs/003-auth-logic`) to the user and obtain their explicit approval. _(Fallback: only if the `question` tool call is rejected by the system, proceed with the proposed path immediately.)_
+  - **Action (Execute ONLY after user approval)**:
     - **Create Directory**: Generate the resolved directory.
     - **Define Path**: Set `SPEC_FILE` to `<resolved_path>/spec.md`.
     - **State Persistence**: Overwrite `.specs/feature.json` with:
