@@ -74,5 +74,3 @@ directories captured above]
 ## Data Model
 
 ## Contracts & Interfaces
-
-## Quickstart

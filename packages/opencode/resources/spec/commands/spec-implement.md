@@ -9,16 +9,15 @@ $ARGUMENTS
 ```
 
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
-1. **External Command Prohibition:** Upon completion of the entire `/spec-implement` workflow, refrain from auto-executing any follow-up slash commands or CLI scripts. Remain idle and await explicit user instruction.
-2. **Intra-Plan Autonomy:** Within the approved `tasks.md` scope, you MUST proceed autonomously through sequential phases and tasks without intermediate user prompts, unless a failure, conflict, or explicit checkpoint is triggered.
-3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
-4. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
+1. **Intra-Plan Autonomy:** Within the approved `tasks.md` scope, you MUST proceed autonomously through sequential phases and tasks without intermediate user prompts, unless a failure, conflict, or explicit checkpoint is triggered.
+2. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+3. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
-5. **Implement Phase Tool Restriction**: The `verify_ui` and `build_project` tools should not be used in the `spec-implement` phase. Build verification and UI validation are handled in the next phase via subagent `spec-verify`.
-6. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
-7. **Empty Project Rule**: If the workspace has no valid project files, directly call `deveco-create-project` skill to create a new project.
+4. **Implement Phase Tool Restriction**: The `verify_ui` and `build_project` tools should not be used in the `spec-implement` phase. Build verification and UI validation are handled in the next phase via subagent `spec-verify`.
+5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
+6. **Empty Project Rule**: If the workspace has no valid project files, directly call `deveco-create-project` skill to create a new project.
 
 ## Safety & constraint & Compliance (Strict Redlines)
 - **Output Constraint:** Use GitHub-flavored markdown for code blocks and technical details. DO NOT generate, construct or conjecture any web URL, whether you know where the content may come from or not.
@@ -61,12 +60,10 @@ $ARGUMENTS
    - **Tests First:** Draft contracts, unit tests, and integration scenarios.
    - **Core Development:** Implement models, services, components, or endpoints as planned.
    - **Integration:** Wire up databases, middleware, logging, and external services.
-   - **Polish & Validation:** Run full test suites, optimize performance, and update documentation.
+   - **Polish & Validation:** update documentation.
 
 5. **Progress Tracking & Error Handling:**
    - Report concise progress after each completed task.
-   - **ArkTS Compilation Errors:** Immediately invoke `arkts-error-fixes` skill for automated repair.
-   - **ArkTS Runtime Crashes:** Immediately invoke `arkts-runtime-fix` skill for crash recovery and diagnostics.
    - **Failure Protocol:** Halt execution immediately if any critical sequential task fails. For `[P]` tasks, continue with successful ones, log failures explicitly, and adjust downstream dependencies if necessary.
    - Provide actionable debugging context and next steps when blocked.
    - **Task Marking:** Upon successful completion of any task, mark its corresponding item as `[X]` in `tasks.md`.

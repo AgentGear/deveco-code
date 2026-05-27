@@ -14,6 +14,8 @@ agent: sdd
 6. **Post-verify**: Immediately halt after `verify_ui`. No auto-execution of downstream commands. Await explicit user instruction.
 7. **Dual Confirmation**: **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Proceed with the generated test plan immediately without pausing.** If available, Test Plan (Phase 2) requires explicit `question` tool approval. Default approval is forbidden when `question` is available.
 8. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
+9. **ArkTS Compilation Errors**: Immediately invoke `arkts-error-fixes` skill for automated repair.
+10. **ArkTS Runtime Crashes**: Immediately invoke `arkts-runtime-fix` skill for crash recovery and diagnostics.
 
 ## Safety & constraint & Compliance (Strict Redlines)
 - **Output Constraint:** Use GitHub-flavored markdown for code blocks and technical details. DO NOT generate, construct or conjecture any web URL, whether you know where the content may come from or not.
