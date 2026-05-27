@@ -70,59 +70,99 @@ function isLightRgb(r: number, g: number, b: number): boolean {
 }
 
 function queryOsc11IsLight(): boolean | undefined {
-  if (!process.stdin.isTTY) return undefined
+  const tty = openControllingTty()
+  if (tty === undefined) return undefined
 
-  const out = process.stdout.isTTY ? process.stdout : process.stderr.isTTY ? process.stderr : undefined
-  if (!out) return undefined
-
-  out.write("\x1b]11;?\x07")
-
-  const deadline = Date.now() + 150
-  let data = ""
-  const buf = Buffer.alloc(128)
-
-  while (Date.now() < deadline) {
-    if (!stdinHasBytes()) {
-      Bun.sleepSync(5)
-      continue
-    }
-
-    try {
-      const n = fs.readSync(process.stdin.fd, buf, 0, buf.length, null)
-      if (n <= 0) break
-      data += buf.toString("utf8", 0, n)
-      if (/\x07|\x1b\\/.test(data) && /rgb:|#/.test(data)) break
-    } catch {
-      break
-    }
+  const restore = setFdNonblock(tty.fd)
+  if (!restore) {
+    tty.close()
+    return undefined
   }
 
-  drainStdin(50)
+  try {
+    fs.writeSync(tty.fd, "\x1b]11;?\x07")
 
-  const rgb = parseOsc11(data)
-  if (!rgb) return undefined
-  return isLightRgb(rgb.r, rgb.g, rgb.b)
+    const deadline = Date.now() + 200
+    let data = ""
+    const buf = Buffer.alloc(128)
+
+    while (Date.now() < deadline) {
+      try {
+        const n = fs.readSync(tty.fd, buf, 0, buf.length, null)
+        if (n <= 0) {
+          Bun.sleepSync(5)
+          continue
+        }
+        data += buf.toString("utf8", 0, n)
+        if (/\x07|\x1b\\/.test(data) && /rgb:|#/.test(data)) break
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === "EAGAIN") {
+          Bun.sleepSync(5)
+          continue
+        }
+        break
+      }
+    }
+
+    drainFdNonblock(tty.fd, 100)
+
+    const rgb = parseOsc11(data)
+    if (!rgb) return undefined
+    return isLightRgb(rgb.r, rgb.g, rgb.b)
+  } finally {
+    restore()
+    tty.close()
+  }
 }
 
-function drainStdin(timeoutMs: number) {
+function openControllingTty(): { fd: number; close: () => void } | undefined {
+  if (process.platform === "win32") return undefined
+
+  try {
+    const fd = fs.openSync("/dev/tty", fs.constants.O_RDWR)
+    return { fd, close: () => fs.closeSync(fd) }
+  } catch {
+    if (!process.stdin.isTTY) return undefined
+    return { fd: process.stdin.fd, close: () => {} }
+  }
+}
+
+function setFdNonblock(fd: number): (() => void) | undefined {
+  try {
+    const { fcntlSync, constants } = fs
+    if (!constants?.O_NONBLOCK) return undefined
+    const flags = fcntlSync(fd, constants.F_GETFL)
+    fcntlSync(fd, constants.F_SETFL, flags | constants.O_NONBLOCK)
+    return () => {
+      fcntlSync(fd, constants.F_SETFL, flags)
+    }
+  } catch {
+    return undefined
+  }
+}
+
+function drainFdNonblock(fd: number, timeoutMs: number) {
   const deadline = Date.now() + timeoutMs
   const buf = Buffer.alloc(256)
 
   while (Date.now() < deadline) {
-    if (!stdinHasBytes()) {
-      Bun.sleepSync(5)
-      continue
-    }
-
     try {
-      fs.readSync(process.stdin.fd, buf, 0, buf.length, null)
-    } catch {
+      const n = fs.readSync(fd, buf, 0, buf.length, null)
+      if (n <= 0) {
+        Bun.sleepSync(5)
+        continue
+      }
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "EAGAIN") {
+        Bun.sleepSync(5)
+        continue
+      }
       break
     }
   }
 }
 
-function parseOsc11(data: string): { r: number; g: number; b: number } | undefined {
+export function parseOsc11(data: string): { r: number; g: number; b: number } | undefined {
   const rgb = data.match(/11;rgb:([0-9a-f]{1,4})\/([0-9a-f]{1,4})\/([0-9a-f]{1,4})/i)
   if (rgb) {
     return { r: channel(rgb[1]!), g: channel(rgb[2]!), b: channel(rgb[3]!) }
@@ -139,26 +179,6 @@ function parseOsc11(data: string): { r: number; g: number; b: number } | undefin
   }
 
   return undefined
-}
-
-function stdinHasBytes(): boolean {
-  try {
-    const { fcntlSync, constants } = fs
-    if (!constants?.O_NONBLOCK) return false
-    const fd = process.stdin.fd
-    const flags = fcntlSync(fd, constants.F_GETFL)
-    fcntlSync(fd, constants.F_SETFL, flags | constants.O_NONBLOCK)
-    const buf = Buffer.alloc(1)
-    try {
-      return fs.readSync(fd, buf, 0, 1, null) > 0
-    } catch (e) {
-      return (e as NodeJS.ErrnoException).code === "EAGAIN"
-    } finally {
-      fcntlSync(fd, constants.F_SETFL, flags)
-    }
-  } catch {
-    return false
-  }
 }
 
 export function warpThemeNameIsLight(name: string): boolean | undefined {

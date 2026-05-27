@@ -125,7 +125,7 @@ export function Home() {
 
   return (
     <>
-      <box flexGrow={1} paddingLeft={2} paddingRight={2} flexDirection="column" minHeight={0}>
+      <box flexGrow={1} flexDirection="column" minHeight={0}>
         <Show when={devecoReady() !== null}>
           <box
             flexGrow={1}

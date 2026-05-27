@@ -1,9 +1,18 @@
 import { describe, expect, test } from "bun:test"
 import {
   parseColorFgbg,
+  parseOsc11,
   warpThemeNameIsLight,
   windowsTerminalSchemeIsLight,
 } from "../../src/cli/cmd/tui/util/cli-terminal-light"
+
+describe("parseOsc11", () => {
+  test("parses rgb and hex background responses", () => {
+    expect(parseOsc11("\x1b]11;rgb:ffff/ffff/ffff\x07")).toEqual({ r: 1, g: 1, b: 1 })
+    expect(parseOsc11("\x1b]11;#ffffff\x1b\\")).toEqual({ r: 1, g: 1, b: 1 })
+    expect(parseOsc11("no response")).toBe(undefined)
+  })
+})
 
 describe("parseColorFgbg", () => {
   test("detects light 16-color background", () => {
