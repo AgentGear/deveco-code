@@ -1,10 +1,13 @@
 import { RGBA } from "@opentui/core"
+import { resolveTheme, tint, type ThemeJson } from "@tui/context/theme"
+import { detectCliTerminalLight } from "../util/cli-terminal-light"
+import opencode from "../context/theme/opencode.json" with { type: "json" }
 import { EOL } from "os"
 
 /** 8x11 rows from Downloads/test_ansi/8x11; parsed as SGR spans in the TUI. */
 const ansiC = [
-  `  \u2582\u2582\u2582\u2582\u2582  `,
-  `\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582`,
+  `  \u2583\u2583\u2583\u2583\u2583  `,
+  `\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583`,
   `\u2583\u2583\u2583   \u2583\u2583\u2583`,
   `\u2584\u2584\u2584      `,
   `\u2584\u2584\u2584      `,
@@ -14,8 +17,8 @@ const ansiC = [
 ]
 
 const ansiO = [
-  ` \u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582 `,
-  `\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582`,
+  ` \u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583 `,
+  `\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583`,
   `\u2583\u2583\u2583    \u2583\u2583\u2583`,
   `\u2584\u2584\u2584    \u2584\u2584\u2584`,
   `\u2584\u2584\u2584    \u2584\u2584\u2584`,
@@ -25,8 +28,8 @@ const ansiO = [
 ]
 
 const ansiD = [
-  `\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582  `,
-  `\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582 `,
+  `\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583  `,
+  `\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583 `,
   `\u2583\u2583\u2583    \u2583\u2583\u2583`,
   `\u2584\u2584\u2584    \u2584\u2584\u2584`,
   `\u2584\u2584\u2584    \u2584\u2584\u2584`,
@@ -36,8 +39,8 @@ const ansiD = [
 ]
 
 const ansiE = [
-  `\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582`,
-  `\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582\u2582`,
+  `\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583`,
+  `\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583\u2583`,
   `\u2583\u2583\u2583      `,
   `\u2584\u2584\u2584\u2584\u2584\u2584\u2584  `,
   `\u2584\u2584\u2584\u2584\u2584\u2584\u2584  `,
@@ -48,8 +51,8 @@ const ansiE = [
 
 /** Same 8x11 block style as other lettermarks (▂▃▄▅▆). */
 const ansiV = [
-  `\u2582\u2582\u2582    \u2582\u2582\u2582`,
-  `\u2582\u2582\u2582    \u2582\u2582\u2582`,
+  `\u2583\u2583\u2583    \u2583\u2583\u2583`,
+  `\u2583\u2583\u2583    \u2583\u2583\u2583`,
   `\u2583\u2583\u2583    \u2583\u2583\u2583`,
   `\u2584\u2584\u2584    \u2584\u2584\u2584`,
   `\u2584\u2584\u2584    \u2584\u2584\u2584`,
@@ -60,39 +63,39 @@ const ansiV = [
 
 /** 5 rows × 4 columns per letter (▂▃▄▅▆ block heights). */
 const ansiSmallC = [
-  ` \u2582\u2582\u2582 `,
-  `\u2582   \u2582`,
+  ` \u2583\u2583\u2583 `,
+  `\u2583   \u2583`,
   `\u2584    `,
   `\u2585   \u2585`,
   ` \u2586\u2586\u2586 `,
 ];
 
 const ansiSmallO = [
-  ` \u2582\u2582\u2582 `,
-  `\u2582   \u2582`,
+  ` \u2583\u2583\u2583 `,
+  `\u2583   \u2583`,
   `\u2584   \u2584`,
   `\u2585   \u2585`,
   ` \u2586\u2586\u2586 `,
 ];
 
 const ansiSmallD = [
-  `\u2582\u2582\u2582\u2582 `,
-  `\u2582   \u2582`,
+  `\u2583\u2583\u2583\u2583 `,
+  `\u2583   \u2583`,
   `\u2584   \u2584`,
   `\u2585   \u2585`,
   `\u2586\u2586\u2586\u2586 `,
 ];
 
 const ansiSmallE = [
-  `\u2582\u2582\u2582\u2582`,
-  `\u2582   `,
+  `\u2583\u2583\u2583\u2583`,
+  `\u2583   `,
   `\u2584\u2584\u2584\u2584`,
   `\u2585   `,
   `\u2586\u2586\u2586\u2586`,
 ];
 
 const ansiSmallV = [
-  `\u2582   \u2582`,
+  `\u2583   \u2583`,
   `\u2583   \u2583`,
   `\u2584   \u2584`,
   `\u2585   \u2585`,
@@ -158,11 +161,9 @@ export function clipLogoRawLine(raw: string, viewportWidth: number, scrollOffset
   return raw.slice(off, off + vw)
 }
 
-/** Light banner: if theme border is too close to white, use a fixed mid-gray for scanlines/rules. */
-export function stripeLineForLight(border: RGBA): RGBA {
-  const lum = (0.299 * border.r + 0.587 * border.g + 0.114 * border.b) / 255
-  if (lum > 0.72) return RGBA.fromInts(120, 120, 120)
-  return border
+/** Light banner scanline: #000000 at 10% opacity over the panel background. */
+export function stripeLineForLight(background: RGBA): RGBA {
+  return tint(background, RGBA.fromInts(0, 0, 0), 0.1)
 }
 
 export function padTones(parts: Tone[], w: number, base: RGBA): Tone[] {
@@ -232,7 +233,7 @@ export function bannerLogoScannedLineTones(
 
 export function bannerLogoPalette(
   isLight: boolean,
-  theme: { text: RGBA; textMuted: RGBA; border: RGBA },
+  theme: { text: RGBA; textMuted: RGBA; border: RGBA; background: RGBA },
 ): BannerLogoPalette {
   if (!isLight) {
     return {
@@ -244,7 +245,7 @@ export function bannerLogoPalette(
 
   return {
     logoFg: theme.text,
-    stripeLine: stripeLineForLight(theme.border),
+    stripeLine: stripeLineForLight(theme.background),
     base: theme.textMuted,
   }
 }
@@ -313,16 +314,14 @@ export function formatBannerLogoAnsiLines(
   return lines;
 }
 
-/** Dark-style palette when no TUI theme is available (e.g. `deveco -h` on stderr). */
+/** CLI banner palette: dark terminal → white logo; light terminal → opencode theme.text. */
 export function cliHelpBannerLogoPalette(): BannerLogoPalette {
-  return {
-    logoFg: RGBA.fromInts(255, 255, 255),
-    stripeLine: RGBA.fromInts(58, 58, 58),
-    base: RGBA.fromInts(158, 158, 158),
-  }
+  const isLight = detectCliTerminalLight()
+  const theme = resolveTheme(opencode as ThemeJson, isLight ? "light" : "dark")
+  return bannerLogoPalette(isLight, theme)
 }
 
-/** Banner lettermark for CLI help output (left-aligned). Uses terminal width or 80 columns. */
+/** Banner lettermark for CLI output (help, uninstall, upgrade). Adapts to terminal light/dark. */
 export function formatCliHelpBannerLogoBlock(columns: number | undefined): string {
   const w = typeof columns === 'number' && columns > 0 ? columns : 80;
   return formatBannerLogoAnsiLines(w, cliHelpBannerLogoPalette(), {
