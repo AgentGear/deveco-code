@@ -140,6 +140,9 @@ function updateApiLevel(targetRoot, apiLevel) {
   replaceInFile(path.join(targetRoot, 'hvigor/hvigor-config.json5'), [
     ['6.0.2', config.modelVersion],
   ]);
+  replaceInFile(path.join(targetRoot, 'oh-package.json5'), [
+    ['6.0.2', config.modelVersion],
+  ]);
 }
 
 function verifyFiles(targetRoot) {
