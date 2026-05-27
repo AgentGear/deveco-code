@@ -214,7 +214,7 @@ export function Home() {
                 height={bodySlotHeight()}
                 maxHeight={HOME_BODY_MAX_ROWS}
                 flexDirection="column"
-                justifyContent="center"
+                justifyContent="flex-start"
                 alignItems="center"
                 paddingTop={HOME_BODY_GAP_ROWS}
                 flexShrink={0}

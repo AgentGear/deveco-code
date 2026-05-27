@@ -769,11 +769,13 @@ if (st === 'entry') {
               </text>
               <Link href={agreementConfig().privacy_url} fg={theme.primary}>DevEco Code AI Privacy Policy</Link>
 
-              <text fg={theme.text} selectable={false} marginTop={1}>
-                {checkboxChecked() ? '☑' : '☐'} I have read and agree to the above agreements
-              </text>
+              <box onMouseUp={() => setCheckboxChecked(!checkboxChecked())}>
+                <text fg={theme.text} selectable={false} marginTop={1}>
+                  {checkboxChecked() ? '☑' : '☐'} I have read and agree to the above agreements
+                </text>
+              </box>
               <text fg={theme.textMuted} selectable={false}>
-                (Press Space to check)
+                (Press Space or click to check)
               </text>
 
               <text fg={privacyIndex() === 0 && checkboxChecked() ? theme.success : theme.textMuted} selectable={false} marginTop={1}>
@@ -786,7 +788,7 @@ if (st === 'entry') {
               </text>
 
               <text fg={theme.textMuted} selectable={false} marginTop={1}>
-                Use Enter to Select, Space to Check
+                Use Enter to Select, Space or Click to Check
               </text>
 
               <Show when={signBusy()}>
@@ -805,14 +807,11 @@ if (st === 'entry') {
       <Show when={step() === 'entry'}>
         <OnboardingContent>
             <text fg={theme.text} attributes={1} selectable={false} marginBottom={1}>
-              Welcome to DevEco Code
-            </text>
-            <text fg={theme.textMuted} selectable={false} marginBottom={1}>
-              Login with your Huawei account to continue.
+              Get started with DevEco Code
             </text>
             <text fg={entryIndex() === 0 ? theme.success : theme.text} selectable={false}>
               {selectionLead(entryIndex() === 0)}
-              Login through a browser
+              Sign in with HUAWEI account
             </text>
             <text fg={entryIndex() === 1 ? theme.success : theme.text} selectable={false}>
               {selectionLead(entryIndex() === 1)}
@@ -826,7 +825,7 @@ if (st === 'entry') {
       <Show when={step() === 'auth'}>
         <OnboardingContent>
             <text fg={theme.text} selectable={false}>
-              Login through a browser
+              Sign in with HUAWEI account
             </text>
             <text fg={theme.textMuted} selectable={false}>
               {authBusy() ? 'Waiting for browser…' : 'Press Enter to open the login page'}

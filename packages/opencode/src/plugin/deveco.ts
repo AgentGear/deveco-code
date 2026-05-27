@@ -861,7 +861,7 @@ export { ACCESS_TOKEN_EXPIRES_MS }
 export async function requireLogin(): Promise<boolean> {
   if (await devecoAuth.isLoggedIn()) return true
 
-  prompts.intro("Welcome to DevEco Code")
+  prompts.intro("Get started with DevEco Code")
 
   const choice = await prompts.select({
     message: "How would you like to continue?",

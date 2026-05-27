@@ -36,7 +36,7 @@ export const HOME_BODY_MIN_ROWS = HOME_BODY_MAX_ROWS;
 export const HOME_BODY_SLOT_FLOOR_ROWS = 8;
 
 /** Gap between banner and body slot (terminal rows). */
-export const HOME_BODY_GAP_ROWS = 2;
+export const HOME_BODY_GAP_ROWS = 1;
 
 /** Logo block + taglines + padding (see `Banner` layout). */
 export const HOME_BANNER_ESTIMATE_ROWS = 1 + LOGO_ROW_CAP + 2 + 2;
@@ -127,7 +127,7 @@ export function Banner(props?: { contentInset?: number }) {
 
   // Tagline (layout): center by left-padding based on visible character length (reliable in TUI).
   const taglineA = "Collaborate with ";
-  const taglineB = "DevEco Code";
+  const taglineB = "DevEco Code.";
   const taglineC = " An open-source AI agent for HarmonyOS application development";
   const taglineLen = taglineA.length + taglineB.length + taglineC.length;
   const taglinePadLeft = createMemo(() => Math.max(0, Math.floor((width() - taglineLen) / 2)));
@@ -149,7 +149,7 @@ export function Banner(props?: { contentInset?: number }) {
           )}
         </For>
       </box>
-      <box width={width()} paddingTop={2}>
+      <box width={width()} paddingTop={1}>
         <text bg={stripeTransparent} selectable={false} wrapMode="none">
           <span style={{ fg: theme.textMuted }}>{`${" ".repeat(taglinePadLeft())}${taglineA}`}</span>
           <For each={[...taglineB]}>
