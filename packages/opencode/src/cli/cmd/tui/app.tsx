@@ -4,6 +4,7 @@ import * as Clipboard from "@tui/util/clipboard"
 import * as Selection from "@tui/util/selection"
 import * as TuiAudio from "@tui/util/audio"
 import { createCliRenderer, MouseButton, type CliRendererConfig } from "@opentui/core"
+import { CLEAR_TERMINAL_VIEW } from "./terminal-screen"
 import { RouteProvider, useRoute } from "@tui/context/route"
 import {
   Switch,
@@ -185,6 +186,8 @@ export function tui(input: {
     }
 
     const renderer = await createCliRenderer(rendererConfig(input.config))
+    // Alternate-screen buffers are often reused without clearing; wipe stale logo frames from a prior TUI.
+    process.stdout.write(CLEAR_TERMINAL_VIEW)
     // Prewarm palette before ThemeProvider mounts so `system` theme avoids a first-paint fallback flash.
     void renderer.getPalette({ size: 16 }).catch(() => undefined)
     const mode = (await renderer.waitForThemeMode(1000)) ?? "dark"
