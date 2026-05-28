@@ -1,6 +1,6 @@
 ---
 name: arkts-error-fixes
-description: Solutions for ArkTS compilation errors and type mismatches. MUST load this skill immediately when compilation fails or when fixing ArkTS type errors.
+description: Solutions for ArkTS compilation errors and type mismatches. Load this skill when compilation fails or when fixing ArkTS type errors.
 ---
 
 # Harmony Error Fixes
