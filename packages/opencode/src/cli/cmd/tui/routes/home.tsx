@@ -24,6 +24,8 @@ import { agreementService } from "@/cli/deveco-agreement"
 import { devecoAuth, hasDevecoOAuthEntry } from "@/plugin/deveco"
 import type { AgreementConfig } from "@/cli/deveco-legal"
 
+declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
+
 // TODO: what is the best way to do this?
 let once = false
 
@@ -56,6 +58,10 @@ export function Home() {
   // set devecoReady=false right away so the user sees the login/agreement page
   // without waiting.  For canEnter=true, defer devecoReady=true until sync
   // completes because the Prompt component requires sync data.
+  //
+  // When built with --skip-agreement, the agreement check is skipped;
+  // login is still required, but after login the user enters the
+  // conversation page directly without the privacy/agreement step.
   const runDevecoCheck = async () => {
     if (devecoChecked) return
     devecoChecked = true
@@ -93,6 +99,15 @@ export function Home() {
         setDevecoReady(false)
         return
       }
+    }
+
+    // Build-time flag or runtime env: skip agreement query and sign check, enter conversation directly
+    if ((typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) || process.env.DEVECO_SKIP_AGREEMENT === "1") {
+      setAuthCanEnter(true)
+      if (sync.status === "complete") {
+        setDevecoReady(true)
+      }
+      return
     }
 
     // Remote query agreement signing status
