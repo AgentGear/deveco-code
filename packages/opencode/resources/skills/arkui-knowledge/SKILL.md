@@ -1,6 +1,6 @@
 ---
 name: arkui-knowledge
-description: MUST load this skill when answering ArkUI UI questions or before writing/modifying ArkUI components, layouts, state-driven UI, rendering control, navigation, dialogs, interactions, component APIs, or ArkUI declarative UI in .ets files. Do not load it only for plain ArkTS syntax, build failures, runtime crashes, or project creation.
+description: Load this skill when answering ArkUI UI questions or when writing/modifying ArkUI components, layouts, state-driven UI, rendering control, navigation, dialogs, interactions, component APIs, or ArkUI declarative UI in .ets files.
 ---
 
 # ArkUI Knowledge

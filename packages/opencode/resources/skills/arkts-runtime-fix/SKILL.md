@@ -1,6 +1,6 @@
 ---
 name: arkts-runtime-fix
-description: Triage and fix ArkTS or JavaScript runtime crashes. MUST load this skill immediately when the user provides jscrash logs, uncaught exceptions, or runtime stack traces.
+description: Load for ArkTS/JavaScript jscrash, runtime crash, uncaught exception, stack trace, faultlog, or hilog diagnosis. Also load when the app 闪退/崩溃/白屏, exits after 点击/启动/launch, or build succeeds but runtime fails (no compile error). Use before broad Read/Glob on crash-only tasks.
 ---
 
 # Harmony JSCrash Fixes

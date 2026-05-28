@@ -1,6 +1,6 @@
 ---
 name: arkts-grammar-standards
-description: MUST load this skill BEFORE writing or modifying .ets files. Use it for ArkTS syntax rules, ArkTS-specific restrictions, TypeScript-to-ArkTS syntax differences, syntax compliance review, and ArkTS syntax questions.
+description: Load this skill when writing or modifying .ets files. Use it for ArkTS syntax rules, ArkTS-specific restrictions, TypeScript-to-ArkTS syntax differences, syntax compliance review, and ArkTS syntax questions.
 ---
 
 # arkts-grammar-standards
