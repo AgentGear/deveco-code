@@ -1487,18 +1487,21 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
               return (
                 <box
                   border={["left"]}
-                  paddingTop={1}
-                  paddingBottom={1}
-                  paddingLeft={2}
                   marginTop={1}
-                  backgroundColor="#3d3500"
                   customBorderChars={SplitBorder.customBorderChars}
                   borderColor="#e0a800"
                 >
-                  <text fg="#e0a800">
-                    <span style={{ bold: true }}> QUEUED </span>
-                    {position ? `You are #${position} in queue. Please wait...` : msg()}
-                  </text>
+                  <box
+                    paddingTop={1}
+                    paddingBottom={1}
+                    paddingLeft={2}
+                    backgroundColor="#3d3500"
+                  >
+                    <text fg="#e0a800">
+                      <span style={{ bold: true }}>QUEUED </span>
+                      {position ? `You are #${position} in queue. Please wait...` : msg()}
+                    </text>
+                  </box>
                 </box>
               )
             }}
