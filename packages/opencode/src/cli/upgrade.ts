@@ -25,9 +25,7 @@ export async function upgrade() {
 
   if (InstallationVersion === latest) return
 
-  const kind = Installation.getReleaseType(InstallationVersion, latest)
-
-  if (config.autoupdate === "notify" || kind !== "patch") {
+  if (config.autoupdate !== true) {
     GlobalBus.emit("event", {
       directory: "global",
       payload: {
