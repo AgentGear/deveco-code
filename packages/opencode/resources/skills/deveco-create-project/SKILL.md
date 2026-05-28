@@ -126,7 +126,6 @@ Before implementing the feature:
 > - `entry/src/main/resources/base/element/string.json` → `EntryAbility_label` — used as the **Ability-level** label (**this is what appears on the desktop icon**).
 
 - After changes, run `build_project`; if it succeeds, run `start_app`.
-- If a device is available and visual behavior matters, use `verify_ui` or screenshots to check that the app no longer shows the untouched template `Hello World` screen.
 
 ### Step 5: Report Back to the User
 
