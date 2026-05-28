@@ -1471,6 +1471,40 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
           <text fg={theme.textMuted}>{props.message.error?.data.message}</text>
         </box>
       </Show>
+      {(() => {
+        const queueMsg = createMemo(() => {
+          if (!props.last) return undefined
+          const s = sync.data.session_status?.[props.message.sessionID]
+          if (s?.type !== "retry" || !s.message) return undefined
+          if (!/position\s+\d+.*queue|high demand.*queue/i.test(s.message)) return undefined
+          return s.message
+        })
+        return (
+          <Show when={queueMsg()}>
+            {(msg) => {
+              const match = msg().match(/position\s+(\d+)/i)
+              const position = match ? match[1] : undefined
+              return (
+                <box
+                  border={["left"]}
+                  paddingTop={1}
+                  paddingBottom={1}
+                  paddingLeft={2}
+                  marginTop={1}
+                  backgroundColor="#3d3500"
+                  customBorderChars={SplitBorder.customBorderChars}
+                  borderColor="#e0a800"
+                >
+                  <text fg="#e0a800">
+                    <span style={{ bold: true }}> QUEUED </span>
+                    {position ? `You are #${position} in queue. Please wait...` : msg()}
+                  </text>
+                </box>
+              )
+            }}
+          </Show>
+        )
+      })()}
       <Switch>
         <Match when={props.last || final() || props.message.error?.name === "MessageAbortedError"}>
           <box paddingLeft={3}>

@@ -72,7 +72,7 @@ export function retryable(error: Err, provider: string) {
   if (MessageV2.ContextOverflowError.isInstance(error)) return undefined
   if (MessageV2.QueueError.isInstance(error)) {
     log.error("queue error matched", {position: error.data.position, message: error.data.message})
-    return { message: `High traffic, you are #${error.data.position} in queue. Please wait.`}
+    return { message: error.data.message }
   }
   if (MessageV2.APIError.isInstance(error)) {
     const status = error.data.statusCode

@@ -1734,29 +1734,7 @@ export function Prompt(props: PromptProps) {
                       const isQueue = createMemo(() => {
                         const s = status()
                         if (s.type !== "retry") return false
-                        return s.message.includes("in queue")
-                      })
-                      // Snail animation for queue
-                      // macOS 🐌 faces right, Windows 🐌 faces left — put flag where snail crawls toward
-                      const snailToRight = process.platform !== "win32"
-                      const SNAIL_TRACK_WIDTH = 20
-                      const [snailPos, setSnailPos] = createSignal(0)
-                      onMount(() => {
-                        if (!kv.get("animations_enabled", true)) return
-                        const timer = setInterval(() => {
-                          setSnailPos((p) => (p + 1) % SNAIL_TRACK_WIDTH)
-                        }, 400)
-                        onCleanup(() => clearInterval(timer))
-                      })
-                      const snailFrame = createMemo(() => {
-                        const raw = snailPos()
-                        // Windows snail faces left: reverse position so it moves left toward flag
-                        const p = snailToRight ? raw : SNAIL_TRACK_WIDTH - 1 - raw
-                        const before = ".".repeat(p)
-                        const after = ".".repeat(SNAIL_TRACK_WIDTH - p - 1)
-                        return snailToRight
-                          ? `${before}🐌${after}🏁`
-                          : `🏁${before}🐌${after}`
+                        return /position\s+\d+.*queue|high demand.*queue/i.test(s.message)
                       })
 
                       const retry = createMemo(() => {
@@ -1808,22 +1786,14 @@ export function Prompt(props: PromptProps) {
 
                       return (
                         <Show when={retry()}>
-                          <Switch>
-                            <Match when={isQueue()}>
-                              <box flexDirection="row" gap={1}>
-                                <text fg={theme.info}>{message() ?? ""}</text>
-                                <text fg={theme.textMuted}>[retrying {(() => { const d = formatDuration(seconds()); return d ? `in ${d} ` : "" })()}attempt #{retry()!.attempt}]</text>
-                                <Show when={kv.get("animations_enabled", true)}>
-                                  <text fg={theme.textMuted}>{snailFrame()}</text>
-                                </Show>
-                              </box>
-                            </Match>
-                            <Match when={true}>
-                              <box onMouseUp={handleMessageClick}>
-                                <text fg={theme.error}>{retryText()}</text>
-                              </box>
-                            </Match>
-                          </Switch>
+                          <Show when={!isQueue()}>
+                            <box onMouseUp={handleMessageClick}>
+                              <text fg={theme.error}>{retryText()}</text>
+                            </box>
+                          </Show>
+                          <Show when={isQueue()}>
+                            <text fg="#e0a800">[retrying {(() => { const d = formatDuration(seconds()); return d ? `in ${d} ` : "" })()}attempt #{retry()!.attempt}]</text>
+                          </Show>
                         </Show>
                       )
                     })()}
