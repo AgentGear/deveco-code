@@ -15,6 +15,8 @@ import { resolveAgreementConfig, KV_DEVECO_CODE_PRIVACY_ACCEPTED, type Agreement
 import { agreementService, AgreementStatus } from '@/cli/deveco-agreement';
 import type { AgreementCheckResult } from '@/cli/deveco-agreement';
 import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH } from './banner';
+
+declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';
 
 type OnboardingStep = 'privacy' | 'entry' | 'auth' | 'providers' | 'key';
@@ -472,7 +474,12 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       await sdk.client.instance.dispose();
       await sync.bootstrap();
       setAuthBusy(false);
-      // Login success → jump to privacy step for agreement check
+      // Login success → skip agreement check if built with --skip-agreement or runtime env var
+      if ((typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) || process.env.DEVECO_SKIP_AGREEMENT === "1") {
+        props.onComplete();
+        return;
+      }
+      // Otherwise → jump to privacy step for agreement check
       setStep('privacy');
       void checkAgreementStatus();
     } catch (error) {

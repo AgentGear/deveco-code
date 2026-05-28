@@ -89,9 +89,16 @@ const cli = yargs(args)
     describe: "run without external plugins",
     type: "boolean",
   })
+  .option("skip-agreement", {
+    describe: "skip agreement check (login is still required)",
+    type: "boolean",
+  })
   .middleware(async (opts) => {
     if (opts.pure) {
       process.env.DEVECO_PURE = "1"
+    }
+    if (opts.skipAgreement) {
+      process.env.DEVECO_SKIP_AGREEMENT = "1"
     }
 
     await Log.init({
