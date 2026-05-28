@@ -32,7 +32,7 @@ type ApiConfig = {
   modelVersion: string;
 };
 
-type Source = 'user_input' | 'sdk_pkg' | 'oh_uni_package' | 'fallback';
+type Source = 'user_input' | 'sdk_pkg' | 'fallback';
 
 type Resolved = {
   apiLevel: number;
