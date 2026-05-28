@@ -34,7 +34,10 @@ function cap(ms: number) {
   return Math.min(ms, RETRY_MAX_DELAY)
 }
 
-export function delay(attempt: number, error?: MessageV2.APIError) {
+export const QUEUE_RETRY_DELAY = 5000
+
+export function delay(attempt: number, error?: MessageV2.APIError, isQueue?: boolean) {
+  if (isQueue) return QUEUE_RETRY_DELAY
   if (error) {
     const headers = error.data.responseHeaders
     if (headers) {
@@ -72,7 +75,7 @@ export function retryable(error: Err, provider: string) {
   if (MessageV2.ContextOverflowError.isInstance(error)) return undefined
   if (MessageV2.QueueError.isInstance(error)) {
     log.error("queue error matched", {position: error.data.position, message: error.data.message})
-    return { message: `High traffic, you are #${error.data.position} in queue. Please wait.`}
+    return { message: error.data.message }
   }
   if (MessageV2.APIError.isInstance(error)) {
     const status = error.data.statusCode
@@ -190,7 +193,8 @@ export function policy(opts: {
       const retry = retryable(error, opts.provider)
       if (!retry) return Cause.done(meta.attempt)
       return Effect.gen(function* () {
-        const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined)
+        const isQueue = MessageV2.QueueError.isInstance(error)
+        const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined, isQueue)
         const now = yield* Clock.currentTimeMillis
         yield* opts.set({
           attempt: meta.attempt,
