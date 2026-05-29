@@ -66,10 +66,9 @@ $ARGUMENTS
    - Report concise progress after each completed task.
    - **Failure Protocol:** Halt execution immediately if any critical sequential task fails. For `[P]` tasks, continue with successful ones, log failures explicitly, and adjust downstream dependencies if necessary.
    - Provide actionable debugging context and next steps when blocked.
-   - **Task Marking:** Upon successful completion of any task, mark its corresponding item as `[X]` in `tasks.md`.
 
 6. **Completion Validation:**
-   - Do **not** perform any functional validation within the current phase. If functional validation is required, conclude the current phase, proceed to the next phase, and invoke the `spec-verify` subagent to conduct the functional validation.
-   - Output a final summary report detailing completed work, skipped/failed items (if any), and validation results.
+   - Do **not** perform any functional validation within the current phase. If functional validation is required, conclude the current phase and proceed to the next phase.
+   - Output a final summary report detailing completed work, skipped/failed items (if any), and conclude implementation.
 
 > **Note:** This workflow assumes a complete and valid task breakdown exists in `tasks.md`. If tasks are incomplete, ambiguous, or missing critical dependencies, halt execution and regenerate the plan before proceeding.
