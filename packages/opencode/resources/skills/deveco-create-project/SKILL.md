@@ -1,6 +1,6 @@
 ---
 name: deveco-create-project
-description: MUST load this skill before creating, initializing, or scaffolding an ArkTS project, including "0-1", "from scratch", "new ArkTS project", "新建工程", "创建项目", and empty directory initialization tasks. Load this skill EVEN IF the target directory already exists — never assume an existing same-named directory is the user's intended project and skip to build_project/start_app. If the user provides a Chinese or other non-ASCII project name (e.g. 购物车, 天气预报), you MUST propose 2-3 UpperCamelCase ASCII candidates (e.g. 购物车 → ShoppingCart / ShopCart / Cart) and let the user choose via AskUserQuestion BEFORE invoking the script — never pass non-ASCII names through to the script, and never pick a single translation on the user's behalf. Use the skill's private TypeScript script to create ArkTS projects reliably.
+description: Load this skill when creating, initializing, or scaffolding an ArkTS project, including "0-1", "from scratch", "new ArkTS project", "新建工程", "创建项目", and empty directory initialization tasks. Load this skill even if the target directory already exists — never assume an existing same-named directory is the user's intended project and skip to build_project/start_app. If the user provides a Chinese or other non-ASCII project name (e.g. 购物车, 天气预报), you MUST propose 2-3 UpperCamelCase ASCII candidates (e.g. 购物车 → ShoppingCart / ShopCart / Cart) and let the user choose via AskUserQuestion BEFORE invoking the script — never pass non-ASCII names through to the script, and never pick a single translation on the user's behalf. Use the skill's private TypeScript script to create ArkTS projects reliably.
 ---
 
 # deveco-create-project
@@ -35,8 +35,9 @@ If the user explicitly specifies an SDK/API level, pass it through directly.
 If the user does not specify one, do not let the model invent a version. Let the script detect it using this fixed priority:
 
 1. `DEVECO_HOME/sdk/default/sdk-pkg.json` → `data` → `apiVersion`
-2. `DEVECO_HOME/sdk/default/openharmony/*/oh-uni-package.json` → `apiVersion`
-3. fallback to `22`
+2. fallback to `22`
+
+The script's stdout JSON (`apiLevel`, `source`, `detectedFrom`) is authoritative — do not re-read files under `{DEVECO_HOME}/sdk/**` to verify it.
 
 ### Optional: Brief Requirement Checklist for Complex App Requests
 
@@ -85,6 +86,8 @@ At minimum, verify that the following file exists:
 
 If the file is missing, treat the creation as failed and do not proceed to later compile or page-generation steps.
 
+If the script reports `source: "fallback"`, the local SDK metadata is incomplete — deliver the project path, warn the user (e.g. "Find no sdk-pkg.json, can not probe sdk version").
+
 ### Step 3: Switch Session Project Context (Required)
 
 After project creation succeeds, call `switch_cwd` and set the target path to the generated project root (`{projectPath}/{appName}`).
@@ -126,7 +129,6 @@ Before implementing the feature:
 > - `entry/src/main/resources/base/element/string.json` → `EntryAbility_label` — used as the **Ability-level** label (**this is what appears on the desktop icon**).
 
 - After changes, run `build_project`; if it succeeds, run `start_app`.
-- If a device is available and visual behavior matters, use `verify_ui` or screenshots to check that the app no longer shows the untouched template `Hello World` screen.
 
 ### Step 5: Report Back to the User
 
@@ -136,7 +138,7 @@ Output:
 
 - The absolute project path
 - App name / bundle name / API Level
-- `source` of the selected API level: `user_input` / `sdk_pkg` / `oh_uni_package` / `fallback`
+- `source` of the selected API level: `user_input` / `sdk_pkg` / `fallback`
 - Whether the template integrity check passed
 - Whether `switch_cwd` succeeded
 - Build/run/verification status when feature work was requested

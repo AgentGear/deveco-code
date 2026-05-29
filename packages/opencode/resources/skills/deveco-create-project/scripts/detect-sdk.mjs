@@ -102,26 +102,6 @@ export async function detectApiLevel() {
     };
   }
 
-  const files = [
-    path.join(home, 'sdk', 'default', 'openharmony', 'toolchains', 'oh-uni-package.json'),
-    path.join(home, 'sdk', 'default', 'openharmony', 'native', 'oh-uni-package.json'),
-    path.join(home, 'sdk', 'default', 'openharmony', 'previewer', 'oh-uni-package.json'),
-  ];
-
-  for (const file of files) {
-    const next = await json(file).catch(() => undefined);
-    const apiLevel = parse(next?.apiVersion);
-    if (!apiLevel) {
-      continue;
-    }
-    return {
-      apiLevel,
-      source: 'oh_uni_package',
-      detectedFrom: file,
-      devecoHome: home,
-    };
-  }
-
   return {
     apiLevel: 22,
     source: 'fallback',

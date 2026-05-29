@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-type Source = 'sdk_pkg' | 'oh_uni_package' | 'fallback';
+type Source = 'sdk_pkg' | 'fallback';
 
 type Result = {
   apiLevel: number;
@@ -111,26 +111,6 @@ export async function detectApiLevel(): Promise<Result> {
       apiLevel: firstLevel,
       source: 'sdk_pkg',
       detectedFrom: sdk,
-      devecoHome: home,
-    };
-  }
-
-  const files = [
-    path.join(home, 'sdk', 'default', 'openharmony', 'toolchains', 'oh-uni-package.json'),
-    path.join(home, 'sdk', 'default', 'openharmony', 'native', 'oh-uni-package.json'),
-    path.join(home, 'sdk', 'default', 'openharmony', 'previewer', 'oh-uni-package.json'),
-  ];
-
-  for (const file of files) {
-    const next = await json(file).catch(() => undefined);
-    const apiLevel = parse(next?.apiVersion);
-    if (!apiLevel) {
-      continue;
-    }
-    return {
-      apiLevel,
-      source: 'oh_uni_package',
-      detectedFrom: file,
       devecoHome: home,
     };
   }

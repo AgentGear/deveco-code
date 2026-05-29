@@ -32,7 +32,7 @@ type ApiConfig = {
   modelVersion: string;
 };
 
-type Source = 'user_input' | 'sdk_pkg' | 'oh_uni_package' | 'fallback';
+type Source = 'user_input' | 'sdk_pkg' | 'fallback';
 
 type Resolved = {
   apiLevel: number;
@@ -158,6 +158,9 @@ function updateApiLevel(targetRoot: string, apiLevel: number): void {
     ['6.0.2(22)', config.sdkVersion],
   ]);
   replaceInFile(path.join(targetRoot, 'hvigor/hvigor-config.json5'), [
+    ['6.0.2', config.modelVersion],
+  ]);
+  replaceInFile(path.join(targetRoot, 'oh-package.json5'), [
     ['6.0.2', config.modelVersion],
   ]);
 }

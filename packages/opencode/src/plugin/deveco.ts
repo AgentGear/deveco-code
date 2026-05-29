@@ -35,6 +35,36 @@ export async function saveAuthToDisk(key: string, info: Record<string, unknown>)
   } catch {}
 }
 
+function loadAccessTokenFromDisk(): string {
+  try {
+    if (!fs.existsSync(authFilePath)) return ""
+    const raw = JSON.parse(fs.readFileSync(authFilePath, "utf-8")) as Record<string, unknown>
+    const data = LocalCrypto.decryptAuthData(raw) as Record<string, unknown>
+    const deveco = data.deveco as Record<string, unknown> | undefined
+    if (deveco?.type === "oauth" && typeof deveco.access === "string") {
+      return deveco.access
+    }
+  } catch {}
+  return ""
+}
+
+/**
+ * Check whether auth.json has a deveco OAuth entry (type=oauth, access token present).
+ * This mirrors what `deveco auth list` shows — if there's no entry, the user has not logged in.
+ * The refresh token may be empty (some login flows don't store it), so we only require access.
+ */
+export function hasDevecoOAuthEntry(): boolean {
+  try {
+    if (!fs.existsSync(authFilePath)) return false
+    const raw = JSON.parse(fs.readFileSync(authFilePath, "utf-8")) as Record<string, unknown>
+    const data = LocalCrypto.decryptAuthData(raw) as Record<string, unknown>
+    const deveco = data.deveco as Record<string, unknown> | undefined
+    return deveco?.type === "oauth"
+      && typeof deveco.access === "string" && deveco.access.length > 0
+  } catch {}
+  return false
+}
+
 // ============ Types ============
 interface UserInfo {
   userId: string
@@ -471,9 +501,16 @@ class LoginService {
       this.server = new LocalAuthServer(this.config.defaultPort, clientSecret, this.config.baseUrl, this.config.successRedirectUrl, this.config.failedRedirectUrl)
       await this.server.start()
 
+      // Set up the callback promise BEFORE opening the browser page so that
+      // resolveCallback/rejectCallback are ready the instant the server starts
+      // receiving requests.  If the browser redirects back quickly (e.g. cached
+      // OAuth session, auto-approve), the callback must not arrive before the
+      // promise handlers are installed — otherwise ?. silently drops it.
+      const callbackPromise = this.server.waitForCallback(this.config.timeout)
+
       await this.openLoginPage(this.server.getPort(), clientSecret)
 
-      const callbackData = await this.server.waitForCallback(this.config.timeout)
+      const callbackData = await callbackPromise
 
       const jwtToken = await this.getJwtToken(callbackData.tempToken)
 
@@ -535,6 +572,22 @@ class LoginService {
   public async logout(): Promise<void> {
     await tokenStorage.clearToken()
     this.userInfo = null
+    // Also clear deveco oauth entry from auth.json so loadAccessTokenFromDisk() returns ""
+    try {
+      await saveAuthToDisk("deveco", {})
+      // Remove the empty deveco key entirely
+      if (fs.existsSync(authFilePath)) {
+        const raw = JSON.parse(fs.readFileSync(authFilePath, "utf8")) as Record<string, unknown>
+        const data = LocalCrypto.decryptAuthData(raw) as Record<string, unknown>
+        delete data.deveco
+        const dir = path.dirname(authFilePath)
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+        const encrypted = LocalCrypto.encryptAuthData(data)
+        fs.writeFileSync(authFilePath, JSON.stringify(encrypted, null, 2), { mode: 0o600 })
+      }
+    } catch (err) {
+      log.warn("failed to clear auth.json deveco entry during logout", { error: err })
+    }
   }
 
   private generateClientSecret(): string {
@@ -723,10 +776,13 @@ class DevEcoAuth {
       try {
         const parsed = loginService.parseJwt(jwtToken)
         if (parsed.userId) {
+          // When restoring from jwtToken only (no userInfo in memory),
+          // accessToken may be stored in auth.json — read it from disk
+          const accessToken = loadAccessTokenFromDisk()
           return {
             userId: parsed.userId,
             userName: parsed.userName ?? "",
-            accessToken: "",
+            accessToken,
             refreshToken: "",
             jwtToken,
             countryCode: "",
@@ -778,6 +834,24 @@ class DevEcoAuth {
   private getUserInfo(): UserInfo | null {
     return loginService.getUserInfo()
   }
+
+  /**
+   * 获取当前登录用户的 userId，供 AgreementService 使用。
+   * 优先从内存中的 userInfo 取，其次从持久化的 jwtToken 解析。
+   * 解析失败返回 null（不抛出错误）。
+   */
+  async getUserId(): Promise<string | null> {
+    const userInfo = this.getUserInfo()
+    if (userInfo?.userId) return userInfo.userId
+    const jwtToken = await tokenStorage.loadToken()
+    if (!jwtToken) return null
+    try {
+      const parsed = loginService.parseJwt(jwtToken)
+      return parsed.userId || null
+    } catch {
+      return null
+    }
+  }
 }
 
 export const devecoAuth = new DevEcoAuth()
@@ -787,7 +861,7 @@ export { ACCESS_TOKEN_EXPIRES_MS }
 export async function requireLogin(): Promise<boolean> {
   if (await devecoAuth.isLoggedIn()) return true
 
-  prompts.intro("Welcome to DevEco Code")
+  prompts.intro("Get started with DevEco Code")
 
   const choice = await prompts.select({
     message: "How would you like to continue?",
@@ -817,6 +891,11 @@ export async function requireLogin(): Promise<boolean> {
 
     if (!result.success) {
       spinner.stop("Login failed")
+      if (result.cancelled) {
+        // 用户在浏览器登录页面取消了登录，直接退出 deveco
+        prompts.outro("Goodbye!")
+        process.exit(1)
+      }
       if (result.unsupportedRegion) {
         prompts.log.error("Sorry, only China site accounts are currently supported")
       } else {
@@ -976,6 +1055,7 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
                 const result = await devecoAuth.login()
 
                 if (!result.success) {
+                  process.exit(1)
                   if (result.unsupportedRegion) {
                     return { type: "failed" as const, error: "Sorry, only China site accounts are currently supported" }
                   }

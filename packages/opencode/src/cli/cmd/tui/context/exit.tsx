@@ -1,6 +1,7 @@
 import { useRenderer } from "@opentui/solid"
 import { createSimpleContext } from "./helper"
 import { FormatError, FormatUnknownError } from "@/cli/error"
+import { countTerminalLines, eraseTerminalLines } from "../terminal-screen"
 import { win32FlushInputBuffer } from "../win32"
 type Exit = ((reason?: unknown) => Promise<void>) & {
   message: {
@@ -45,7 +46,11 @@ export const { use: useExit, provider: ExitProvider } = createSimpleContext({
             }
           }
           const text = store.get()
-          if (text) process.stdout.write(text + "\n")
+          if (text) {
+            const lines = countTerminalLines(text)
+            const erase = lines > 0 ? eraseTerminalLines(lines) : ""
+            process.stdout.write(erase + text + "\n")
+          }
           await input.onExit?.()
         })()
         return task
