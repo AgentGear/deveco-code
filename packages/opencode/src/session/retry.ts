@@ -23,6 +23,8 @@ export type Retryable = {
     label: string
     link?: string
   }
+  maxAttempts?: number
+  delays?: number[]
 }
 
 export const RETRY_INITIAL_DELAY = 2000
@@ -77,8 +79,29 @@ export function retryable(error: Err, provider: string) {
     log.error("queue error matched", {position: error.data.position, message: error.data.message})
     return { message: error.data.message }
   }
+  if (MessageV2.ModelServiceRateLimitError.isInstance(error)) {
+    log.error("ModelServiceRateLimit error matched", { provider, message: error.data.message })
+    return {
+      message: error.data.message,
+      maxAttempts: 3,
+      delays: [10_000, 20_000, 30_000],
+    }
+  }
   if (MessageV2.APIError.isInstance(error)) {
     const status = error.data.statusCode
+    // 403 rate limit errors from deveco provider: retry up to 3 times with 10s/20s/30s delays
+    if (status === 403) {
+      const body = parseJSON(error.data.responseBody)
+      const errorType = typeof body?.error?.type === "string" ? body.error.type : ""
+      if (errorType === "UserRateLimit") {
+        const errorMsg = typeof body?.error?.message === "string" ? body.error.message : error.data.message
+        return {
+          message: errorMsg,
+          maxAttempts: 3,
+          delays: [10_000, 20_000, 30_000],
+        }
+      }
+    }
     // 5xx errors are transient server failures and should always be retried,
     // even when the provider SDK doesn't explicitly mark them as retryable.
     if (!error.data.isRetryable && !(status !== undefined && status >= 500)) return undefined
@@ -192,9 +215,14 @@ export function policy(opts: {
       const error = opts.parse(meta.input)
       const retry = retryable(error, opts.provider)
       if (!retry) return Cause.done(meta.attempt)
+      if (retry.maxAttempts !== undefined && meta.attempt >= retry.maxAttempts) {
+        return Cause.done(meta.attempt)
+      }
       return Effect.gen(function* () {
         const isQueue = MessageV2.QueueError.isInstance(error)
-        const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined, isQueue)
+        const wait = retry.delays
+          ? (retry.delays[meta.attempt - 1] ?? retry.delays[retry.delays.length - 1]!)
+          : delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined, isQueue)
         const now = yield* Clock.currentTimeMillis
         yield* opts.set({
           attempt: meta.attempt,
