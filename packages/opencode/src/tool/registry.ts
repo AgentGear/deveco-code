@@ -16,6 +16,7 @@ import { SkillTool } from "./skill"
 import { HdcLogTool } from "./hdc_log"
 import { SwitchCwdTool } from "./switch-cwd"
 import { OhKnowledgeTool } from "./oh_knowledge"
+import { ArktsCheckTool } from "./arkts_check"
 import { Auth } from "@/auth"
 import * as Tool from "./tool"
 import { Config } from "@/config/config"
@@ -148,6 +149,7 @@ export const layer: Layer.Layer<
     const hdclog = yield* HdcLogTool
     const switchcwd = yield* SwitchCwdTool
     const ohknowledge = yield* OhKnowledgeTool
+    const arktscheck = yield* ArktsCheckTool
     const auth = yield* Auth.Service
     const agent = yield* Agent.Service
 
@@ -271,6 +273,7 @@ export const layer: Layer.Layer<
           hdclog: Tool.init(hdclog),
           switchcwd: Tool.init(switchcwd),
           ohknowledge: Tool.init(ohknowledge),
+          arktscheck: Tool.init(arktscheck),
         })
 
         return {
@@ -298,6 +301,7 @@ export const layer: Layer.Layer<
             // HarmonyOS tools
             tool.hdclog,
             tool.switchcwd,
+            tool.arktscheck,
             ...(ohknowledgeEnabled ? [tool.ohknowledge] : []),
           ],
           task: tool.task,
