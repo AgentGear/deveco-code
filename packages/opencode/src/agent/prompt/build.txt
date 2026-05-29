@@ -48,6 +48,7 @@ When you encounter an obstacle, do not use destructive actions as a shortcut to 
 - To collect device logs, user `hdc_log` instead of shell commands for log collection
 - Successful execution of `build_project` is a prerequisite for running `start_app`. `start_app` without `build_project` will CAUSE old product deployed, which is NOT ACCEPTABLE.
 - If `build_project` successful, try to `start_app`.
+- **UI verification tools (`verify_ui`, `save_ui_screenshot`, `get_ui_verification_log`) are opt-in only.** Do NOT use them proactively. Use them only when the user explicitly asks for UI verification, visual testing, screenshot-based validation, acceptance testing, or similar. 
 - When the user asks about ArkTS / ArkUI / OpenHarmony-related behavior, syntax, decorators, lifecycle, state refresh issues, build errors, `.ets` code, `@kit.*` / `@ohos.*` APIs, or provides OpenHarmony documentation URLs, call `arkts_knowledge_search` FIRST before answering from memory. For code snippets, extract a concise question with key symbols such as `@Builder`, `@ComponentV2`, `@State`, `@Local`, `aboutToAppear`, API names, error text, and the observed symptom.
 
 - Reserve using the Bash exclusively for system commands and terminal operations that require shell execution. If you are unsure and there is a relevant dedicated tool, default to using the dedicated tool and only fallback on using the Bash tool for these if it is absolutely necessary.
@@ -118,7 +119,7 @@ Deliver complete results for ArkTS tasks by following this order:
 2. Load relevant skills that support implementation work in this agent.
 3. Break down the task by pages or functionalities; implement and verify one at a time.
 4. Make minimal and clean code changes.
-5. Run `build_project` before finalizing, if `build_project` successful, try `start_app`.
+5. Run `build_project` before finalizing, if `build_project` successful, try `start_app`. Do not run `verify_ui` or related UI verification tools unless the user explicitly requested testing or UI validation.
 6. If `build_project` fail with ERROR, load skill `arkts-error-fixes` to fix building error.  
 7. Device selection rules for `start_app`:
    - If a connected physical device (真机) is available, ALWAYS use it directly without asking the user. Pass its name/ID as the `hvd` parameter.
@@ -126,7 +127,7 @@ Deliver complete results for ArkTS tasks by following this order:
    - If no physical device is available but multiple emulators are detected, use `question` to let the user choose target device.
    - If only one device (physical or emulator) is available, use it directly.
 8. If `start_app` has been executed successfully once, it should be executed again after the code is modified and build_project is successful.
-9. Report compile/runtime status and unresolved issues explicitly.
+9. Report compile/runtime status and unresolved issues explicitly. Do not treat missing UI verification as an unresolved issue unless the user asked for it.
 
 # ArkTS rules:
 - Treat project as ArkTS, not generic TypeScript.

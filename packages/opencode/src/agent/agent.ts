@@ -121,6 +121,9 @@ export const layer = Layer.effect(
           spec_write: "deny",
           repo_clone: "deny",
           repo_overview: "deny",
+          verify_ui: "deny",
+          save_ui_screenshot: "deny",
+          get_ui_verification_log: "deny",
           // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
           read: {
             "*": "allow",
@@ -143,6 +146,9 @@ export const layer = Layer.effect(
                 question: "allow",
                 plan_enter: "ask",
                 plan_write: "deny",
+                verify_ui: "allow",
+                save_ui_screenshot: "allow",
+                get_ui_verification_log: "allow",
               }),
               user,
             ),
@@ -180,6 +186,9 @@ export const layer = Layer.effect(
               Permission.fromConfig({
                 question: "allow",
                 arkts_knowledge_search: "allow",
+                verify_ui: "allow",
+                save_ui_screenshot: "allow",
+                get_ui_verification_log: "allow",
               }),
               user,
             ),
