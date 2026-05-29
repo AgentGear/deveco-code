@@ -14,6 +14,7 @@ export interface LinkProps {
 /**
  * Link component that renders clickable hyperlinks.
  * Clicking anywhere on the link text opens the URL in the default browser.
+ * Shows an underline.
  */
 export function Link(props: LinkProps) {
   const displayText = props.children ?? props.href
@@ -28,7 +29,7 @@ export function Link(props: LinkProps) {
         open(props.href).catch(() => {})
       }}
     >
-      {displayText}
+      <span style={{ underline: true, fg: props.fg }}>{displayText}</span>
     </text>
   )
 }

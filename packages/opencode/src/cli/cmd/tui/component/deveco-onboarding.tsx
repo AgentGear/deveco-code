@@ -768,9 +768,9 @@ if (st === 'entry') {
                 Please read and agree to the following agreements to start the HarmonyOS development journey.
               </text>
               <text fg={theme.textMuted} selectable={false} marginTop={1}>
-                User Agreement:
+                Terms Of Use:
               </text>
-              <Link href={agreementConfig().terms_url} fg={theme.primary}>DevEco Code AI User Agreement</Link>
+              <Link href={agreementConfig().terms_url} fg={theme.primary}>DevEco Code AI Terms Of Use</Link>
               <text fg={theme.textMuted} selectable={false} marginTop={1}>
                 Privacy Policy:
               </text>

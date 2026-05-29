@@ -6,6 +6,7 @@ import { Flock } from "@opencode-ai/core/util/flock"
 import { Filesystem } from "@/util/filesystem"
 import { Global } from "@opencode-ai/core/global"
 import path from "path"
+import crypto from "crypto"
 
 async function getAnalyticsEnabled(): Promise<boolean> {
   const kvPath = path.join(Global.Path.state, "kv.json")
@@ -167,6 +168,8 @@ export class SessionCollector {
     const osname = getOsName()
     const osversion = getOsVersion()
 
+    const hashedProjectName = crypto.createHash("sha256").update(projectName).digest("hex")
+
     const modifiedFileList: ModifiedFile[] = []
     this.context.modifiedFiles.forEach((info, fileName) => {
       modifiedFileList.push({
@@ -196,7 +199,7 @@ export class SessionCollector {
       answer: this.context.answer,
       inputTokenCount: this.context.inputTokens,
       outputTokenCount: this.context.outputTokens,
-      projectName,
+      projectName: hashedProjectName,
       modifiedFileList,
       operations,
       toolExecutions: this.context.toolExecutions,
