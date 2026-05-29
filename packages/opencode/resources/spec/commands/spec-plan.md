@@ -45,7 +45,7 @@ $ARGUMENTS
 3. **Load Context & Template**:
     - Read `FEATURE_SPEC`.
     - Load plan template from `{CONFIG_ROOT}/specs/templates/plan-template.md`.
-    - **Fallback:** If the template is missing, initialize `IMPL_PLAN` with the minimal required structure: `## Summary`, `## Technical Context`, `## Project Structure`, `## Complexity Tracking`, `## Research & Decisions`, `## Data Model`, `## Contracts & Interfaces`, `## Quickstart`.
+    - **Fallback:** If the template is missing, initialize `IMPL_PLAN` with the minimal required structure: `## Summary`, `## Technical Context`, `## Project Structure`, `## Complexity Tracking`, `## Research & Decisions`, `## Data Model`, `## Contracts & Interfaces`.
 
 4. **Execute Plan Workflow**: Follow the loaded/initialized template structure to:
     - Fill `Technical Context` section
@@ -82,12 +82,9 @@ $ARGUMENTS
     - Document signatures, formats, and constraints under a `## Contracts & Interfaces` section in `IMPL_PLAN`.
     - Omit this section entirely for purely internal projects.
 
-3. **Setup Guidelines**:
-    - Summarize environment setup, dependencies, and initial run steps in a `## Quickstart` section within `IMPL_PLAN`.
-
-4. **Finalize plan**:
+3. **Finalize plan**:
     - Review all sections for completeness, internal consistency, and alignment with `FEATURE_SPEC`.
-    - Ensure `IMPL_PLAN` contains all research, models, contracts, and setup instructions before concluding.
+    - Ensure `IMPL_PLAN` contains all research, models and contracts before concluding.
 
 ## Key Rules
 - Consolidate all design artifacts—research decisions, data models, interface contracts, and quickstart instructions—directly into `IMPL_PLAN` using the designated sections.

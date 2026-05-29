@@ -156,8 +156,8 @@ export const layer = Layer.effect(
             native: true,
             prompt: PROMPT_BUILD,
           },
-          sdd: {
-            name: "sdd",
+          SDD: {
+            name: "SDD",
             description: "Spec-Driven Development (SDD) agent for implementing complex requirements",
             options: {},
             permission: Permission.merge(
