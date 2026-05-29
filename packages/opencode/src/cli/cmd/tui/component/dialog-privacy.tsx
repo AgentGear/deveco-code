@@ -3,6 +3,7 @@ import { DialogSelect } from "@tui/ui/dialog-select"
 import { useDialog } from "@tui/ui/dialog"
 import open from "open"
 import { useKV } from "@tui/context/kv"
+import { AGREEMENT_DEFAULTS } from "@/cli/deveco-legal"
 
 export function DialogPrivacy() {
   const dialog = useDialog()
@@ -16,7 +17,16 @@ export function DialogPrivacy() {
       description: "Open Huawei privacy policy page",
       value: "policy",
       onSelect: () => {
-        open("https://consumer.huawei.com/cn/privacy/privacy-statement-huawei/#/").catch(() => {})
+        open(AGREEMENT_DEFAULTS.privacy_url).catch(() => {})
+        dialog.clear()
+      },
+    },
+    {
+      title: "Terms of Use",
+      description: "Open Huawei terms of use page",
+      value: "terms",
+      onSelect: () => {
+        open(AGREEMENT_DEFAULTS.terms_url).catch(() => {})
         dialog.clear()
       },
     },
