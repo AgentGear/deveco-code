@@ -14,6 +14,7 @@
  */
 
 const JSCRASH_FILE_RE = /\bjscrash-[A-Za-z0-9._-]+\.log\b/g;
+const JSCRASH_NAME_RE = /^jscrash-(.+)-(\d{10,17})\.log$/i;
 
 export function extractJscrashFaultlogNames(text) {
   const matches = text.match(JSCRASH_FILE_RE);
@@ -24,13 +25,7 @@ export function extractJscrashFaultlogNames(text) {
   return [...new Set(matches.map((item) => item.trim()))];
 }
 
-function parseTrailingTimestampMs(name) {
-  const match = /^jscrash-(.+)-(\d{10,16})\.log$/i.exec(name);
-  if (!match?.[2]) {
-    return null;
-  }
-
-  const raw = match[2];
+function parseTrailingTimestampMs(raw) {
   const n = Number(raw);
   if (!Number.isFinite(n)) {
     return null;
@@ -43,10 +38,37 @@ function parseTrailingTimestampMs(name) {
   return n;
 }
 
+function extractBundlePartFromBody(body) {
+  const uidSep = body.lastIndexOf('-');
+  if (uidSep <= 0) {
+    return body;
+  }
+
+  const maybeUid = body.slice(uidSep + 1);
+  if (/^\d{5,}$/.test(maybeUid)) {
+    return body.slice(0, uidSep);
+  }
+
+  return body;
+}
+
+function parseJscrashFaultlogName(name) {
+  const match = JSCRASH_NAME_RE.exec(name);
+  if (!match?.[1] || !match[2]) {
+    return null;
+  }
+
+  return {
+    bundlePart: extractBundlePartFromBody(match[1]),
+    timestampMs: parseTrailingTimestampMs(match[2]),
+  };
+}
+
 export function parseFaultlogEntry(name) {
+  const parsed = parseJscrashFaultlogName(name);
   return {
     name,
-    timestampMs: parseTrailingTimestampMs(name),
+    timestampMs: parsed?.timestampMs ?? null,
   };
 }
 
@@ -60,12 +82,12 @@ export function faultlogMatchesBundle(name, bundleName) {
     return true;
   }
 
-  const lower = name.toLowerCase();
-  if (lower.includes(token.replace(/\./g, ''))) {
-    return true;
+  const parsed = parseJscrashFaultlogName(name);
+  if (parsed?.bundlePart) {
+    return parsed.bundlePart.toLowerCase() === token;
   }
 
-  return lower.includes(token);
+  return name.toLowerCase().startsWith(`jscrash-${token}-`);
 }
 
 export function filterFaultlogsByBundle(names, bundleName) {

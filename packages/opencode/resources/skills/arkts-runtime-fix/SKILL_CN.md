@@ -54,6 +54,8 @@ node "{SKILL_DIR}/scripts/parse-jscrash-log.mjs" --log-file "{logFilePath}" --bu
 
 ## 场景 C：仅有症状，无日志
 
+设备采证前必须先读取 `AppScope/app.json5` 中的 `app.bundleName`，作为后续 `--bundle-name` 的精确值；禁止用 `vendor`、`com.example` 或模块目录名猜测。
+
 先探测 faultlogger 近期 `jscrash-*.log`：
 
 ```bash
