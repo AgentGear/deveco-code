@@ -1,129 +1,228 @@
-<p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
-    </picture>
-  </a>
-</p>
-<p align="center">The open source AI coding agent.</p>
-<p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/opencode-ai"><img alt="npm" src="https://img.shields.io/npm/v/opencode-ai?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
-</p>
+# DevEco Code
 
-<p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
-</p>
+面向 HarmonyOS（鸿蒙）开发场景的 AI Agent 工具。
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
+[![npm](https://img.shields.io/npm/v/@deveco/deveco-code?style=flat-square&label=npm)](https://www.npmjs.com/package/@deveco/deveco-code)
+[![license](https://img.shields.io/npm/l/@deveco/deveco-code?style=flat-square&label=license)](https://gitcode.com/openharmony-sig/deveco-code/blob/main/LICENSE)
+[![GitCode](https://img.shields.io/badge/GitCode-openharmony--sig%2Fdeveco--code-blue?style=flat-square)](https://gitcode.com/openharmony-sig/deveco-code)
 
----
+[English](README_EN.md) |
+[npm 包页面](https://www.npmjs.com/package/@deveco/deveco-code) |
+[GitCode 仓库](https://gitcode.com/openharmony-sig/deveco-code) |
+[OpenCode](https://opencode.ai)
 
-### Installation
+***
+
+## 快速开始
 
 ```bash
-# YOLO
-curl -fsSL https://opencode.ai/install | bash
+# 1. 安装
+npm install -g @deveco/deveco-code
 
-# Package managers
-npm i -g opencode-ai@latest        # or bun/pnpm/yarn
-scoop install opencode             # Windows
-choco install opencode             # Windows
-brew install anomalyco/tap/opencode # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-bin               # Arch Linux (Latest from AUR)
-mise use -g opencode               # Any OS
-nix run nixpkgs#opencode           # or github:anomalyco/opencode for latest dev branch
+# 2. 启动
+deveco
+
+# 3. 开始对话 —— 在终端中直接描述你的鸿蒙开发需求
 ```
 
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
+> 如需编译构建、设备运行等能力，请先安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) 并配置 `DEVECO_HOME` 环境变量。
 
-### Desktop App (BETA)
+## 简介
 
-OpenCode is also available as a desktop application. Download directly from the [releases page](https://github.com/anomalyco/opencode/releases) or [opencode.ai/download](https://opencode.ai/download).
+DevEco Code 是一款面向 HarmonyOS 开发场景的 AI Agent 工具，支持代码编写、编译构建、设备运行、文档查阅、运行时调试及 ArkTS 问题修复等能力。
 
-| Platform              | Download                           |
-| --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `opencode-desktop-mac-x64.dmg`     |
-| Windows               | `opencode-desktop-windows-x64.exe` |
-| Linux                 | `.deb`, `.rpm`, or `.AppImage`     |
+DevEco Code 基于开源项目 OpenCode 扩展开发，保留了 OpenCode 的终端交互、配置体系、 Provider / MCP / Skill / Plugin 等能力，并针对鸿蒙工程增加了 DevEco Studio、Hvigor、HDC、ArkTS 检查和设备调试相关集成。
+
+## 支持平台
+
+- Windows x64
+- macOS Apple Silicon
+- macOS Intel x64
+
+## 安装前置
+
+DevEco Code 通过 npm 分发，安装前请先准备以下环境：
+
+1. 安装 [Node.js LTS](https://nodejs.org)
+2. 如需使用鸿蒙工程的编译、运行和调试能力，请安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)
+3. 配置 `DEVECO_HOME` 环境变量指向 DevEco Studio 安装目录
+
+可先在终端验证 Node.js 环境：
 
 ```bash
-# macOS (Homebrew)
-brew install --cask opencode-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/opencode-desktop
+node -v
+npm -v
 ```
 
-#### Installation Directory
-
-The install script respects the following priority order for the installation path:
-
-1. `$OPENCODE_INSTALL_DIR` - Custom installation directory
-2. `$XDG_BIN_DIR` - XDG Base Directory Specification compliant path
-3. `$HOME/bin` - Standard user binary directory (if it exists or can be created)
-4. `$HOME/.opencode/bin` - Default fallback
+## 安装与卸载
 
 ```bash
-# Examples
-OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
+# 安装
+npm install -g @deveco/deveco-code
+
+# 查看版本
+deveco --version
+
+# 启动
+deveco
+
+# 更新
+deveco upgrade
+
+# 卸载运行时数据
+deveco uninstall
+
+# 卸载 npm 全局包
+npm uninstall -g @deveco/deveco-code
 ```
 
-### Agents
+> macOS 如果遇到全局安装权限问题，可尝试 `sudo -i npm install -g @deveco/deveco-code`。
 
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
+## 登录与模型
 
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
+启动 `deveco` 后可使用华为账号登录。登录后可使用 DevEco Code 提供的免费模型通道；不登录时也可以沿用 OpenCode 的 Provider 配置体系，自行配置模型。
 
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
+```bash
+# 退出登录
+deveco auth logout
+```
 
-Learn more about [agents](https://opencode.ai/docs/agents).
+在 DevEco Code 中输入 `/models` 可进入模型配置界面。当前免费提供 `glm-5`、`deepseek-v3.2` 两款模型，单账号默认每分钟 50 次请求。也可以通过 `Ctrl+A` 进入 Provider 选择界面，配置智谱、阿里等 OpenAI-compatible 模型。
 
-### Documentation
+也可以通过 `deveco.jsonc` 配置模型：
 
-For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/docs).
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "deveco": {
+      "name": "DevEco Code",
+      "models": {
+        "glm-5": {
+          "tool_call": true,
+          "limit": {
+            "context": 200000,
+            "output": 8192
+          }
+        }
+      },
+      "options": {
+        "baseURL": "https://api.openbitfun.com/v1",
+        "apiKey": "{env:DEVECO_API_KEY}"
+      }
+    }
+  }
+}
+```
 
-### Contributing
+配置文件读取优先级：
 
-If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
+1. 项目目录下 `.deveco/deveco.jsonc`
+2. 项目目录下 `deveco.jsonc`
+3. 用户目录下 `.config/deveco/deveco.jsonc`
 
-### Building on OpenCode
+## Agent 模式
 
-If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
+DevEco Code 面向鸿蒙开发提供以下 Agent 模式（按 `Tab` 键切换）：
 
----
+- `build`：默认模式，适合工程生成、代码生成、配置修正、测试执行、推包运行和发布执行
+- `plan`：适合需求拆解、技术方案、发布规划、测试规划和文档生成
+- `sdd`：适合 `spec` 定义、规范驱动、代码生成和功能验证
 
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+## 鸿蒙场景能力
+
+DevEco Code 集成了常用鸿蒙开发工具能力：
+
+| 工具                       | 说明                   |
+| ------------------------ | -------------------- |
+| `build_project`          | 执行编译构建并导出构建产物        |
+| `start_app`              | 在模拟器或真机上运行应用         |
+| `hdc_log`                | 收集/清理设备日志/查看连接模拟器    |
+| `check_ets_files`        | ArkTS 静态语法检查         |
+| `arkts_knowledge_search` | 鸿蒙知识搜索（需要登录华为账号才能使用） |
+| `switch_cwd`             | 切换构建项目路径             |
+
+常见场景包括：从 0 到 1 创建鸿蒙工程、增量开发页面、修复编译报错、真机调试，以及基于多模态模型的图生文界面生成。
+
+## 扩展能力
+
+DevEco Code 兼容 OpenCode 的 Skill、MCP 和 Plugin 扩展方式。
+
+### Skills
+
+```bash
+npx skills add vercel-labs/agent-skills
+```
+
+也可以把 Skill 放到 `~/.config/deveco/skills`，重启 DevEco Code 后加载。
+
+### MCP
+
+可在 `~/.config/deveco/deveco.jsonc` 中配置 MCP：
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@playwright/mcp@latest"],
+      "enabled": true
+    }
+  }
+}
+```
+
+### Plugins
+
+```bash
+npm install -g oh-my-opencode
+```
+
+然后在 `deveco.jsonc` 中配置插件入口：
+
+```jsonc
+{
+  "plugin": [
+    "file:///C:/Users/<username>/AppData/Roaming/npm/node_modules/oh-my-opencode/dist/index.js"
+  ]
+}
+```
+
+## 从 OpenCode 迁移
+
+如果需要从 OpenCode 迁移到 DevEco Code，请将配置文件迁移到 DevEco Code 目录。主配置文件可参考：
+
+```powershell
+# Windows PowerShell
+Copy-Item -Force "{源路径}\opencode.jsonc" "~\.config\deveco\deveco.jsonc"
+```
+
+```bash
+# macOS
+cp {源路径}/opencode.jsonc ~/.config/deveco/deveco.jsonc
+```
+
+Skills、Agents、Plugins 也可以迁移到 `~/.config/deveco` 下的对应目录；MCP 配置项可迁移到 `deveco.jsonc` 中。
+
+## FAQ
+
+### 这和 OpenCode 有什么关系？
+
+DevEco Code 基于 OpenCode 扩展开发，保留其终端 UI、Provider、MCP、Skill、Plugin 和配置体系，并额外针对 HarmonyOS 开发链路加入编译构建、设备运行、日志采集、ArkTS 检查和运行时调试等能力。
+
+## Contributing
+
+欢迎贡献！请在提交 Pull Request 前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## License
+
+[MIT License](LICENSE)
+
+## 基于 OpenCode 构建的声明
+
+本项目基于开源项目 [OpenCode](https://opencode.ai) 扩展开发。DevEco Code **并非** OpenCode 团队出品，也与 OpenCode 团队无任何附属或关联关系。如有与 DevEco Code 相关的问题，请通过 [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues) 反馈，而非联系 OpenCode 社区。
+
+***
+
+**反馈与交流** [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
