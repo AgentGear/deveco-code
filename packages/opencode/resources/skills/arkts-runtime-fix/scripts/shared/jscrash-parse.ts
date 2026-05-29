@@ -70,13 +70,42 @@ function firstMatch(input: string, patterns: RegExp[]) {
   return '';
 }
 
-function detectErrorType(input: string) {
+function errorTypeFromText(input: string) {
   const matches = input.match(new RegExp(ERROR_TYPE_RE.source, 'ig'));
   if (!matches?.length) {
-    return 'UnknownError';
+    return '';
   }
 
   return matches[matches.length - 1];
+}
+
+function detectErrorType(lines: string[], anchor: number, focus: string) {
+  const headerText = lines.slice(0, 48).join('\n');
+  const fromHeader = errorTypeFromText(headerText);
+  if (fromHeader) {
+    return fromHeader;
+  }
+
+  for (const line of lines.slice(0, 48)) {
+    const match = /^(?:Reason|Error\s+name|Error\s+type)\s*[:：]\s*([A-Za-z]+Error)\s*$/i.exec(line.trim());
+    if (match?.[1] && ERROR_TYPE_RE.test(match[1])) {
+      return match[1];
+    }
+  }
+
+  if (anchor >= 0) {
+    const aroundAnchor = errorTypeFromText(sliceWindow(lines, anchor, 12, 8).join('\n'));
+    if (aroundAnchor) {
+      return aroundAnchor;
+    }
+  }
+
+  const fromFocus = errorTypeFromText(focus);
+  if (fromFocus) {
+    return fromFocus;
+  }
+
+  return 'UnknownError';
 }
 
 function detectBundle(input: string, bundleName: string) {
@@ -360,7 +389,7 @@ export function buildCrashReport(
   const process = detectProcess(normalized, processHint);
   const anchor = findCrashAnchor(lines, bundle, process);
   const focus = anchor >= 0 ? sliceWindow(lines, anchor, 5, 18).join('\n') : normalized;
-  const errorType = detectErrorType(focus);
+  const errorType = detectErrorType(lines, anchor, focus);
   const topStack = detectTopStack(lines, anchor);
   const excerpt = pickExcerpt(lines, anchor, bundle, process, 24);
 

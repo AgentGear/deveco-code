@@ -71,15 +71,18 @@ node "{SKILL_DIR}/scripts/parse-jscrash-log.mjs" --log-file "{logFilePath}" --bu
 
 Log collection is optional here. Use it when you still need a concrete runtime anchor.
 
-Before collecting device evidence, resolve the target device:
+Before collecting device evidence:
 
-- If the user provided a `deviceId`, use it for every device-side command.
-- If no `deviceId` is provided, call `hdc_log(action="list_devices")` first.
-- If exactly one device is connected, use that device.
-- If multiple devices are connected, ask the user which device to inspect. Do not probe faultlogger, fetch faultlog, or collect hilog until the user selects a device.
-- If no devices are connected, report that device-side evidence cannot be collected and ask for a connected device or a local crash log.
+1. Read `AppScope/app.json5` and take the exact `app.bundleName` value (for example `com.example.hmos.sample`). Use that string as `{bundleName}` in every script below.
+2. Do not guess `bundleName` from `vendor`, module folder names, or prefixes such as `com.example`.
+3. Resolve the target device:
+   - If the user provided a `deviceId`, use it for every device-side command.
+   - If no `deviceId` is provided, call `hdc_log(action="list_devices")` first.
+   - If exactly one device is connected, use that device.
+   - If multiple devices are connected, ask the user which device to inspect. Do not probe faultlogger, fetch faultlog, or collect hilog until the user selects a device.
+   - If no devices are connected, report that device-side evidence cannot be collected and ask for a connected device or a local crash log.
 
-Always inspect recent faultlogger evidence first:
+After the user reproduces the crash on the selected device, inspect recent faultlogger evidence:
 
 ```bash
 node "{SKILL_DIR}/scripts/probe-faultlogger.mjs" --bundle-name "{bundleName}" --device-id "{deviceId}" --max-age-minutes "30" --limit "10"
