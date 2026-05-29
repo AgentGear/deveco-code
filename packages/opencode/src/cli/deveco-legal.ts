@@ -8,14 +8,14 @@ export const AGREEMENT_DEFAULTS = {
   tms_url: "https://terms-drcn.platform.dbankcloud.cn/agreementservice/user",
   /** DevEco Code AI privacy statement URL. */
   privacy_url:
-    "https://legal.cloud.huawei.com/terms/scope/huawei/deveco-studio/ai-privacy-statement.htm?code=CN&language=zh-CN&branchid=0&contenttag=default",
+    "https://legal.cloud.huawei.com/terms/scope/huawei/deveco-code/privacy-statement.htm?code=CN&language=zh-CN&branchid=0&contenttag=default",
   /** DevEco Code AI user agreement URL. */
   terms_url:
-    "https://legal.cloud.huawei.com/terms/scope/huawei/deveco-studio/ai-terms.htm?code=CN&language=zh-CN&branchid=0&contenttag=default",
+    "https://legal.cloud.huawei.com/terms/scope/huawei/deveco-code/terms.htm?code=CN&language=zh-CN&branchid=0&contenttag=default",
   /** Privacy agreement ID for TMS query. */
-  privacy_id: "10669",
+  privacy_id: "20000222",
   /** Terms of use agreement ID for TMS query. */
-  terms_id: "30000092",
+  terms_id: "10000351",
 }
 
 /**
