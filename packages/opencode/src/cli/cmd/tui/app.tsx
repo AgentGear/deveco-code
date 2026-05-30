@@ -716,7 +716,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         name: "docs.open",
         title: "Open docs",
         run: () => {
-          open("https://opencode.ai/docs").catch(() => {})
+          open("https://gitcode.com/openharmony-sig/deveco-code").catch(() => {})
           dialog.clear()
         },
         category: "System",
