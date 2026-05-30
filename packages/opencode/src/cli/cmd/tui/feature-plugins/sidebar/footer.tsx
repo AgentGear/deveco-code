@@ -64,13 +64,18 @@ function View(props: { api: TuiPluginApi }) {
         <span style={{ fg: theme().textMuted }}>{path().parent}/</span>
         <span style={{ fg: theme().text }}>{path().name}</span>
       </text>
-      <text fg={theme().textMuted}>
-        <span style={{ fg: theme().success }}>•</span> <b>DevEco </b>
-        <span style={{ fg: theme().text }}>
-          <b>Code</b>
-        </span>{" "}
-        <span>{props.api.app.version}</span>
-      </text>
+      <box gap={1}>
+        <text>
+          <span style={{ fg: theme().text }}>/help</span> <span style={{ fg: theme().textMuted }}>view docs</span>
+        </text>
+        <text fg={theme().textMuted} wrapMode="word">
+          <span style={{ fg: theme().success }}>•</span> <b>DevEco </b>
+          <span style={{ fg: theme().text }}>
+            <b>Code</b>
+          </span>{" "}
+          <span>{props.api.app.version}</span>
+        </text>
+      </box>
     </box>
   )
 }
