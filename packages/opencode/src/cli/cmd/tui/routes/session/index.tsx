@@ -454,6 +454,7 @@ export function Session() {
       suggested: route.type === "session",
       category: "Session",
       enabled: sync.data.config.share !== "disabled",
+      hidden: true,
       slash: {
         name: "share",
       },
@@ -573,6 +574,7 @@ export function Session() {
       value: "session.unshare",
       category: "Session",
       enabled: !!session()?.share?.url,
+      hidden: true,
       slash: {
         name: "unshare",
       },
