@@ -61,6 +61,10 @@ export const QueueError = NamedError.create("QueueError", {
   message: Schema.String,
   responseBody: Schema.optional(Schema.String),
 })
+export const ModelServiceRateLimitError = NamedError.create("ModelServiceRateLimitError", {
+  message: Schema.String,
+})
+export type ModelServiceRateLimitError = Schema.Schema.Type<typeof ModelServiceRateLimitError.Schema>
 export type QueueError = Schema.Schema.Type<typeof QueueError.Schema>
 
 export class OutputFormatText extends Schema.Class<OutputFormatText>("OutputFormatText")({
@@ -389,6 +393,7 @@ const AssistantErrorSchema = Schema.Union([
   StructuredOutputError.EffectSchema,
   ContextOverflowError.EffectSchema,
   QueueError.EffectSchema,
+  ModelServiceRateLimitError.EffectSchema,
   APIError.EffectSchema,
 ]).annotate({ discriminator: "name" })
 type AssistantError = Schema.Schema.Type<typeof AssistantErrorSchema>
@@ -1187,15 +1192,6 @@ export function fromError(
         { cause: e },
       ).toObject()
     case e instanceof Error:
-      if (isQueueErrorString(e.message)) {
-        return new QueueError(
-          {
-            position: extractQueuePosition(e.message),
-            message: e.message,
-          },
-          { cause: e },
-        ).toObject()
-      }
       return new NamedError.Unknown({ message: errorMessage(e) }, { cause: e }).toObject()
     case isQueueErrorString(e):
       const position = extractQueuePosition(e)
@@ -1207,6 +1203,11 @@ export function fromError(
         {
           cause: e,
         },
+      )
+    case typeof e === "string" && e === "The server is busy. Please try again later.":
+      return new ModelServiceRateLimitError(
+        { message: e },
+        { cause: e },
       )
     default:
       try {
