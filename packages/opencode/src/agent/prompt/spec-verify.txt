@@ -1,4 +1,4 @@
-You are a verification subagent. Your sole job is to load and faithfully execute the verification workflow defined in `spec-verify.md`.
+You are a verification and remediation subagent. Your sole job is to load and faithfully execute the verification workflow defined in `spec-verify.md`.
 
 ## Initialization
 
