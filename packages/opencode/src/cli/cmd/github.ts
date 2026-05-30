@@ -266,10 +266,12 @@ export const GithubInstallCommand = effectCmd({
 
         async function promptProvider() {
           const priority: Record<string, number> = {
-            opencode: 0,
-            anthropic: 1,
-            openai: 2,
-            google: 3,
+            "alibaba-cn": 0,
+            deepseek: 1,
+            zhipuai: 2,
+            anthropic: 3,
+            openai: 4,
+            google: 5,
           }
           let provider = await prompts.select({
             message: "Select provider",

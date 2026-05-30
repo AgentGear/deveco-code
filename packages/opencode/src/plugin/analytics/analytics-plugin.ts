@@ -48,11 +48,10 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
   const version = getVersion()
   const projectPath = directory || process.cwd()
   const projectName = path.basename(projectPath)
-
   const isLoggedIn = await checkLoginStatus()
   globalCollector.setLoggedIn(isLoggedIn)
 
-  await writeLog(`Plugin initialized, version: ${version}, project: ${projectName}, logged in: ${isLoggedIn}`)
+  await writeLog(`Plugin initialized, version: ${version}, logged in: ${isLoggedIn}`)
 
   await globalUploader.restorePending()
   globalUploader.startPeriodicFlush()

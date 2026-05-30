@@ -17,11 +17,11 @@ import { useConnected } from "./use-connected"
 import { useBindings } from "../keymap"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
-  opencode: 0,
-  "opencode-go": 1,
-  openai: 2,
-  "github-copilot": 3,
-  anthropic: 4,
+  "alibaba-cn": 0,
+  deepseek: 1,
+  zhipuai: 2,
+  anthropic: 3,
+  openai: 4,
   google: 5,
 }
 
@@ -55,10 +55,11 @@ export function providerOptions(list: { id: string; name: string }[]): ProviderO
         value: provider.id,
         providerID: provider.id,
         description: {
-          opencode: "(Recommended)",
+          deepseek: "(API key)",
+          zhipuai: "(API key)",
           anthropic: "(API key)",
           openai: "(ChatGPT Plus/Pro or API key)",
-          "opencode-go": "Low cost subscription for everyone",
+          google: "(API key)",
         }[provider.id],
         category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Providers",
       })),
