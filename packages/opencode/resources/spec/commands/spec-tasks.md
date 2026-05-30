@@ -44,7 +44,7 @@ $ARGUMENTS
     - Validate completeness: Each story must have independent test criteria and be incrementally deliverable
 3. **Generate tasks.md**: Use `{CONFIG_ROOT}/specs/templates/tasks-template.md` as structural skeleton. If template is missing, generate directly using the "Phase Structure" defined below. Fill with:
     - Correct feature name from `plan.md`
-    - Phased tasks (Setup → Foundational → Stories → Polish)
+    - Phased tasks (Setup → Foundational → Stories → Polish → Verification)
     - Dependency graph & parallel execution guide
     - Summary report & format validation confirmation
 4. **Write Tasks Artifact**: Use the `spec_write` tool with `filePath: "{FEATURE_DIR}/tasks.md"` to write the completed task list. Do NOT use the generic `write` tool for tasks artifacts.
@@ -87,7 +87,18 @@ Every task MUST strictly follow this format:
 3. **Phase 3+: User Stories** (Ordered by P1, P2, P3... from `spec.md`)
     - Structure per story: Tests (if requested) → Models → Services → Endpoints/UI → Integration
     - Each phase = complete, independently testable increment
-4. **Final Phase: Polish** (Cross-cutting concerns, docs, cleanup, refactoring)
+4. **Polish Phase: Polish** (Cross-cutting concerns, docs, cleanup, refactoring)
+5. **Final Phase: Verification** (Build, deploy and optional UI verification — populated based on the user's verification choice from the parent SDD workflow)
+    - **MUST include**: at minimum, a build task and a deploy task to validate compilation and deployability.
+        - Example: `- [ ] TXXX Build project and fix any compilation errors`
+        - Example: `- [ ] TXXX Deploy application to device/emulator via start_app`
+    - **Conditionally include** (only if the parent SDD workflow's verification choice is `Run verification + UI verification`): an additional UI verification task.
+        - Example: `- [ ] TXXX Run UI verification against deployed application`
+    - **If the parent SDD workflow selected `Run verification` (build-only)**: DO NOT include any UI verification task in this phase.
+    - **Verification scope hint**: At the top of the Verification phase section, add an HTML comment indicating the chosen scope so downstream agents can read it deterministically:
+        - `<!-- verification_scope: build-only -->` OR
+        - `<!-- verification_scope: build+ui -->`
+    - Tasks in this phase do NOT carry `[USx]` labels.
 
 ## Final Self-Validation Step
 Before outputting `tasks.md`, internally verify:

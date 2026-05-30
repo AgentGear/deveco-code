@@ -153,6 +153,26 @@ Examples of foundational tasks (adjust based on your project):
 
 ---
 
+## Phase N+1: Verification
+
+<!-- verification_scope: build-only -->
+<!--
+  The verification_scope marker above MUST be set by /spec-tasks based on the
+  parent SDD workflow's Verification Choice Gate:
+    - "Run verification"                                                 → build-only
+    - "Run verification + UI verification (UI verification takes ...)"   → build+ui
+  When scope is build-only, OMIT the UI verification task below.
+  When scope is build+ui, INCLUDE the UI verification task below.
+-->
+
+**Purpose**: Build, deploy, and (optionally) UI-verify the implemented feature
+
+- [ ] TXXX Build project and fix any compilation errors (invoke build_project; iterate fix → build until success)
+- [ ] TXXX Deploy application to device/emulator (invoke start_app)
+- [ ] TXXX Run UI verification against deployed application (invoke verify_ui)  <!-- include ONLY when verification_scope == build+ui -->
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
