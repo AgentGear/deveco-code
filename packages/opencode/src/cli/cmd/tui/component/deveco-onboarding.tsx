@@ -40,7 +40,7 @@ function OnboardingContent(props: ParentProps) {
 }
 
 function selectionLead(selected: boolean): string {
-  return selected ? '● ' : '  ';
+  return selected ? '> ' : '  ';
 }
 
 function providerLabel(id: string, name: string): string {
@@ -778,7 +778,7 @@ if (st === 'entry') {
 
               <box onMouseUp={() => setCheckboxChecked(!checkboxChecked())}>
                 <text fg={theme.text} selectable={false} marginTop={1}>
-                  {checkboxChecked() ? '☑' : '☐'} I have read and agree to the above agreements
+                  {checkboxChecked() ? '☑' : '☐'}  I have read and agree to the above agreements
                 </text>
               </box>
               <text fg={theme.textMuted} selectable={false}>
