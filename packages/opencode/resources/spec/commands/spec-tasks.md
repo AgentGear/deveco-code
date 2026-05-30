@@ -22,8 +22,8 @@ $ARGUMENTS
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
-2. **No Early Coding**: You are strictly forbidden from writing any application code in the `src/` directory in this step. This includes code snippets, pseudocode, or implementation details. Main Agent must comply fully.
-3. **No Auto-Execute Next Command**: Upon completion of `/spec-tasks`, refrain from auto-executing any follow-up commands including `/spec-implement`. Remain idle and await clear user instruction.
+2. **No Early Coding**: You are strictly forbidden from writing any application code in the `src/` or any other source directory in this step. Main Agent must comply fully.
+3. **No Auto-Execute Next Command**: Upon completion of this workflow, refrain from auto-executing any follow-up phases.
 4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 

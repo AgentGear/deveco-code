@@ -127,13 +127,6 @@ export const FORMAT_RULES: Record<string, DocumentFormatRules> = {
         message: "Missing '## Contracts & Interfaces'",
         suggestion: "Add '## Contracts & Interfaces'",
       },
-      {
-        level: 2,
-        standardTitle: "Quickstart",
-        ruleId: "DES-SEC-7",
-        message: "Missing '## Quickstart'",
-        suggestion: "Add '## Quickstart'",
-      },
     ],
     allowedSections: [
       "Implementation Plan:",

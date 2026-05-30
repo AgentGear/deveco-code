@@ -10,14 +10,13 @@ $ARGUMENTS
 
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
 1. **No Early Coding (Non-Negotiable):** You are strictly forbidden from writing, generating, or even outlining application code in `src/` or any other source directory during this workflow. Output must remain strictly at the design/planning level. Main Agent must comply fully; no implicit code generation is allowed.
-2. **No Auto-Execute Next Command:** Upon completion of this planning workflow, refrain from auto-executing any follow-up commands including `/spec-tasks`. Remain idle and await explicit user instruction to proceed. Main Agent is prohibited from triggering any downstream commands automatically.
-3. **Mandatory User Confirmation:** **If `question` is NOT available: DO NOT ask the user for confirmation in any form. Proceed with the resolved directory immediately without pausing.** If available, invoke the `question` tool to confirm the candidate feature directory with the user before proceeding to subsequent steps. If the user rejects, abort the entire workflow immediately.
-4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
-5. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
+2. **No Auto-Execute Next Command:** Upon completion of this planning workflow, refrain from auto-executing any follow-up phases. Main Agent is prohibited from triggering any downstream commands automatically.
+3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+4. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
-6. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
+5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 
 ## Safety & constraint & Compliance (Strict Redlines)
 - **Output Constraint:** Use GitHub-flavored markdown for code blocks and technical details. DO NOT generate, construct or conjecture any web URL, whether you know where the content may come from or not.
@@ -87,7 +86,7 @@ $ARGUMENTS
     - Ensure `IMPL_PLAN` contains all research, models and contracts before concluding.
 
 ## Key Rules
-- Consolidate all design artifacts—research decisions, data models, interface contracts, and quickstart instructions—directly into `IMPL_PLAN` using the designated sections.
+- Consolidate all design artifacts—research decisions, data models, interface contracts directly into `IMPL_PLAN` using the designated sections.
 - Use absolute paths for all file and directory references.
 - Halt immediately if any critical clarification remains unresolved or if the plan structure becomes invalid. Output strictly in this format:
   ```text

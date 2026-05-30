@@ -10,8 +10,8 @@ $ARGUMENTS
 You **MUST** consider the user input before proceeding. If empty or whitespace-only, halt immediately and output: `ERROR: No feature description provided.`
 
 ## STRICT OPERATIONAL CONSTRAINTS (ZERO EXCEPTIONS)
-1. **No Early Coding**: Strictly forbidden from writing, generating, or suggesting any application code in the `src/` directory during this step. Includes snippets, pseudocode, or implementation details.
-2. **No Auto-Execute**: Upon completion, remain idle. DO NOT trigger downstream commands (e.g., `/spec-plan`, `/build`). Await explicit user instruction.
+1. **No Early Coding**: Strictly forbidden from writing, generating, or suggesting any application code in the `src/` or any other source directory during this step.
+2. **No Auto-Execute**: Upon completion, DO NOT trigger downstream phases. Await explicit user instruction.
 3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 4. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
@@ -61,15 +61,6 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
     - [ ] Define Success Criteria → Measurable, tech-agnostic, user-focused.
     - [ ] Identify Key Entities (if applicable).
     - [ ] Finalize & Write → Use the `spec_write` tool with `filePath: "{SPEC_FILE}"` to write the completed specification. Do NOT use the generic `write` tool for spec artifacts.
-
-6. **Report Completion**:
-   Output exactly the following block (no extra text):
-   ```
-   SPECIFY_FEATURE_DIRECTORY: <path>
-   SPEC_FILE: <path>
-   STATUS: SUCCESS
-   CLARIFICATIONS: <List or None>
-   ```
 
 ## Generation Guidelines
 
