@@ -1,12 +1,17 @@
-import { For, createMemo } from "solid-js";
+import { createEffect, For, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { RGBA } from "@opentui/core";
-import { useTerminalDimensions } from "@opentui/solid";
+import { useRenderer, useTerminalDimensions } from "@opentui/solid";
 import { useTheme } from "@tui/context/theme";
+import { useKV } from "@tui/context/kv";
 import {
   bannerLogoPalette,
-  bannerLogoScannedLineTones,
+  bannerLogoScannedLineTonesWithIntro,
+  LOGO_INTRO_DURATION_MS,
   LOGO_ROW_CAP,
+  logoIntroFrameAt,
   logoRowsForWidth,
+  thickTopLogoRows,
+  type LogoIntroFrame,
   type Tone,
 } from "./banner-logo";
 
@@ -16,12 +21,13 @@ import {
  * - Renders a fixed-height (8-row) ANSI lettermark using parsed SGR spans (supports 256-color + truecolor).
  * - Logo: full "DEVECO CODE" when the terminal is wide enough; otherwise "DEVECO"; if still too narrow,
  *   the lettermark is left-aligned and truncated (see `banner-logo.ts`).
- * - Adds a scanline effect by replacing spaces with `─`, plus optional full-width rules framing the logo.
+ * - Adds a scanline effect by replacing spaces with `─`.
+ * - On mount: ~4.4s intro — block scan → pause → row reveal → pause → shift R/L → center → final mark.
  * - Taglines below are centered via left-padding (reliable in terminal layouts) and may use per-character gradient.
  */
 
-/** Home / onboarding horizontal padding: outer 2+2 and inner 2+2. */
-export const BANNER_HOME_CONTENT_INSET = 8;
+/** Home / onboarding horizontal inset subtracted from terminal width for banner width (0 = full terminal). */
+export const BANNER_HOME_CONTENT_INSET = 0;
 
 /** Shared max width for banner, prompt, and onboarding body. */
 export const HOME_CONTENT_MAX_WIDTH = 110;
@@ -84,17 +90,45 @@ export function homePromptTextareaRows(
 
 export function Banner(props?: { contentInset?: number }) {
   const { theme, mode } = useTheme();
+  const kv = useKV();
+  const renderer = useRenderer();
   const dimensions = useTerminalDimensions();
+  const animationsEnabled = () => kv.get("animations_enabled", true);
+  const [introFrame, setIntroFrame] = createSignal<LogoIntroFrame>(
+    animationsEnabled()
+      ? logoIntroFrameAt(0, LOGO_ROW_CAP)
+      : { kind: "done" },
+  );
 
   const width = createMemo(() => {
     const inset = props?.contentInset ?? 0;
     return Math.max(0, Math.floor(dimensions().width) - inset);
   });
   const logoRows = createMemo(() => logoRowsForWidth(width()).slice(0, LOGO_ROW_CAP));
+  const logoRowsThickTop = createMemo(() => thickTopLogoRows(logoRows()));
 
   const isLight = createMemo(() => mode() === "light");
 
   const logoPalette = createMemo(() => bannerLogoPalette(isLight(), theme));
+
+  createEffect(() => {
+    introFrame();
+    renderer.requestRender();
+  });
+
+  onMount(() => {
+    if (!animationsEnabled()) return;
+
+    const rows = logoRows().length;
+    const fadeStart = performance.now();
+    const interval = setInterval(() => {
+      const elapsed = performance.now() - fadeStart;
+      setIntroFrame(logoIntroFrameAt(elapsed, rows));
+      if (elapsed >= LOGO_INTRO_DURATION_MS) clearInterval(interval);
+    }, 16);
+
+    onCleanup(() => clearInterval(interval));
+  });
 
   const bannerPalette = createMemo(() => {
     if (!isLight()) {
@@ -140,9 +174,18 @@ export function Banner(props?: { contentInset?: number }) {
     <box flexDirection="column" width={width()} backgroundColor={stripeTransparent}>
       <box flexDirection="column" width={width()} paddingTop={1} backgroundColor={stripeTransparent}>
         <For each={logoRows()}>
-          {(line) => (
+          {(line, rowIndex) => (
             <text bg={stripeTransparent} selectable={false}>
-              <For each={bannerLogoScannedLineTones(line, width(), logoPalette())}>
+              <For
+                each={bannerLogoScannedLineTonesWithIntro(
+                  line,
+                  logoRowsThickTop()[rowIndex()] ?? line,
+                  rowIndex(),
+                  introFrame(),
+                  width(),
+                  logoPalette(),
+                )}
+              >
                 {(p: Tone) => <span style={{ fg: p.fg }}>{p.t}</span>}
               </For>
             </text>

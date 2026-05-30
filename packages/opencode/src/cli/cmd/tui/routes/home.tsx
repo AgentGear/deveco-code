@@ -42,9 +42,9 @@ export function Home() {
   const promptRef = usePromptRef()
   const dimensions = useTerminalDimensions()
 
-// DevEco onboarding state - null = checking, false = show onboarding, true = ready
+  // DevEco onboarding state - null = checking, false = show onboarding, true = ready
   const [devecoReady, setDevecoReady] = createSignal<boolean | null>(null)
-  const [devecoInitialStep, setDevecoInitialStep] = createSignal<'entry' | 'privacy'>('entry')
+  const [devecoInitialStep, setDevecoInitialStep] = createSignal<"entry" | "privacy">("entry")
   // Cached auth check result — used to defer devecoReady=true until sync completes
   // (the Prompt component needs sync data to render properly)
   const [authCanEnter, setAuthCanEnter] = createSignal(false)
@@ -52,7 +52,7 @@ export function Home() {
 
   const bodySlotHeight = createMemo(() => homeBodySlotRows(dimensions().height))
 
-// Check login + agreement status immediately on mount (no sync dependency).
+  // Check login + agreement status immediately on mount (no sync dependency).
   // The auth check reads auth.json and calls the TMS API — it does not
   // need sync data.  For canEnter=false (not logged in / agreement pending),
   // set devecoReady=false right away so the user sees the login/agreement page
@@ -71,7 +71,7 @@ export function Home() {
     // the user has not completed the DevEco login flow, regardless of whether
     // token.enc or an in-memory userInfo exists.
     if (!hasDevecoOAuthEntry()) {
-      setDevecoInitialStep('entry')
+      setDevecoInitialStep("entry")
       setDevecoReady(false)
       return
     }
@@ -81,7 +81,7 @@ export function Home() {
 
     // Session should not be null since auth.json has an entry, but guard anyway
     if (!session) {
-      setDevecoInitialStep('entry')
+      setDevecoInitialStep("entry")
       setDevecoReady(false)
       return
     }
@@ -95,14 +95,17 @@ export function Home() {
         accessToken = newTokens.accessToken
       } else {
         // Refresh failed → login state expired, need to re-login
-        setDevecoInitialStep('entry')
+        setDevecoInitialStep("entry")
         setDevecoReady(false)
         return
       }
     }
 
     // Build-time flag or runtime env: skip agreement query and sign check, enter conversation directly
-    if ((typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) || process.env.DEVECO_SKIP_AGREEMENT === "1") {
+    if (
+      (typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) ||
+      process.env.DEVECO_SKIP_AGREEMENT === "1"
+    ) {
       setAuthCanEnter(true)
       if (sync.status === "complete") {
         setDevecoReady(true)
@@ -124,7 +127,7 @@ export function Home() {
       }
     } else {
       // Logged in but agreements not compliant or network error → show privacy step immediately
-      setDevecoInitialStep('privacy')
+      setDevecoInitialStep("privacy")
       setDevecoReady(false)
     }
   }
@@ -201,74 +204,74 @@ export function Home() {
 
   return (
     <>
-      <box flexGrow={1} paddingLeft={2} paddingRight={2} flexDirection="column" minHeight={0}>
+      <box flexGrow={1} flexDirection="column" minHeight={0}>
         <box
-            flexGrow={1}
-            minHeight={0}
+          flexGrow={1}
+          minHeight={0}
+          flexDirection="column"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <box
             flexDirection="column"
-            justifyContent="center"
             alignItems="center"
+            width="100%"
+            maxWidth={HOME_CONTENT_MAX_WIDTH}
+            flexShrink={0}
+            position="relative"
           >
+            <box zIndex={0} flexShrink={0} width="100%" alignItems="center">
+              <TuiPluginRuntime.Slot name="home_logo" mode="replace">
+                <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
+              </TuiPluginRuntime.Slot>
+            </box>
             <box
-              flexDirection="column"
-              alignItems="center"
-              width="100%"
-              maxWidth={HOME_CONTENT_MAX_WIDTH}
-              flexShrink={0}
+              zIndex={1}
               position="relative"
+              width="100%"
+              height={bodySlotHeight()}
+              maxHeight={HOME_BODY_MAX_ROWS}
+              flexDirection="column"
+              justifyContent="center"
+              alignItems="center"
+              paddingTop={HOME_BODY_GAP_ROWS}
+              flexShrink={0}
             >
-              <box zIndex={0} flexShrink={0} width="100%" alignItems="center">
-                <TuiPluginRuntime.Slot name="home_logo" mode="replace">
-                  <Banner contentInset={BANNER_HOME_CONTENT_INSET} />
-                </TuiPluginRuntime.Slot>
-              </box>
-              <box
-                zIndex={1}
-                position="relative"
-                width="100%"
-                height={bodySlotHeight()}
-                maxHeight={HOME_BODY_MAX_ROWS}
-                flexDirection="column"
-                justifyContent="flex-start"
-                alignItems="center"
-                paddingTop={HOME_BODY_GAP_ROWS}
-                flexShrink={0}
-              >
-                <Show when={devecoReady() === null}>
-                  <text fg={theme.textMuted} selectable={false}>
-                    Checking login status...
-                  </text>
-                </Show>
-                <Show when={devecoReady()}>
-                  <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
-                    <box width="100%" flexShrink={0}>
-                      <TuiPluginRuntime.Slot name="home_prompt" mode="replace">
-                        <Prompt
-                          ref={(r) => {
-                            if (r) {
-                              prompt = r
-                              promptRef.set(r)
-                            }
-                          }}
-                          hint={Hint}
-                          placeholders={placeholder}
-                          homeBodySlotHeight={bodySlotHeight()}
-                        />
-                      </TuiPluginRuntime.Slot>
-                    </box>
-                    <TuiPluginRuntime.Slot name="home_bottom" />
+              <Show when={devecoReady() === null}>
+                <text fg={theme.textMuted} selectable={false}>
+                  Checking login status...
+                </text>
+              </Show>
+              <Show when={devecoReady()}>
+                <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
+                  <box width="100%" flexShrink={0}>
+                    <TuiPluginRuntime.Slot name="home_prompt" mode="replace">
+                      <Prompt
+                        ref={(r) => {
+                          if (r) {
+                            prompt = r
+                            promptRef.set(r)
+                          }
+                        }}
+                        hint={Hint}
+                        placeholders={placeholder}
+                        homeBodySlotHeight={bodySlotHeight()}
+                      />
+                    </TuiPluginRuntime.Slot>
                   </box>
-                </Show>
-                <Show when={devecoReady() === false}>
-                  <DevEcoOnboarding
-                    onComplete={() => setDevecoReady(true)}
-                    bodySlotHeight={bodySlotHeight()}
-                    initialStep={devecoInitialStep()}
-                  />
-                </Show>
-              </box>
+                  <TuiPluginRuntime.Slot name="home_bottom" />
+                </box>
+              </Show>
+              <Show when={devecoReady() === false}>
+                <DevEcoOnboarding
+                  onComplete={() => setDevecoReady(true)}
+                  bodySlotHeight={bodySlotHeight()}
+                  initialStep={devecoInitialStep()}
+                />
+              </Show>
             </box>
           </box>
+        </box>
         <Toast />
       </box>
       <box width="100%" flexShrink={0}>
