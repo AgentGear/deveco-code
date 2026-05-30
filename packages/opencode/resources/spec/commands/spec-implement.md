@@ -15,7 +15,7 @@ $ARGUMENTS
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
-4. **Implement Phase Tool Restriction**: The `verify_ui` and `build_project` tools should not be used in the `spec-implement` phase. Build verification and UI validation are handled in the next phase via subagent `spec-verify`.
+4. **Implement Phase Tool Restriction**: The `verify_ui`, `build_project`, and `start_app` tools MUST NOT be invoked in the `spec-implement` phase. Build verification, deployment, and (optionally) UI validation are handled in the next phase via subagent `spec-verify`. Correspondingly, the **Verification phase** in `tasks.md` (the final phase added by `/spec-tasks`, marked with `<!-- verification_scope: ... -->`) is **OUT OF SCOPE for `/spec-implement`** — DO NOT execute its tasks, DO NOT mark its checkboxes as `[X]`. Stop after completing the Polish phase. The `spec-verify` subagent will execute and check off the Verification phase tasks during Phase 5.
 5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 6. **Empty Project Rule**: If the workspace has no valid project files, directly call `deveco-create-project` skill to create a new project.
 
@@ -44,6 +44,7 @@ $ARGUMENTS
 
 2. **Task Structure Parsing:**
    - Extract task phases: Setup, Tests, Core, Integration, Polish.
+   - **Skip the Verification phase**: if `tasks.md` contains a phase titled `Verification` (typically the last phase, marked with `<!-- verification_scope: ... -->`), DO NOT parse, execute, or mark off its tasks here — it is owned by the `spec-verify` subagent in the next workflow phase.
    - Identify dependencies: Sequential order vs. logical parallel markers `[P]`.
    - Parse task metadata: ID, description, target file paths, execution flags.
    - Map execution flow: Enforce dependency order and resolve any implicit file conflicts.
@@ -53,7 +54,7 @@ $ARGUMENTS
    - **Logical Parallelism `[P]` Rule:** Tasks marked `[P]` have no output dependency on each other. Execute them sequentially in the listed order to prevent file I/O conflicts, treating them as independent units.
    - **File Conflict Rule:** If multiple tasks (sequential or `[P]`) target the same file, enforce strict sequential execution to maintain code integrity.
    - Follow TDD rigorously: Execute test generation/tasks before their corresponding implementation tasks.
-   - **Phase Completion Protocol (MANDATORY):** After completing all tasks within a phase (Setup, Tests, Core, Integration, Polish), call the `edit` tool once to update `tasks.md` and change the checkboxes of all completed tasks in that phase from `- [ ]` to `- [X]`.
+   - **Phase Completion Protocol (MANDATORY — PER-PHASE, NOT DEFERRED):** IMMEDIATELY after completing ALL tasks within a given phase, you MUST call the `edit` tool to update `tasks.md` and change the checkboxes of the completed tasks in **that specific phase only** from `- [ ]` to `- [X]`. Do **NOT** defer this until later phases are done. Do **NOT** batch-mark multiple phases at once. Each phase must be marked **as soon as it finishes**, before moving on to the next phase. This ensures `tasks.md` always reflects the real-time progress.
 
 4. **Implementation Workflow:**
    - **Setup:** Initialize project structure, dependencies, and base configuration.
