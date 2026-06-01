@@ -48,6 +48,8 @@ export function Home() {
   // Cached auth check result — used to defer devecoReady=true until sync completes
   // (the Prompt component needs sync data to render properly)
   const [authCanEnter, setAuthCanEnter] = createSignal(false)
+  // Track whether the auth check itself has finished (distinct from sync progress)
+  const [authCheckDone, setAuthCheckDone] = createSignal(false)
   let devecoChecked = false
 
   const bodySlotHeight = createMemo(() => homeBodySlotRows(dimensions().height))
@@ -73,6 +75,7 @@ export function Home() {
     if (!hasDevecoOAuthEntry()) {
       setDevecoInitialStep("entry")
       setDevecoReady(false)
+      setAuthCheckDone(true)
       return
     }
 
@@ -83,6 +86,7 @@ export function Home() {
     if (!session) {
       setDevecoInitialStep("entry")
       setDevecoReady(false)
+      setAuthCheckDone(true)
       return
     }
 
@@ -97,6 +101,7 @@ export function Home() {
         // Refresh failed → login state expired, need to re-login
         setDevecoInitialStep("entry")
         setDevecoReady(false)
+        setAuthCheckDone(true)
         return
       }
     }
@@ -107,6 +112,7 @@ export function Home() {
       process.env.DEVECO_SKIP_AGREEMENT === "1"
     ) {
       setAuthCanEnter(true)
+      setAuthCheckDone(true)
       if (sync.status === "complete") {
         setDevecoReady(true)
       }
@@ -121,6 +127,7 @@ export function Home() {
     if (checkResult.canEnter) {
       // Logged in + agreements compliant → cache result, apply when sync completes
       setAuthCanEnter(true)
+      setAuthCheckDone(true)
       if (sync.status === "complete") {
         // Sync already done → apply immediately
         setDevecoReady(true)
@@ -129,6 +136,7 @@ export function Home() {
       // Logged in but agreements not compliant or network error → show privacy step immediately
       setDevecoInitialStep("privacy")
       setDevecoReady(false)
+      setAuthCheckDone(true)
     }
   }
 
@@ -237,10 +245,20 @@ export function Home() {
               paddingTop={HOME_BODY_GAP_ROWS}
               flexShrink={0}
             >
-              <Show when={devecoReady() === null}>
+              <Show when={!authCheckDone()}>
                 <text fg={theme.textMuted} selectable={false}>
                   Checking login status...
                 </text>
+              </Show>
+              <Show when={authCheckDone() && authCanEnter() && devecoReady() !== true}>
+                <box flexDirection="column" alignItems="center">
+                  <text fg={theme.textMuted} selectable={false}>
+                    Loading project data...
+                  </text>
+                  <text fg={theme.textMuted} selectable={false}>
+                    providers, MCP servers, LSP, sessions...
+                  </text>
+                </box>
               </Show>
               <Show when={devecoReady()}>
                 <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
