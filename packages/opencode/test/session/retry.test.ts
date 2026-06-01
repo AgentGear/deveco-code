@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import type { NamedError } from "@opencode-ai/core/util/error"
 import { APICallError } from "ai"
 import { setTimeout as sleep } from "node:timers/promises"
-import { Effect, Layer, Schedule, Schema } from "effect"
+import { Duration, Effect, Exit, Layer, Schedule, Schema } from "effect"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { SessionRetry } from "../../src/session/retry"
 import { MessageV2 } from "../../src/session/message-v2"
@@ -112,6 +112,81 @@ describe("session.retry.delay", () => {
           attempt: 2,
           message: "boom",
         })
+      }),
+    ),
+  )
+
+it.live("policy gives each error category its own retry budget (QueueError → 403)", () =>
+    provideTmpdirInstance(() =>
+      Effect.gen(function* () {
+        const sessionID = SessionID.make("session-retry-category-test")
+        const status = yield* SessionStatus.Service
+
+        const queueErr = Schema.decodeUnknownSync(MessageV2.QueueError.Schema)(
+          new MessageV2.QueueError({
+            position: 1,
+            message: "position 1 in queue",
+          }).toObject(),
+        )
+
+        const rateLimitErr = Schema.decodeUnknownSync(MessageV2.APIError.Schema)(
+          new MessageV2.APIError({
+            message: "Rate limit exceeded",
+            statusCode: 403,
+            isRetryable: false,
+            responseBody: JSON.stringify({ error: { type: "UserRateLimit", message: "Rate limit exceeded" } }),
+          }).toObject(),
+        )
+
+        const setCalls: Array<{ attempt: number; message: string }> = []
+
+        const step = yield* Schedule.toStep(
+          SessionRetry.policy({
+            provider: "deveco",
+            parse: (e: unknown) => e as ReturnType<NamedError["toObject"]>,
+            set: (info) =>
+              Effect.gen(function* () {
+                setCalls.push({ attempt: info.attempt, message: info.message })
+                yield* status.set(sessionID, {
+                  type: "retry",
+                  attempt: info.attempt,
+                  message: info.message,
+                  next: info.next,
+                })
+              }),
+          }),
+        )
+
+        const now = Date.now()
+
+        const r1 = yield* step(now, queueErr)
+        expect(r1[0]).toBe(1)
+        expect(Duration.toMillis(r1[1])).toBe(5000)
+
+        // Category change resets categoryAttempt to 1, so delay is delays[0]=10s
+        // (old bug used global meta.attempt=2, yielding delays[1]=20s)
+        const r2 = yield* step(now + 5000, rateLimitErr)
+        expect(r2[0]).toBe(2)
+        expect(Duration.toMillis(r2[1])).toBe(10_000)
+
+        const r3 = yield* step(now + 15_000, rateLimitErr)
+        expect(r3[0]).toBe(3)
+        expect(Duration.toMillis(r3[1])).toBe(20_000)
+
+        // categoryAttempt=3, 3 > 3 is false → still retrying (3rd retry)
+        const r4 = yield* step(now + 35_000, rateLimitErr)
+        expect(r4[0]).toBe(4)
+        expect(Duration.toMillis(r4[1])).toBe(30_000)
+
+        // categoryAttempt=4, 4 > maxAttempts=3 → stop
+        const r5 = yield* Effect.exit(step(now + 65_000, rateLimitErr))
+        expect(Exit.isFailure(r5)).toBe(true)
+
+        expect(setCalls).toHaveLength(4)
+        expect(setCalls[0].attempt).toBe(1)
+        expect(setCalls[1].attempt).toBe(2)
+        expect(setCalls[2].attempt).toBe(3)
+        expect(setCalls[3].attempt).toBe(4)
       }),
     ),
   )
