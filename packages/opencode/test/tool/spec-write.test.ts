@@ -60,7 +60,7 @@ describe("tool.spec_write", () => {
     it.instance("writes spec.md to target path", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const target = path.join(test.directory, "spec", "default", "spec.md")
         const result = yield* run({ filePath: target, content: "# Feature Specification: Auth\n\n## Overview\n\noverview" })
 
         const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
@@ -74,7 +74,7 @@ describe("tool.spec_write", () => {
     it.instance("writes plan.md to target path", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "plan.md")
+        const target = path.join(test.directory, "spec", "default", "plan.md")
         const result = yield* run({ filePath: target, content: "# Implementation Plan: Auth\n\n## Summary\n\nsummary" })
 
         const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
@@ -86,7 +86,7 @@ describe("tool.spec_write", () => {
     it.instance("writes tasks.md to target path", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "tasks.md")
+        const target = path.join(test.directory, "spec", "default", "tasks.md")
         const result = yield* run({
           filePath: target,
           content: "# Tasks: Auth\n\n## Format\n\nformat\n\n## Path Conventions\n\npaths",
@@ -101,7 +101,7 @@ describe("tool.spec_write", () => {
     it.instance("creates parent directories if needed", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const target = path.join(test.directory, "spec", "default", "spec.md")
         yield* run({ filePath: target, content: "test" })
 
         const stats = yield* Effect.promise(() => fs.stat(target))
@@ -112,9 +112,9 @@ describe("tool.spec_write", () => {
     it.instance("resolves relative paths against instance directory", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const result = yield* run({ filePath: ".specs/auth/spec.md", content: "relative path content" })
+        const result = yield* run({ filePath: "spec/auth/spec.md", content: "relative path content" })
 
-        const target = path.join(test.directory, ".specs", "auth", "spec.md")
+        const target = path.join(test.directory, "spec", "auth", "spec.md")
         const content = yield* Effect.promise(() => fs.readFile(target, "utf-8"))
         expect(content).toBe("relative path content")
         expect(result.metadata.filepath).toBe(target)
@@ -126,7 +126,7 @@ describe("tool.spec_write", () => {
     it.instance("returns validation errors for invalid spec", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const target = path.join(test.directory, "spec", "default", "spec.md")
         const result = yield* run({
           filePath: target,
           content: "# Feature Specification: Auth\n\n## Overview\n\noverview",
@@ -140,7 +140,7 @@ describe("tool.spec_write", () => {
     it.instance("returns no validation errors for valid spec", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const target = path.join(test.directory, "spec", "default", "spec.md")
         const content = `# Feature Specification: Auth
 
 ## Overview
@@ -177,7 +177,7 @@ questions
     it.instance("returns validation errors for invalid plan", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "plan.md")
+        const target = path.join(test.directory, "spec", "default", "plan.md")
         const result = yield* run({
           filePath: target,
           content: "# Implementation Plan: Auth\n\n## Summary\n\nsummary",
@@ -191,7 +191,7 @@ questions
     it.instance("returns validation errors for invalid tasks", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "tasks.md")
+        const target = path.join(test.directory, "spec", "default", "tasks.md")
         const result = yield* run({
           filePath: target,
           content: "# Tasks: Auth\n\n## Format\n\nformat",
@@ -207,7 +207,7 @@ questions
     it.instance("returns relative path in output", () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const target = path.join(test.directory, ".specs", "default", "spec.md")
+        const target = path.join(test.directory, "spec", "default", "spec.md")
         const result = yield* run({ filePath: target, content: "# Feature Specification: Auth\n\n## Overview\n\noverview" })
 
         expect(result.metadata.filepath).toBe(target)

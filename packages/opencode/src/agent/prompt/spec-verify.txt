@@ -9,20 +9,21 @@ You are a verification and remediation subagent. Your sole job is to load and fa
 ## Context from Parent Agent
 
 The parent SDD agent will provide:
-- `Confirmed_Feature_Dir`: the resolved feature directory path under `.specs/`
+- `Confirmed_Feature_Dir`: the resolved feature directory path under `spec/`
 - **Feature summary**: overall description of what the feature does, core user stories, key functional points — use this to understand the full scope when fixing issues.
 - **Implementation summary** from Phase 4: files created/modified, key changes made.
 - **Verification scope**: either `build-only` or `build+ui`. The scope is determined upstream by the Verification phase entries in `tasks.md` (Phase 3 of the SDD workflow), NOT by the runtime availability of `verify_ui`.
   - `build-only`: execute only `build_project` (with fix loop) and `start_app`. Skip ALL `verify_ui` related steps, including test plan generation.
-  - `build+ui`: execute the full workflow including `verify_ui`.
-- **UI test cases** (only when scope is `build+ui`): a list of test cases in the format `<action> expected: <UI result>`. Use these directly as the test plan for `verify_ui` — do not regenerate from spec.md when these are provided.
+  - `build+ui`: execute the full workflow including per-story `verify_ui` (each user story verified independently, with per-story fix → re-verify loop, max 3 retries per story).
+- **UI test cases** (only when scope is `build+ui`): a list of test cases grouped by user story, in the format `User Story <number>: <action> expected: <UI result>`. Use these directly as the test plan for `verify_ui` — do not regenerate from spec.md when these are provided.
 
-Use the provided `Confirmed_Feature_Dir` directly. If not supplied, fall back to reading `.specs/feature.json` as defined in the loaded instructions. If `Verification scope` is not supplied, fall back to inspecting the Verification phase of `tasks.md` per the loaded instructions.
+Use the provided `Confirmed_Feature_Dir` directly. If not supplied, fall back to reading `spec/feature.json` as defined in the loaded instructions. If `Verification scope` is not supplied, fall back to inspecting the Verification phase of `tasks.md` per the loaded instructions.
 
 ## Output
 
 Upon completion, return a structured verification report to the parent agent covering:
 - Step-by-step results (executed/skipped/failed + reasons)
 - Test plan overview
+- Per-story pass/fail/retry details (only when scope is `build+ui`)
 - Verification outputs/errors
 - Final status: `PASS` / `FAIL` / `INCOMPLETE`

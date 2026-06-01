@@ -10,12 +10,12 @@ $ARGUMENTS
 
 ## Pre-Flow: FEATURE_DIR Resolution & User Confirmation (STRICT SEQUENCE)
 1. Resolve target path:
-    - If `$ARGUMENTS` is not empty → `TARGET = .specs/$ARGUMENTS`
-    - If `$ARGUMENTS` is empty → `TARGET = value from .specs/feature.json` (key: `feature_directory`)
+    - If `$ARGUMENTS` is not empty → `TARGET = spec/$ARGUMENTS`
+    - If `$ARGUMENTS` is empty → `TARGET = value from spec/feature.json` (key: `feature_directory`)
 2. Validate directory:
     - Check if `TARGET` exists.
     - If exists → `FEATURE_DIR = TARGET`
-    - If not exists → `FEATURE_DIR = fallback directory from .specs/feature.json`
+    - If not exists → `FEATURE_DIR = fallback directory from spec/feature.json`
 
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
 1. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
