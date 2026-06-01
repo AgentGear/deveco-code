@@ -14,7 +14,7 @@ type Shortcuts = {
   childPrevious: TipShortcut
   commandList: TipShortcut
   editorOpen: TipShortcut
-  helpShow: TipShortcut
+  helpOpen: TipShortcut
   inputClear: TipShortcut
   inputNewline: TipShortcut
   inputPaste: TipShortcut
@@ -104,7 +104,7 @@ export function Tips(props: { api: TuiPluginApi; connected?: boolean }) {
     childPrevious: configShortcut(props.api, "session.child.previous"),
     commandList: useCommandShortcut("command.palette.show"),
     editorOpen: useCommandShortcut("prompt.editor"),
-    helpShow: useCommandShortcut("help.show"),
+    helpOpen: useCommandShortcut("help.open"),
     inputClear: useCommandShortcut("prompt.clear"),
     inputNewline: useCommandShortcut("input.newline"),
     inputPaste: useCommandShortcut("prompt.paste"),
@@ -271,7 +271,7 @@ const TIPS: Tip[] = [
   "Use {highlight}/connect{/highlight} to add API keys for supported LLM providers",
   "Commit your project's {highlight}AGENTS.md{/highlight} file to Git for team sharing",
   "Use {highlight}/review{/highlight} to review uncommitted changes, branches, or PRs",
-  (shortcuts) => `Use ${commandText("/help", shortcuts.helpShow())} to show the help dialog`,
+  (shortcuts) => `Use ${commandText("/help", shortcuts.helpOpen())} to open the DevEco Code user guide`,
   "Use {highlight}/rename{/highlight} to rename the current session",
   ...(process.platform === "win32"
     ? ([(shortcuts) => press(shortcuts.inputUndo(), "to undo changes in your prompt")] satisfies Tip[])

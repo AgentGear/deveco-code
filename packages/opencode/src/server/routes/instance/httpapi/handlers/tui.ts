@@ -39,7 +39,7 @@ export const tuiHandlers = HttpApiBuilder.group(InstanceHttpApi, "tui", (handler
     })
 
     const openHelp = Effect.fn("TuiHttpApi.openHelp")(function* () {
-      yield* publishCommand("help.show")
+      yield* publishCommand("help.open")
       return true
     })
 
