@@ -38,7 +38,7 @@ import { useConnected } from "@tui/component/use-connected"
 import { DialogMcp } from "@tui/component/dialog-mcp"
 import { DialogStatus } from "@tui/component/dialog-status"
 import { DialogThemeList } from "@tui/component/dialog-theme-list"
-import { DialogHelp } from "./ui/dialog-help"
+import { DEVECO_FEEDBACK_URL, DEVECO_GUIDE_URL } from "@/cli/deveco-links"
 import { DialogAgent } from "@tui/component/dialog-agent"
 import { DialogSessionList } from "@tui/component/dialog-session-list"
 import { DialogConsoleOrg } from "@tui/component/dialog-console-org"
@@ -105,7 +105,7 @@ const appBindingCommands = [
   "theme.switch",
   "theme.switch_mode",
   "theme.mode.lock",
-  "help.show",
+  "help.open",
   "docs.open",
   "app.debug",
   "app.console",
@@ -496,6 +496,10 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
   })
 
   const connected = useConnected()
+  const openInBrowser = (url: string) => {
+    open(url).catch(() => {})
+    dialog.clear()
+  }
   const appCommands = createMemo(() =>
     [
       {
@@ -704,12 +708,11 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         category: "System",
       },
       {
-        name: "help.show",
+        name: "help.open",
         title: "Help",
+        description: "Open DevEco Code user guide",
         slashName: "help",
-        run: () => {
-          dialog.replace(() => <DialogHelp />)
-        },
+        run: () => openInBrowser(DEVECO_GUIDE_URL),
         category: "System",
       },
       {
@@ -848,10 +851,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         title: "Feedback",
         description: "Submit complaints, suggestions or feedback",
         slashName: "feedback",
-        run: () => {
-          open("https://developer.huawei.com/consumer/cn/support/feedback/#/").catch(() => {})
-          dialog.clear()
-        },
+        run: () => openInBrowser(DEVECO_FEEDBACK_URL),
         category: "System",
       },
       ...(sync.data.provider_next.connected.includes("deveco")

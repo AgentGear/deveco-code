@@ -57,7 +57,7 @@ export const Definitions = {
   app_toggle_paste_summary: keybind("none", "Toggle paste summary"),
   app_toggle_session_directory_filter: keybind("none", "Toggle session directory filtering"),
   command_list: keybind("ctrl+p", "List available commands"),
-  help_show: keybind("none", "Open help dialog"),
+  help_open: keybind("none", "Open DevEco Code user guide"),
   docs_open: keybind("none", "Open documentation"),
 
   editor_open: keybind("<leader>e", "Open external editor"),
@@ -243,7 +243,7 @@ export const CommandMap = {
   app_toggle_paste_summary: "app.toggle.paste_summary",
   app_toggle_session_directory_filter: "app.toggle.session_directory_filter",
   command_list: "command.palette.show",
-  help_show: "help.show",
+  help_open: "help.open",
   docs_open: "docs.open",
   editor_open: "prompt.editor",
   theme_list: "theme.switch",

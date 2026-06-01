@@ -71,8 +71,8 @@ export const TuiApi = HttpApi.make("tui")
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "tui.openHelp",
-            summary: "Open help dialog",
-            description: "Open the help dialog in the TUI to display user assistance information.",
+            summary: "Open user guide",
+            description: "Open the DevEco Code user guide in the default browser.",
           }),
         ),
         HttpApiEndpoint.post("openSessions", TuiPaths.openSessions, {
