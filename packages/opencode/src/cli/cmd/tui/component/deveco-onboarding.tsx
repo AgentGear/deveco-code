@@ -287,6 +287,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     setCheckingStatus(true)
     setNetworkErrorNoCache(false)
     setSignError(null)
+    setPrivacyIndex(1)
 
     const session = await devecoAuth.getSession()
     const accessToken = session?.accessToken || ''
@@ -317,6 +318,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     }
 
     setCheckingStatus(false)
+    setPrivacyIndex(0) // Default select Agree in normal agreement form
   }
 
   // Kick off agreement check on mount when initial step is privacy
@@ -748,22 +750,26 @@ if (st === 'entry') {
   return (
     <box flexDirection='column' gap={2} flexShrink={0} width='100%' alignItems='center' justifyContent='center'>
       <Show when={step() === 'privacy'}>
-        <OnboardingContent>
-            <Show when={checkingStatus()}>
-              <text fg={theme.textMuted} selectable={false}>
-                Checking agreement status...
-              </text>
-            </Show>
-            <Show when={!checkingStatus() && networkErrorNoCache()}>
-              <text fg={theme.error} selectable={false}>
-                Network error: Cannot reach agreement service.
-              </text>
-              <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false} marginTop={1}>
-                {selectionLead(privacyIndex() === 1)}
-                Cancel
-              </text>
-            </Show>
-            <Show when={!checkingStatus() && !networkErrorNoCache()}>
+        <Show when={checkingStatus()}>
+          <box flexDirection='column' alignItems='center'>
+            <text fg={theme.textMuted} selectable={false}>
+              Checking agreement status...
+            </text>
+          </box>
+        </Show>
+        <Show when={!checkingStatus() && networkErrorNoCache()}>
+          <box flexDirection='column' alignItems='center'>
+            <text fg={theme.error} selectable={false}>
+              Network error: Cannot reach agreement service.
+            </text>
+            <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false} marginTop={1}>
+              {selectionLead(privacyIndex() === 1)}
+              Cancel
+            </text>
+          </box>
+        </Show>
+        <Show when={!checkingStatus() && !networkErrorNoCache()}>
+          <OnboardingContent>
               <text fg={theme.text} selectable={false}>
                 Please read and agree to the following agreements to start the HarmonyOS development journey.
               </text>
@@ -808,8 +814,8 @@ if (st === 'entry') {
                   {signError()}
                 </text>
               </Show>
-            </Show>
-        </OnboardingContent>
+          </OnboardingContent>
+        </Show>
       </Show>
       <Show when={step() === 'entry'}>
         <OnboardingContent>

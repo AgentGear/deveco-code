@@ -131,6 +131,7 @@ async function tmsPost(tmsUrl: string, body: TmsFormBody): Promise<string> {
     })
     req.on("timeout", () => {
       req.destroy()
+      log.error("TMS request timeout", { url: tmsUrl })
       reject(new Error("TMS request timeout"))
     })
 
@@ -155,6 +156,7 @@ async function handleSessionTimeoutAndRetry<T>(
   try {
     resJson = JSON.parse(rawResponse) as Record<string, unknown>
   } catch {
+    log.warn("failed to parse TMS response as JSON, falling through to raw parse")
     return { result: parseResponse(rawResponse), refreshedToken: false }
   }
 
@@ -268,7 +270,7 @@ class AgreementService {
 
       return result
     } catch (err) {
-      log.warn(`query agreement exception: ${err instanceof Error ? err.message : String(err)}`)
+      log.error(`query agreement exception: ${err instanceof Error ? err.message : String(err)}`)
       return {
         status: AgreementStatus.NETWORK_ERROR,
         signInfo: null,
@@ -283,6 +285,7 @@ class AgreementService {
       const resJson = JSON.parse(raw) as Record<string, unknown>
 
       if (isSessionTimeoutError(resJson[KEY_ERROR])) {
+        log.error("query agreement response: session timeout", { error: resJson[KEY_ERROR] })
         return {
           status: AgreementStatus.NEED_SIGN,
           signInfo: null,
@@ -295,6 +298,7 @@ class AgreementService {
       if (errorCode === 0) {
         const signArr = resJson.signInfo as Array<Record<string, unknown>> | undefined
         if (!signArr || signArr.length === 0) {
+          log.warn("query agreement response: empty signInfo array")
           return {
             status: AgreementStatus.NEED_SIGN,
             signInfo: null,
@@ -346,7 +350,8 @@ class AgreementService {
         versionInfo: null,
         error: `errorCode=${errorCode}`,
       }
-    } catch {
+    } catch (err) {
+      log.error("failed to parse agreement query response", { error: err instanceof Error ? err.message : String(err) })
       return {
         status: AgreementStatus.NEED_SIGN,
         signInfo: null,
@@ -402,7 +407,7 @@ class AgreementService {
 
       return { ...result, refreshedToken }
     } catch (err) {
-      log.warn(`sign agreement exception: ${err instanceof Error ? err.message : String(err)}`)
+      log.error(`sign agreement exception: ${err instanceof Error ? err.message : String(err)}`)
       return {
         success: false,
         isUpload: false,
@@ -416,6 +421,7 @@ class AgreementService {
       const resJson = JSON.parse(raw) as Record<string, unknown>
 
       if (isSessionTimeoutError(resJson[KEY_ERROR])) {
+        log.error("sign agreement response: session timeout", { error: resJson[KEY_ERROR] })
         return {
           success: false,
           isUpload: false,
@@ -428,12 +434,14 @@ class AgreementService {
         return { success: true, isUpload: true }
       }
 
+      log.error("sign agreement response: non-zero errorCode", { errorCode })
       return {
         success: false,
         isUpload: false,
         error: `errorCode=${errorCode}`,
       }
-    } catch {
+    } catch (err) {
+      log.error("failed to parse agreement sign response", { error: err instanceof Error ? err.message : String(err) })
       return {
         success: false,
         isUpload: false,
