@@ -45,7 +45,7 @@ export class McpOAuthProvider implements OAuthClientProvider {
     return {
       redirect_uris: [this.redirectUrl],
       client_name: "DevEco Code",
-      client_uri: "https://opencode.ai",
+      client_uri: "https://cn.devecostudio.huawei.com",
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: this.config.clientSecret ? "client_secret_post" : "none",
