@@ -114,7 +114,7 @@ Execute phases sequentially (1 → 5). Do not skip, merge, or reorder steps.
         - 点击"购物车"按钮 预期：跳转到购物车页面，显示已添加的商品列表
         - 下拉刷新商品列表 预期：列表刷新，显示最新商品数据
         Cover core page rendering and key user interaction flows derived from the spec.
-4. Gate Action: Upon subagent completion, review its returned verification report. Update state. After the subagent reports completion, mark the Verification phase tasks in `tasks.md` as `[X]` via `edit`. Mark workflow as `completed` when verification passes or user confirms wrap-up. _(Fallback: if `question` is rejected by the system, mark as `completed` directly.)_
+4. Gate Action: Upon subagent completion, review its returned verification report. Update state. After the subagent reports completion, mark the Verification phase tasks in `tasks.md` as `[X]` via `edit`. Mark workflow as `completed`. If the subagent reports `FAIL`, note the unresolved issues in the workflow completion summary for manual intervention. Do **not** use `question` in Phase 5.
 
 ## EXCEPTION HANDLING & RECOVERY PROTOCOL
 - **Tool Failure:** If `read`/`write`/`question`/`todowrite` fails after 1 retry, output: `[TOOL_ERROR] <tool_name>: <error_detail>` and pause for user intervention.
