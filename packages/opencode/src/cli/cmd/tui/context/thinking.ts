@@ -15,6 +15,13 @@ export function reasoningTitle(text: string): string | null {
   return match ? match[1].trim() : null
 }
 
+export function reasoningSummary(text: string) {
+  const content = text.trimStart()
+  const match = content.match(/^\*\*([^*\n]+)\*\*(?:\r?\n\r?\n|$)/)
+  if (!match) return { title: null, body: content }
+  return { title: match[1].trim(), body: content.slice(match[0].length).trimEnd() }
+}
+
 export function isThinkingMode(value: unknown): value is ThinkingMode {
   return typeof value === "string" && (MODES as readonly string[]).includes(value)
 }
