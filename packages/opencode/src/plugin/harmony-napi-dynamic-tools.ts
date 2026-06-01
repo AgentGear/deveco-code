@@ -360,6 +360,13 @@ const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
           // Validate file path parameters to prevent path traversal attacks
           validatePathParameters(payload, worktree);
 
+          if (name === 'verify_ui') {
+            const typedCtx = ctx as { sessionID?: string };
+            if (typedCtx.sessionID) {
+              payload.sessionId = typedCtx.sessionID;
+            }
+          }
+
           const result = await callHarmonyNapiTool({ worktree, toolName: name, args: payload });
           return textFromCallResult(result);
         },
