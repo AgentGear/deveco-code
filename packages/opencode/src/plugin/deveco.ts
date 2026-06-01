@@ -32,7 +32,9 @@ export async function saveAuthToDisk(key: string, info: Record<string, unknown>)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     const encrypted = LocalCrypto.encryptAuthData(data)
     fs.writeFileSync(authFilePath, JSON.stringify(encrypted, null, 2), { mode: 0o600 })
-  } catch {}
+  } catch (err) {
+    log.error("failed to save auth to disk", { key, error: err instanceof Error ? err.message : String(err) })
+  }
 }
 
 function loadAccessTokenFromDisk(): string {
@@ -44,7 +46,9 @@ function loadAccessTokenFromDisk(): string {
     if (deveco?.type === "oauth" && typeof deveco.access === "string") {
       return deveco.access
     }
-  } catch {}
+  } catch (err) {
+    log.warn("failed to load access token from disk", { error: err instanceof Error ? err.message : String(err) })
+  }
   return ""
 }
 
@@ -61,7 +65,9 @@ export function hasDevecoOAuthEntry(): boolean {
     const deveco = data.deveco as Record<string, unknown> | undefined
     return deveco?.type === "oauth"
       && typeof deveco.access === "string" && deveco.access.length > 0
-  } catch {}
+  } catch (err) {
+    log.warn("failed to check deveco oauth entry on disk", { error: err instanceof Error ? err.message : String(err) })
+  }
   return false
 }
 
@@ -255,8 +261,9 @@ class TokenStorage {
       const tokenData = JSON.parse(fs.readFileSync(this.tokenFilePath, "utf8"))
       if (!LocalCrypto.isEncryptedBlob(tokenData)) return null
       return LocalCrypto.decryptForLocalStorage(tokenData)
-    } catch {
+    } catch (err) {
       void this.clearToken()
+      log.warn("failed to load token, clearing token file", { error: err instanceof Error ? err.message : String(err) })
       return null
     }
   }
@@ -297,6 +304,7 @@ class LocalAuthServer {
         return actualPort
       } catch {
         if (port === portsToTry[portsToTry.length - 1]) {
+          log.error("all auth server ports are in use", { ports: portsToTry })
           throw new Error("All ports are in use. Please free up a port or close other DevEco Code instances.")
         }
       }
@@ -406,6 +414,7 @@ class LocalAuthServer {
     } catch (err) {
       res.writeHead(500)
       res.end("Internal Server Error")
+      log.error("local auth server request error", { error: err instanceof Error ? err.message : String(err) })
       this.rejectCallback?.(err instanceof Error ? err : new Error(String(err)))
     }
   }
@@ -430,6 +439,7 @@ class LocalAuthServer {
       const quit = params.get("quit")
 
       if (quit === "true" || quit === "access_denied") {
+        log.info("login callback: user cancelled", { quit })
         this.rejectCallback?.(
           new LoginCancelledError(
             quit === "access_denied" ? "Access denied by user" : "Login cancelled by user",
@@ -443,6 +453,7 @@ class LocalAuthServer {
       }
 
       if (!tempToken || !siteId) {
+        log.error("login callback: missing tempToken or siteId", { tempToken: !!tempToken, siteId: !!siteId })
         this.rejectCallback?.(new Error("Login cancelled by user"))
         res.writeHead(302, {
           Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
@@ -452,6 +463,7 @@ class LocalAuthServer {
       }
 
       if (siteId !== "1") {
+        log.error("login callback: unsupported region", { siteId })
         this.rejectCallback?.(new UnsupportedRegionError("Unsupported region"))
         res.writeHead(302, {
           Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
@@ -475,6 +487,7 @@ class LocalAuthServer {
     } catch (err) {
       res.writeHead(500)
       res.end("Internal Server Error")
+      log.error("local auth server callback error", { error: err instanceof Error ? err.message : String(err) })
       this.rejectCallback?.(err instanceof Error ? err : new Error(String(err)))
     }
   }
@@ -526,6 +539,7 @@ class LoginService {
       }
     } catch (err) {
       if (err instanceof LoginCancelledError) {
+        log.info("login cancelled by user")
         return {
           success: false,
           cancelled: true,
@@ -533,12 +547,14 @@ class LoginService {
         }
       }
       if (err instanceof UnsupportedRegionError) {
+        log.error("login failed: unsupported region", { error: err.message })
         return {
           success: false,
           unsupportedRegion: true,
           error: "Sorry, only China site accounts are currently supported",
         }
       }
+      log.error("login failed", { error: err instanceof Error ? err.message : String(err) })
       return {
         success: false,
         error: err instanceof Error ? err.message : "Unknown error",
@@ -613,6 +629,7 @@ class LoginService {
     try {
       await execAsync(command)
     } catch (err) {
+      log.error("failed to open login page in browser", { command, error: err instanceof Error ? err.message : String(err) })
       throw new Error("Failed to open login page", { cause: err })
     }
   }
@@ -631,12 +648,14 @@ class LoginService {
     const response = await httpClient.get(url, { params })
 
     if (response.statusCode !== 200) {
+      log.error("failed to get jwtToken", { statusCode: response.statusCode })
       throw new Error(`Failed to get jwtToken: ${response.statusCode}`)
     }
 
     const jwtToken = response.data.trim()
 
     if (jwtToken.split(".").length !== 3) {
+      log.error("invalid jwtToken format received", { tokenLength: jwtToken.length })
       throw new Error(`Invalid jwtToken format`)
     }
 
@@ -647,6 +666,7 @@ class LoginService {
     const tokenInfo = await this.checkJwtToken(jwtToken)
 
     if (!tokenInfo.status || !tokenInfo.userInfo) {
+      log.error("invalid jwtToken: missing userInfo", { status: tokenInfo.status })
       throw new Error("Invalid jwtToken: missing userInfo")
     }
 
@@ -676,6 +696,7 @@ class LoginService {
     const response = await httpClient.get(url, { headers })
 
     if (response.statusCode !== 200) {
+      log.error("failed to check jwtToken", { statusCode: response.statusCode })
       throw new Error(`Failed to check jwtToken: ${response.statusCode}`)
     }
 
@@ -792,9 +813,10 @@ class DevEcoAuth {
             expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
           }
         }
-      } catch {
-        // ignore parse errors
-      }
+} catch (err) {
+          // ignore parse errors — session may not be available from disk token
+          log.warn("failed to parse jwtToken when restoring session from disk", { error: err instanceof Error ? err.message : String(err) })
+        }
     }
     return null
   }
@@ -848,7 +870,8 @@ class DevEcoAuth {
     try {
       const parsed = loginService.parseJwt(jwtToken)
       return parsed.userId || null
-    } catch {
+    } catch (err) {
+      log.warn("failed to parse jwtToken for userId", { error: err instanceof Error ? err.message : String(err) })
       return null
     }
   }
@@ -897,8 +920,10 @@ export async function requireLogin(): Promise<boolean> {
         process.exit(1)
       }
       if (result.unsupportedRegion) {
+        log.error("login failed: unsupported region")
         prompts.log.error("Sorry, only China site accounts are currently supported")
       } else {
+        log.error("login failed", { error: result.error })
         prompts.log.error(result.error || "An error occurred during login")
       }
       prompts.outro("Please try again later")
@@ -925,6 +950,7 @@ export async function requireLogin(): Promise<boolean> {
   } catch (error) {
     spinner.stop("Login failed")
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    log.error("login exception in requireLogin", { error: errorMessage })
     prompts.log.error(errorMessage)
     prompts.outro("Please try again later")
     return false
