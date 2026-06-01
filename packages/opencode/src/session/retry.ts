@@ -205,24 +205,56 @@ function parseJSON(value: unknown) {
   })
 }
 
+// Error categories for per-category attempt tracking — resetting the counter
+// on category change gives each maxAttempts error type its own retry budget.
+function getRetryCategory(error: Err): string {
+  if (MessageV2.QueueError.isInstance(error)) return "queue"
+  if (MessageV2.ModelServiceRateLimitError.isInstance(error)) return "model_service_rate_limit"
+  if (MessageV2.APIError.isInstance(error)) {
+    const status = error.data.statusCode
+    if (status === 403) {
+      const body = parseJSON(error.data.responseBody)
+      if (typeof body?.error?.type === "string" && body.error.type === "UserRateLimit") {
+        return "403_user_rate_limit"
+      }
+    }
+    return `api_${status ?? "unknown"}`
+  }
+  return "unknown"
+}
+
 export function policy(opts: {
   provider: string
   parse: (error: unknown) => Err
   set: (input: { attempt: number; message: string; action?: Retryable["action"]; next: number }) => Effect.Effect<void>
 }) {
+  let lastCategory: string | undefined
+  let categoryAttempt = 0
+
   return Schedule.fromStepWithMetadata(
     Effect.succeed((meta: Schedule.InputMetadata<unknown>) => {
       const error = opts.parse(meta.input)
       const retry = retryable(error, opts.provider)
       if (!retry) return Cause.done(meta.attempt)
-      if (retry.maxAttempts !== undefined && meta.attempt >= retry.maxAttempts) {
+
+      const category = getRetryCategory(error)
+      if (category !== lastCategory) {
+        categoryAttempt = 1
+        lastCategory = category
+      } else {
+        categoryAttempt++
+      }
+
+      if (retry.maxAttempts !== undefined && categoryAttempt > retry.maxAttempts) {
         return Cause.done(meta.attempt)
       }
+
       return Effect.gen(function* () {
         const isQueue = MessageV2.QueueError.isInstance(error)
+        const effectiveAttempt = retry.maxAttempts !== undefined ? categoryAttempt : meta.attempt
         const wait = retry.delays
-          ? (retry.delays[meta.attempt - 1] ?? retry.delays[retry.delays.length - 1]!)
-          : delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined, isQueue)
+          ? (retry.delays[effectiveAttempt - 1] ?? retry.delays[retry.delays.length - 1]!)
+          : delay(effectiveAttempt, MessageV2.APIError.isInstance(error) ? error : undefined, isQueue)
         const now = yield* Clock.currentTimeMillis
         yield* opts.set({
           attempt: meta.attempt,

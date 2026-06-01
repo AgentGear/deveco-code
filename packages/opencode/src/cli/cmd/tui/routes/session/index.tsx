@@ -1605,7 +1605,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
               filetype="markdown"
               drawUnstyledText={false}
               streaming={true}
-              syntaxStyle={syntax()}
+              syntaxStyle={subtleSyntax()}
               content={summary().body}
               conceal={ctx.conceal()}
               fg={theme.textMuted}
