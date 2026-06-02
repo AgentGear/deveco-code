@@ -1,6 +1,6 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
-agent: sdd
+agent: goal
 ---
 
 ## User Input

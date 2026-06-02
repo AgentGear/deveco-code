@@ -413,7 +413,7 @@ Oh my opencode：npm install -g oh-my-opencode
 
 - **`plan`：需求拆解、技术方案、发布规划、测试规划、文档生成**
 - **`build`默认：工程生成、代码生成、配置修正、测试执行、推包运行、发布执行**
-- **`sdd`：spec定义、规范驱动、代码生成、功能验证**
+- **`goal`：spec定义、规范驱动、代码生成、功能验证**
 
 可通过 tab 键或输入“/agents”切换模式：
 
@@ -495,13 +495,13 @@ Oh my opencode：npm install -g oh-my-opencode
 
 ![screenshot](./assets/user-guide/scenario-image-to-ui-result.png)
 
-## 5.5 SDD模式介绍
+## 5.5 goal模式介绍
 
-SDD模式包含5个阶段，分别为需求分析，架构设计，任务分解，代码实现，功能验证。SDD模式在当前工程下新建.specs目录，每个需求会基于需求描述在.specs目录下新建需求目录。需求分析阶段生成spec.md文档，架构设计阶段生成plan.md文档，任务分解阶段生成tasks.md文档，如下图所示。
+goal模式包含5个阶段，分别为需求分析，架构设计，任务分解，代码实现，功能验证。goal模式在当前工程下新建.specs目录，每个需求会基于需求描述在.specs目录下新建需求目录。需求分析阶段生成spec.md文档，架构设计阶段生成plan.md文档，任务分解阶段生成tasks.md文档，如下图所示。
 
 ![screenshot](./assets/user-guide/sdd-specs-directory.png)
 
-### 5.5.1 切换到SDD模式
+### 5.5.1 切换到goal模式
 
 通过tab键切换模式
 

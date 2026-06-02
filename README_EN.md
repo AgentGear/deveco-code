@@ -127,7 +127,7 @@ DevEco Code provides the following Agent modes for HarmonyOS development (press 
 
 - `build`: Default mode, suitable for project scaffolding, code generation, configuration fixes, test execution, deployment, and release
 - `plan`: Suitable for requirement breakdown, technical design, release planning, test planning, and documentation generation
-- `sdd`: Suitable for spec definition, spec-driven development, code generation, and feature verification
+- `goal`: Suitable for spec definition, spec-driven development, code generation, and feature verification
 
 ## HarmonyOS Features
 

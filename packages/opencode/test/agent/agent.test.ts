@@ -85,7 +85,7 @@ it.instance("only build and spec-verify agents allow UI verification tools by de
       Effect.all([
         svc.get("build"),
         svc.get("spec-verify"),
-        svc.get("sdd"),
+        svc.get("goal"),
         svc.get("plan"),
         svc.get("general"),
         svc.get("explore"),
@@ -95,14 +95,14 @@ it.instance("only build and spec-verify agents allow UI verification tools by de
       ]),
     )
 
-    const [build, specVerify, sdd, plan, general, explore, compaction, title, summary] = agents
+    const [build, specVerify, goal, plan, general, explore, compaction, title, summary] = agents
 
     for (const tool of uiTools) {
       expect(evalPerm(build, tool)).toBe("allow")
       expect(evalPerm(specVerify, tool)).toBe("allow")
     }
 
-    for (const agent of [sdd, plan, general, explore, compaction, title, summary]) {
+    for (const agent of [goal, plan, general, explore, compaction, title, summary]) {
       for (const tool of uiTools) {
         expect(evalPerm(agent, tool)).toBe("deny")
       }
