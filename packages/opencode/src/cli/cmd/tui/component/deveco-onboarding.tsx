@@ -14,7 +14,7 @@ import { useKV } from '@tui/context/kv';
 import { resolveAgreementConfig, KV_DEVECO_CODE_PRIVACY_ACCEPTED, type AgreementConfig } from '@/cli/deveco-legal';
 import { agreementService, AgreementStatus } from '@/cli/deveco-agreement';
 import type { AgreementCheckResult } from '@/cli/deveco-agreement';
-import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH } from './banner';
+import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH, homeContentPadX } from './banner';
 
 declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';
@@ -22,17 +22,17 @@ import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai
 type OnboardingStep = 'privacy' | 'entry' | 'auth' | 'providers' | 'key';
 
 const LIST_HELP = 'Use Enter to Select';
-/** Horizontal inset so copy/options align under the centered banner tagline. */
-const CONTENT_PAD_X = 15;
 
 function OnboardingContent(props: ParentProps) {
+  const dimensions = useTerminalDimensions();
+  const padX = createMemo(() => homeContentPadX(Math.floor(dimensions().width)));
   return (
     <box
       flexDirection='column'
       width='100%'
       maxWidth={HOME_CONTENT_MAX_WIDTH}
-      paddingLeft={CONTENT_PAD_X}
-      paddingRight={CONTENT_PAD_X}
+      paddingLeft={padX()}
+      paddingRight={padX()}
     >
       {props.children}
     </box>
@@ -281,6 +281,10 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const [key, setKey] = createSignal('');
   let input: TextareaRenderable | undefined;
   let providerScroll: ScrollBoxRenderable | undefined;
+  let privacyScroll: ScrollBoxRenderable | undefined;
+
+  /** Rows kept visible below the privacy agreement scroll area (actions + help). */
+  const PRIVACY_SCROLL_FOOTER_ROWS = 5;
 
   // Async agreement status check — runs when entering privacy step
   const checkAgreementStatus = async () => {
@@ -402,9 +406,22 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     return Math.min(filteredProviders().length, Math.max(cap, 5));
   });
 
+  const privacyScrollHeight = createMemo(() => {
+    const slot = props.bodySlotHeight ?? Math.floor(dimensions().height / 2) - 12;
+    return Math.max(3, slot - PRIVACY_SCROLL_FOOTER_ROWS);
+  });
+
+  const scrollPrivacyBy = (delta: number) => {
+    if (!privacyScroll) {
+      return;
+    }
+    privacyScroll.scrollBy(delta);
+  };
+
   const providerSearchBoxWidth = createMemo(() => {
-    // 75 matches the surrounding maxWidth; clamp to terminal width (minus Home padding).
-    const w = Math.floor(dimensions().width) - BANNER_HOME_CONTENT_INSET;
+    const termW = Math.floor(dimensions().width);
+    const pad = homeContentPadX(termW);
+    const w = termW - BANNER_HOME_CONTENT_INSET - pad * 2;
     return Math.max(16, Math.min(75, w));
   });
 
@@ -595,6 +612,16 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
         setPrivacyIndex(1);
         return;
       }
+      if (evt.name === 'pageup') {
+        evt.preventDefault();
+        scrollPrivacyBy(-(privacyScroll?.height ?? 4));
+        return;
+      }
+      if (evt.name === 'pagedown') {
+        evt.preventDefault();
+        scrollPrivacyBy(privacyScroll?.height ?? 4);
+        return;
+      }
       if (evt.name === 'return') {
         evt.preventDefault();
         if (signBusy() || checkingStatus()) {
@@ -747,8 +774,19 @@ if (st === 'entry') {
     }
   });
 
+  const onboardingJustify = createMemo(() => (step() === 'privacy' ? 'flex-start' : 'center'));
+
   return (
-    <box flexDirection='column' gap={2} flexShrink={0} width='100%' alignItems='center' justifyContent='center'>
+    <box
+      flexDirection='column'
+      gap={step() === 'privacy' ? 1 : 2}
+      flexShrink={0}
+      width='100%'
+      alignItems='center'
+      justifyContent={onboardingJustify()}
+      height={step() === 'privacy' ? props.bodySlotHeight : undefined}
+      minHeight={0}
+    >
       <Show when={step() === 'privacy'}>
         <Show when={checkingStatus()}>
           <box flexDirection='column' alignItems='center'>
@@ -770,28 +808,43 @@ if (st === 'entry') {
         </Show>
         <Show when={!checkingStatus() && !networkErrorNoCache()}>
           <OnboardingContent>
-              <text fg={theme.text} selectable={false}>
-                Please read and agree to the following agreements to start the HarmonyOS development journey.
-              </text>
-              <text fg={theme.textMuted} selectable={false} marginTop={1}>
-                Terms Of Use:
-              </text>
-              <Link href={agreementConfig().terms_url} fg={theme.primary}>DevEco Code AI Terms Of Use</Link>
-              <text fg={theme.textMuted} selectable={false} marginTop={1}>
-                Privacy Policy:
-              </text>
-              <Link href={agreementConfig().privacy_url} fg={theme.primary}>DevEco Code AI Privacy Policy</Link>
-
-              <box onMouseUp={() => setCheckboxChecked(!checkboxChecked())}>
-                <text fg={theme.text} selectable={false} marginTop={1}>
-                  {checkboxChecked() ? '☑' : '☐'}  I have read and agree to the above agreements
+              <scrollbox
+                ref={(r: ScrollBoxRenderable) => (privacyScroll = r)}
+                maxHeight={privacyScrollHeight()}
+                width='100%'
+                scrollbarOptions={{ visible: false }}
+              >
+                <text fg={theme.text} selectable={false} wrapMode='word'>
+                  Please read and agree to the following agreements to start the HarmonyOS development journey.
                 </text>
-              </box>
-              <text fg={theme.textMuted} selectable={false}>
-                (Press Space or click to check)
-              </text>
+                <text fg={theme.textMuted} selectable={false} marginTop={1}>
+                  Terms Of Use:
+                </text>
+                <Link href={agreementConfig().terms_url} fg={theme.primary}>
+                  DevEco Code AI Terms Of Use
+                </Link>
+                <text fg={theme.textMuted} selectable={false} marginTop={1}>
+                  Privacy Policy:
+                </text>
+                <Link href={agreementConfig().privacy_url} fg={theme.primary}>
+                  DevEco Code AI Privacy Policy
+                </Link>
 
-              <text fg={privacyIndex() === 0 && checkboxChecked() ? theme.success : theme.textMuted} selectable={false} marginTop={1}>
+                <box onMouseUp={() => setCheckboxChecked(!checkboxChecked())}>
+                  <text fg={theme.text} selectable={false} marginTop={1} wrapMode='word'>
+                    {checkboxChecked() ? '☑' : '☐'}  I have read and agree to the above agreements
+                  </text>
+                </box>
+                <text fg={theme.textMuted} selectable={false}>
+                  (Press Space or click to check)
+                </text>
+              </scrollbox>
+
+              <text
+                fg={privacyIndex() === 0 && checkboxChecked() ? theme.success : theme.textMuted}
+                selectable={false}
+                marginTop={1}
+              >
                 {selectionLead(privacyIndex() === 0)}
                 1. Agree {!checkboxChecked() ? '(check first)' : ''}
               </text>
@@ -801,7 +854,7 @@ if (st === 'entry') {
               </text>
 
               <text fg={theme.textMuted} selectable={false} marginTop={1}>
-                Use Enter to Select, Space or Click to Check
+                Scroll: wheel or PgUp/PgDn · Enter to select · Space or click to check · Up/Down for options
               </text>
 
               <Show when={signBusy()}>
@@ -810,7 +863,7 @@ if (st === 'entry') {
                 </text>
               </Show>
               <Show when={signError() !== null}>
-                <text fg={theme.error} selectable={false}>
+                <text fg={theme.error} selectable={false} wrapMode='word'>
                   {signError()}
                 </text>
               </Show>
