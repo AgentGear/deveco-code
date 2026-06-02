@@ -1,15 +1,22 @@
-# DevEco Code
+<p align="center">
+  <h1 align="center">DevEco Code</h1>
+</p>
+<p align="center">面向 HarmonyOS（鸿蒙）开发场景的 AI Agent 工具。</p>
+<p align="center">
+  <a href="https://www.npmjs.com/package/@deveco/deveco-code"><img alt="npm" src="https://img.shields.io/npm/v/@deveco/deveco-code?style=flat-square&label=npm" /></a>
+  <a href="https://gitcode.com/openharmony-sig/deveco-code/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/@deveco/deveco-code?style=flat-square&label=license" /></a>
+  <a href="https://gitcode.com/openharmony-sig/deveco-code"><img alt="GitCode" src="https://img.shields.io/badge/GitCode-openharmony--sig%2Fdeveco--code-blue?style=flat-square" /></a>
+</p>
+<p align="center">
+  <a href="README_EN.md">English</a> |
+  <a href="https://www.npmjs.com/package/@deveco/deveco-code">npm 包页面</a> |
+  <a href="https://gitcode.com/openharmony-sig/deveco-code">GitCode 仓库</a> |
+  <a href="https://opencode.ai">OpenCode</a>
+</p>
 
-面向 HarmonyOS（鸿蒙）开发场景的 AI Agent 工具。
-
-[![npm](https://img.shields.io/npm/v/@deveco/deveco-code?style=flat-square&label=npm)](https://www.npmjs.com/package/@deveco/deveco-code)
-[![license](https://img.shields.io/npm/l/@deveco/deveco-code?style=flat-square&label=license)](https://gitcode.com/openharmony-sig/deveco-code/blob/main/LICENSE)
-[![GitCode](https://img.shields.io/badge/GitCode-openharmony--sig%2Fdeveco--code-blue?style=flat-square)](https://gitcode.com/openharmony-sig/deveco-code)
-
-[English](README_EN.md) |
-[npm 包页面](https://www.npmjs.com/package/@deveco/deveco-code) |
-[GitCode 仓库](https://gitcode.com/openharmony-sig/deveco-code) |
-[OpenCode](https://opencode.ai)
+<p align="center">
+  <img src="./assets/readme/readme-screenshot.png" alt="DevEco Code" width="600">
+</p>
 
 ***
 
@@ -80,7 +87,7 @@ npm uninstall -g @deveco/deveco-code
 
 ## 登录与模型
 
-启动 `deveco` 后可使用华为账号登录。登录后可使用 DevEco Code 提供的免费模型通道；不登录时也可以沿用 OpenCode 的 Provider 配置体系，自行配置模型。
+启动 `deveco` 需华为账号登录。登录后可使用 DevEco Code 提供的免费模型通道。
 
 ```bash
 # 退出登录
