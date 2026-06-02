@@ -1,15 +1,22 @@
-# DevEco Code
+<p align="center">
+  <h1 align="center">DevEco Code</h1>
+</p>
+<p align="center">An AI Agent tool for HarmonyOS application development.</p>
+<p align="center">
+  <a href="https://www.npmjs.com/package/@deveco/deveco-code"><img alt="npm" src="https://img.shields.io/npm/v/@deveco/deveco-code?style=flat-square&label=npm" /></a>
+  <a href="https://gitcode.com/openharmony-sig/deveco-code/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/@deveco/deveco-code?style=flat-square&label=license" /></a>
+  <a href="https://gitcode.com/openharmony-sig/deveco-code"><img alt="GitCode" src="https://img.shields.io/badge/GitCode-openharmony--sig%2Fdeveco--code-blue?style=flat-square" /></a>
+</p>
+<p align="center">
+  <a href="README.md">简体中文</a> |
+  <a href="https://www.npmjs.com/package/@deveco/deveco-code">npm Package</a> |
+  <a href="https://gitcode.com/openharmony-sig/deveco-code">GitCode Repository</a> |
+  <a href="https://opencode.ai">OpenCode</a>
+</p>
 
-An open-source AI Agent for HarmonyOS application development.
-
-[![npm](https://img.shields.io/npm/v/@deveco/deveco-code?style=flat-square&label=npm)](https://www.npmjs.com/package/@deveco/deveco-code)
-[![license](https://img.shields.io/npm/l/@deveco/deveco-code?style=flat-square&label=license)](https://gitcode.com/openharmony-sig/deveco-code/blob/main/LICENSE)
-[![GitCode](https://img.shields.io/badge/GitCode-openharmony--sig%2Fdeveco--code-blue?style=flat-square)](https://gitcode.com/openharmony-sig/deveco-code)
-
-[简体中文](README.md) |
-[npm Package](https://www.npmjs.com/package/@deveco/deveco-code) |
-[GitCode Repository](https://gitcode.com/openharmony-sig/deveco-code) |
-[OpenCode](https://opencode.ai)
+<p align="center">
+  <img src="./assets/readme/readme-screenshot.png" alt="DevEco Code" width="600">
+</p>
 
 ***
 
@@ -80,7 +87,7 @@ npm uninstall -g @deveco/deveco-code
 
 ## Login & Models
 
-After launching `deveco`, you can log in with a Huawei account. Once logged in, you can use the free model channels provided by DevEco Code; without logging in, you can still use OpenCode's Provider configuration system to configure your own models.
+Launching `deveco` requires signing in with a Huawei account. After signing in, you can use the free model channels provided by DevEco Code.
 
 ```bash
 # Log out

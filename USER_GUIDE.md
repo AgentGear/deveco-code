@@ -104,7 +104,7 @@ macOS 如果遇到全局安装权限问题，可尝试：
 sudo -i npm install -g @deveco-test/deveco-code@beta --registry=https://registry.npmjs.org
 ```
 
-安装后输入 deveco，进入登陆界面，**登录可用免费的 DevEco Code 渠道模型，不登录需要自己配模型，配置体系参考opencode：**
+安装后输入 deveco，进入登陆界面，**登录可用免费的 DevEco Code 渠道模型：**
 
 ![screenshot](./assets/user-guide/login-initial-screen.png)
 
