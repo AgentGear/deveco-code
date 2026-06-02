@@ -32,6 +32,23 @@ export const BANNER_HOME_CONTENT_INSET = 0;
 /** Shared max width for banner, prompt, and onboarding body. */
 export const HOME_CONTENT_MAX_WIDTH = 110;
 
+/** Max horizontal padding for home onboarding body (wide terminals). */
+export const HOME_CONTENT_PAD_X_MAX = 15;
+
+/**
+ * Home onboarding horizontal padding; shrinks on narrow terminals so copy keeps usable width.
+ * Wide: aligns under centered banner tagline; narrow: minimal side margin.
+ */
+export function homeContentPadX(terminalWidth: number): number {
+  const w = Math.max(0, Math.floor(terminalWidth));
+  if (w >= 110) return HOME_CONTENT_PAD_X_MAX;
+  if (w >= 90) return 12;
+  if (w >= 72) return 8;
+  if (w >= 56) return 4;
+  if (w >= 40) return 2;
+  return 0;
+}
+
 /** Maximum rows for the region below the banner when the terminal is tall enough. */
 export const HOME_BODY_MAX_ROWS = 18;
 
