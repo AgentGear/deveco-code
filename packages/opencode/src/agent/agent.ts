@@ -27,6 +27,7 @@ import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
 import { Effect, Context, Layer, Schema } from "effect"
 import { InstanceState } from "@/effect/instance-state"
+import * as TaskRoute from "@/project/task-route"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import * as Option from "effect/Option"
 import * as OtelTracer from "@effect/opentelemetry/Tracer"
@@ -387,6 +388,13 @@ export const layer = Layer.effect(
             agents[name].permission,
             Permission.fromConfig({ external_directory: { [Truncate.GLOB]: "allow" } }),
           )
+        }
+
+        if (flags.exploreTaskRoute && agents.explore && !cfg.agent?.explore?.prompt) {
+          const routeContext = TaskRoute.buildExploreContext(ctx.directory)
+          if (routeContext) {
+            agents.explore.prompt = `${agents.explore.prompt ?? PROMPT_EXPLORE}\n\n${routeContext}`
+          }
         }
 
         const get = Effect.fnUntraced(function* (agent: string) {
