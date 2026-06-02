@@ -30,6 +30,10 @@ npm install -g @deveco/deveco-code
 deveco
 
 # 3. 开始对话 —— 在终端中直接描述你的鸿蒙开发需求
+提示词示例：
+- 解释一下代码库的架构
+- 帮我重构login_check这个函数
+- 帮我检查并修复语法错误
 ```
 
 > 如需编译构建、设备运行等能力，请先安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) 并配置 `DEVECO_HOME` 环境变量。
@@ -50,8 +54,8 @@ DevEco Code 基于开源项目 OpenCode 扩展开发，保留了 OpenCode 的终
 
 DevEco Code 通过 npm 分发，安装前请先准备以下环境：
 
-1. 安装 [Node.js LTS](https://nodejs.org)
-2. 如需使用鸿蒙工程的编译、运行和调试能力，请安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)
+1. 安装 [Node.js](https://nodejs.org)，**推荐使用 22 及更高版本**
+2. 安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)，**推荐使用 6.1 及更高版本**
 3. 配置 `DEVECO_HOME` 环境变量指向 DevEco Studio 安装目录
 
 可先在终端验证 Node.js 环境：
@@ -94,7 +98,7 @@ npm uninstall -g @deveco/deveco-code
 deveco auth logout
 ```
 
-在 DevEco Code 中输入 `/models` 可进入模型配置界面。当前免费提供 `glm-5`、`deepseek-v3.2` 两款模型，单账号默认每分钟 50 次请求。也可以通过 `Ctrl+A` 进入 Provider 选择界面，配置智谱、阿里等 OpenAI-compatible 模型。
+在 DevEco Code 中输入 `/models` 可进入模型配置界面。当前免费提供 `GLM-5.1` 模型，单账号默认每分钟 50 次请求。也可以通过 `Ctrl+A` 进入 Provider 选择界面，配置支持的第三方模型。
 
 也可以通过 `deveco.jsonc` 配置模型：
 
@@ -132,9 +136,9 @@ deveco auth logout
 
 DevEco Code 面向鸿蒙开发提供以下 Agent 模式（按 `Tab` 键切换）：
 
-- `build`：默认模式，适合工程生成、代码生成、配置修正、测试执行、推包运行和发布执行
-- `plan`：适合需求拆解、技术方案、发布规划、测试规划和文档生成
-- `goal`：适合 `spec` 定义、规范驱动、代码生成和功能验证
+- `Build`：默认模式，适合工程生成、代码生成、配置修正、测试执行、推包运行和发布执行
+- `Plan`：适合需求拆解、技术方案、发布规划、测试规划和文档生成
+- `Goal`：适合 `spec` 定义、规范驱动、代码生成和功能验证
 
 ## 鸿蒙场景能力
 
@@ -146,7 +150,7 @@ DevEco Code 集成了常用鸿蒙开发工具能力：
 | `start_app`              | 在模拟器或真机上运行应用         |
 | `hdc_log`                | 收集/清理设备日志/查看连接模拟器    |
 | `check_ets_files`        | ArkTS 静态语法检查         |
-| `arkts_knowledge_search` | 鸿蒙知识搜索（需要登录华为账号才能使用） |
+| `arkts_knowledge_search` | 鸿蒙知识搜索 |
 | `switch_cwd`             | 切换构建项目路径             |
 
 常见场景包括：从 0 到 1 创建鸿蒙工程、增量开发页面、修复编译报错、真机调试，以及基于多模态模型的图生文界面生成。
@@ -191,7 +195,7 @@ npm install -g oh-my-opencode
 ```jsonc
 {
   "plugin": [
-    "file:///C:/Users/<username>/AppData/Roaming/npm/node_modules/oh-my-opencode/dist/index.js"
+    "node_modules/oh-my-opencode/dist/index.js"
   ]
 }
 ```

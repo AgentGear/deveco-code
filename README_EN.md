@@ -30,6 +30,10 @@ npm install -g @deveco/deveco-code
 deveco
 
 # 3. Start chatting — describe your HarmonyOS development needs right in the terminal
+Example Prompts：
+- Explain the architecture of this repository
+- Help me refactor the login_check function
+- Help me check for and fix syntax errors
 ```
 
 > To build, run, and debug HarmonyOS projects, please install [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) and configure the `DEVECO_HOME` environment variable.
@@ -50,8 +54,8 @@ DevEco Code is built on top of the open-source project [OpenCode](https://openco
 
 DevEco Code is distributed via npm. Please set up the following before installation:
 
-1. Install [Node.js LTS](https://nodejs.org)
-2. For HarmonyOS project build, run, and debug capabilities, install [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/)
+1. Install [Node.js](https://nodejs.org), **version 22 or higher is recommended**
+2. Install [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/), **version 6.1 or higher is recommended**
 3. Configure the `DEVECO_HOME` environment variable to point to the DevEco Studio installation directory
 
 Verify your Node.js environment in the terminal:
@@ -94,7 +98,7 @@ Launching `deveco` requires signing in with a Huawei account. After signing in, 
 deveco auth logout
 ```
 
-Type `/models` in DevEco Code to open the model configuration UI. Two models — `glm-5` and `deepseek-v3.2` — are currently available for free, with a default rate limit of 50 requests per minute per account. You can also press `Ctrl+A` to open the Provider selection UI and configure OpenAI-compatible models from providers such as Zhipu and Alibaba.
+Type `/models` in DevEco Code to open the model configuration UI. The `GLM-5.1` model is currently available for free, with a default rate limit of 50 requests per minute per account. You can also press `Ctrl+A` to open the Provider selection UI and configure supported third-party models.
 
 You can also configure models via `deveco.jsonc`:
 
@@ -132,9 +136,9 @@ Configuration file lookup priority:
 
 DevEco Code provides the following Agent modes for HarmonyOS development (press `Tab` to switch):
 
-- `build`: Default mode, suitable for project scaffolding, code generation, configuration fixes, test execution, deployment, and release
-- `plan`: Suitable for requirement breakdown, technical design, release planning, test planning, and documentation generation
-- `goal`: Suitable for spec definition, spec-driven development, code generation, and feature verification
+- `Build`: Default mode, suitable for project scaffolding, code generation, configuration fixes, test execution, deployment, and release
+- `Plan`: Suitable for requirement breakdown, technical design, release planning, test planning, and documentation generation
+- `Goal`: Suitable for spec definition, spec-driven development, code generation, and feature verification
 
 ## HarmonyOS Features
 
@@ -146,7 +150,7 @@ DevEco Code integrates common HarmonyOS development tools:
 | `start_app` | Run the application on an emulator or physical device |
 | `hdc_log` | Collect/clear device logs; list connected emulators |
 | `check_ets_files` | ArkTS static syntax checking |
-| `arkts_knowledge_search` | HarmonyOS knowledge search (requires Huawei account login) |
+| `arkts_knowledge_search` | HarmonyOS knowledge search |
 | `switch_cwd` | Switch the build project path |
 
 Common use cases include: creating a HarmonyOS project from scratch, incrementally developing pages, fixing compilation errors, debugging on physical devices, and multimodal image-to-code UI generation.
@@ -191,7 +195,7 @@ Then configure the plugin entry in `deveco.jsonc`:
 ```jsonc
 {
   "plugin": [
-    "file:///C:/Users/<username>/AppData/Roaming/npm/node_modules/oh-my-opencode/dist/index.js"
+    "node_modules/oh-my-opencode/dist/index.js"
   ]
 }
 ```

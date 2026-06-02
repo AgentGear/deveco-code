@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevEco Code</title>
+<style>
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-sidebar: #f4f5f9;
+    --color-bg-card: #ffffff;
+    --color-bg-code: #f4f4f5;
+    --color-bg-hover: #f0f1f3;
+    --color-bg-active: #e8eaed;
+    --color-text: #1a1a2e;
+    --color-text-secondary: #5f6368;
+    --color-text-muted: #80868b;
+    --color-text-link: #6c5ce7;
+    --color-text-link-hover: #5a4bd1;
+    --color-border: #e0e0e0;
+    --color-border-light: #eef0f2;
+    --color-accent: #6c5ce7;
+    --color-accent-secondary: #00cec9;
+    --color-accent-light: rgba(108, 92, 231, 0.08);
+    --color-tag-bg: #ede9fe;
+    --color-tag-text: #6c5ce7;
+    --color-badge-bg: #e6f4ea;
+    --color-badge-text: #0d9e5f;
+    --color-glow: rgba(108, 92, 231, 0.15);
+    --color-glow-strong: rgba(108, 92, 231, 0.3);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
+    --radius: 8px;
+    --radius-lg: 8px;
+    --sidebar-width: 300px;
+    --toc-width: 220px;
+    --content-width: 760px;
+    --header-height: 58px;
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #08080f;
+    --color-bg-sidebar: #0c0c16;
+    --color-bg-card: rgba(16, 16, 28, 0.8);
+    --color-bg-code: #0e0e1a;
+    --color-bg-hover: rgba(108, 92, 231, 0.06);
+    --color-bg-active: rgba(108, 92, 231, 0.12);
+    --color-text: #e8e8ef;
+    --color-text-secondary: #8b8ba3;
+    --color-text-muted: #55556e;
+    --color-text-link: #a78bfa;
+    --color-text-link-hover: #c4b5fd;
+    --color-border: rgba(108, 92, 231, 0.12);
+    --color-border-light: rgba(108, 92, 231, 0.06);
+    --color-accent: #a78bfa;
+    --color-accent-secondary: #22d3ee;
+    --color-accent-light: rgba(167, 139, 250, 0.08);
+    --color-tag-bg: rgba(108, 92, 231, 0.15);
+    --color-tag-text: #a78bfa;
+    --color-badge-bg: rgba(34, 211, 238, 0.1);
+    --color-badge-text: #22d3ee;
+    --color-glow: rgba(167, 139, 250, 0.08);
+    --color-glow-strong: rgba(167, 139, 250, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; font-size: 16px; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ── AI Background Grid ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-glow-strong), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0, 206, 201, 0.06), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  [data-theme="dark"] body::before {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(108, 92, 231, 0.15), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0, 206, 201, 0.08), transparent);
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--color-border-light) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-border-light) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ── */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background: rgba(8, 8, 15, 0.82);
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    border-bottom: 1px solid var(--color-border-light);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0 22px;
+    gap: 16px;
+  }
+
+  [data-theme="light"] .header {
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  [data-theme="light"] .card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+  }
+
+  [data-theme="light"] summary {
+    background: var(--color-bg-hover);
+  }
+
+  [data-theme="light"] pre::before {
+    background: #ccc;
+    box-shadow: 13px 0 #ccc, 26px 0 #ccc;
+  }
+
+  [data-theme="light"] .sidebar::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+  }
+
+  [data-theme="light"] th {
+    background: var(--color-bg-hover);
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--color-text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .header-brand .logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    position: relative;
+    background: linear-gradient(135deg, #6c5ce7, #a78bfa);
+    box-shadow: 0 0 16px rgba(108, 92, 231, 0.4);
+    animation: logoPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(108, 92, 231, 0.4); }
+    50% { box-shadow: 0 0 24px rgba(108, 92, 231, 0.6); }
+  }
+
+  .header-nav {
+    display: flex;
+    gap: 2px;
+    margin-left: 16px;
+  }
+
+  .header-nav a {
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.86rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .header-nav a:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text);
+  }
+
+  .header-nav a.active {
+    color: var(--color-accent);
+    background: var(--color-accent-light);
+  }
+
+  .header-spacer { flex: 1; }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .icon-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--color-bg-sidebar);
+    border-right: 1px solid var(--color-border);
+    overflow-y: auto;
+    padding: 22px 22px 32px;
+    z-index: 50;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 8px; }
+  .sidebar::-webkit-scrollbar-thumb { background: #4b4b55; border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+
+  .sidebar-section { margin-bottom: 8px; }
+
+  .sidebar-title {
+    padding: 12px 0 6px;
+    font-size: 0.96rem;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--color-text);
+  }
+
+  .sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px 5px 16px;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: 0.88rem;
+    border-left: 1px solid var(--color-border);
+    transition: all 0.2s;
+  }
+
+  .sidebar a:hover {
+    color: var(--color-text);
+    background: var(--color-bg-hover);
+  }
+
+  .sidebar a.active {
+    color: #16111f;
+    border-left-color: transparent;
+    background: #a78bfa;
+    font-weight: 500;
+    border-radius: 4px;
+  }
+
+  .sidebar a .badge {
+    font-size: 0.65rem;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(0, 206, 201, 0.15));
+    color: var(--color-accent);
+    margin-left: auto;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    margin: 10px 0;
+    background: var(--color-border);
+  }
+
+  /* ── Main ── */
+  .main {
+    margin-left: var(--sidebar-width);
+    padding: var(--header-height) 40px 0;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, var(--content-width)) var(--toc-width);
+    gap: 56px;
+    justify-content: center;
+  }
+
+  .content {
+    max-width: var(--content-width);
+    min-width: 0;
+    padding: 42px 0 80px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: left;
+    padding: 34px 0 28px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    left: -80px;
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(108, 92, 231, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero h1 {
+    font-size: 2.55rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-bottom: 10px;
+    position: relative;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 25%, #7c5cfc 50%, #e040fb 75%, #ff6b6b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  [data-theme="dark"] .hero h1 {
+    background: linear-gradient(135deg, #00f0ff 0%, #00d4aa 20%, #7c5cfc 45%, #e040fb 70%, #ff6ec7 90%, #ffd700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: 1.05rem;
+    color: var(--color-text-secondary);
+    max-width: 680px;
+    margin: 0 0 20px;
+    line-height: 1.75;
+  }
+
+  .hero-subtitle .typing-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--color-accent);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .hero-install {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+    background: var(--color-bg-code);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 10px 18px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", "Menlo", "Consolas", monospace;
+    font-size: 0.9rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-install code {
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .hero-install::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--color-glow), transparent);
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  .hero-install .prompt {
+    color: var(--color-accent-secondary);
+    font-weight: 600;
+  }
+
+  .hero-install code {
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  .hero-install .copy-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-install .copy-btn:hover {
+    opacity: 1;
+    color: var(--color-accent);
+  }
+
+  .hero-install .copy-btn.copied {
+    color: var(--color-accent-secondary);
+    opacity: 1;
+  }
+
+  .hero-meta {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+  }
+
+  .hero-meta a {
+    color: var(--color-text-link);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .hero-meta a:hover { text-decoration: underline; }
+
+  /* ── AI Orbs ── */
+  .ai-orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(80px);
+    opacity: 0.4;
+    animation: orbFloat 8s ease-in-out infinite;
+  }
+
+  .ai-orb-1 {
+    width: 300px;
+    height: 300px;
+    background: rgba(108, 92, 231, 0.15);
+    top: 20%;
+    right: 5%;
+    animation-delay: 0s;
+  }
+
+  .ai-orb-2 {
+    width: 200px;
+    height: 200px;
+    background: rgba(0, 206, 201, 0.1);
+    bottom: 20%;
+    left: 30%;
+    animation-delay: -4s;
+  }
+
+  @keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(30px, -20px); }
+    66% { transform: translate(-20px, 20px); }
+  }
+
+  /* ── Section ── */
+  .section {
+    margin-bottom: 54px;
+    scroll-margin-top: calc(var(--header-height) + 24px);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .section:nth-child(1) { animation-delay: 0.05s; }
+  .section:nth-child(2) { animation-delay: 0.1s; }
+  .section:nth-child(3) { animation-delay: 0.15s; }
+  .section:nth-child(4) { animation-delay: 0.2s; }
+  .section:nth-child(5) { animation-delay: 0.25s; }
+  .section:nth-child(6) { animation-delay: 0.3s; }
+  .section:nth-child(7) { animation-delay: 0.35s; }
+  .section:nth-child(8) { animation-delay: 0.4s; }
+  .section:nth-child(9) { animation-delay: 0.45s; }
+  .section:nth-child(10) { animation-delay: 0.5s; }
+  .section:nth-child(11) { animation-delay: 0.55s; }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 16px;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .section-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .section-desc {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-top: 4px;
+  }
+
+  .section-desc code {
+    background: var(--color-bg-inline-code);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--color-accent);
+  }
+
+  .section-desc kbd {
+    display: inline-block;
+    background: var(--color-bg-inline-code);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.85em;
+    font-family: inherit;
+    box-shadow: 0 1px 0 var(--color-border);
+  }
+
+  .section-icon {
+    display: none;
+  }
+
+  /* ── Cards ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    background: rgba(18, 18, 22, 0.78);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    transition: border-color 0.2s, background 0.2s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.03), rgba(0, 206, 201, 0.02));
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .card:hover {
+    border-color: var(--color-accent);
+    box-shadow: none;
+    transform: none;
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+
+  .card-title .icon {
+    color: var(--color-accent);
+    font-size: 1rem;
+  }
+
+  .card-desc {
+    font-size: 0.88rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    position: relative;
+  }
+
+  .card .tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--color-tag-bg);
+    color: var(--color-tag-text);
+    margin-top: 10px;
+    font-weight: 600;
+    position: relative;
+  }
+
+  /* ── Prose ── */
+  .prose h3 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    margin: 28px 0 10px;
+    color: var(--color-text);
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .prose h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 24px 0 8px;
+    color: var(--color-text);
+  }
+
+  .prose p { margin-bottom: 14px; color: var(--color-text-secondary); }
+
+  .prose ul, .prose ol { margin: 8px 0 18px 24px; color: var(--color-text-secondary); }
+  .prose li { margin-bottom: 8px; }
+  .prose li::marker { color: var(--color-accent); }
+
+  .prose strong { color: var(--color-text); font-weight: 600; }
+
+  .prose a {
+    color: var(--color-text-link);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s;
+  }
+
+  .prose a:hover { opacity: 0.8; }
+
+  .prose img {
+    max-width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    margin: 12px 0;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ── Code ── */
+  pre {
+    background: var(--color-bg-code);
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+    padding: 48px 18px 16px;
+    overflow-x: auto;
+    margin: 12px 0 16px;
+    font-size: 0.86rem;
+    line-height: 1.65;
+    position: relative;
+  }
+
+  pre::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4b4b4b;
+    box-shadow: 13px 0 #4b4b4b, 26px 0 #4b4b4b;
+  }
+
+  pre::after {
+    content: '';
+    position: absolute;
+    top: 33px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--color-border);
+  }
+
+  code {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", "Menlo", "Consolas", monospace;
+    font-size: 0.88em;
+  }
+
+  pre code {
+    display: block;
+    min-width: 100%;
+    width: max-content;
+  }
+
+  :not(pre) > code {
+    background: rgba(167, 139, 250, 0.12);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--color-accent);
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-size: 0.9rem;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.02);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-border-light);
+    color: var(--color-text-secondary);
+  }
+
+  tr:hover td { background: var(--color-bg-hover); }
+
+  /* ── Callout ── */
+  .callout {
+    padding: 13px 16px;
+    border-radius: 0;
+    margin: 16px 0;
+    font-size: 0.94rem;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border-left: 3px solid;
+  }
+
+  .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+
+  .callout.info {
+    background: rgba(108, 92, 231, 0.06);
+    color: var(--color-text-secondary);
+    border-left-color: #6c5ce7;
+  }
+
+  .callout.warning {
+    background: rgba(251, 191, 36, 0.06);
+    color: var(--color-text-secondary);
+    border-left-color: #fbbf24;
+  }
+
+  .callout.tip {
+    background: rgba(34, 211, 238, 0.06);
+    color: var(--color-text-secondary);
+    border-left-color: #22d3ee;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    margin-top: 12px;
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .tab {
+    padding: 8px 20px 9px;
+    border-radius: 0;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: none;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .tab:hover { color: var(--color-text); }
+
+  .tab.active {
+    background: transparent;
+    color: var(--color-text);
+    font-weight: 600;
+    box-shadow: inset 0 -2px 0 var(--color-accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .tab-panel {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .tab-panel pre { margin: 16px 0 0; }
+
+  /* ── Collapsible ── */
+  details {
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+    margin: 12px 0;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  details[open] { border-color: rgba(167, 139, 250, 0.38); }
+
+  summary {
+    padding: 12px 18px;
+    font-weight: 600;
+    cursor: pointer;
+    background: rgba(18, 18, 22, 0.86);
+    font-size: 0.95rem;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    transition: transform 0.2s;
+    color: var(--color-accent);
+  }
+
+  details[open] summary::before { transform: rotate(90deg); }
+
+  summary:hover { background: var(--color-bg-hover); }
+
+  summary::-webkit-details-marker { display: none; }
+
+  details > .details-body { padding: 18px 20px; }
+
+  /* ── Footer ── */
+  .footer {
+    border-top: 1px solid var(--color-border-light);
+    padding: 28px 0;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+
+  /* ── Page TOC ── */
+  .page-toc {
+    position: sticky;
+    top: calc(var(--header-height) + 92px);
+    align-self: start;
+    max-height: calc(100vh - var(--header-height) - 120px);
+    overflow: auto;
+    padding: 0 0 24px;
+    color: var(--color-text-muted);
+  }
+
+  .page-toc-title {
+    color: var(--color-text);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .page-toc a {
+    display: block;
+    padding: 4px 0;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    transition: color 0.2s;
+  }
+
+  .page-toc a:hover,
+  .page-toc a.active {
+    color: var(--color-accent);
+  }
+
+  .footer span {
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
+  }
+
+  /* ── Best Practices ── */
+  .practice-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .practice-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: border-color 0.2s;
+  }
+
+  .practice-item:hover {
+    border-color: var(--color-accent);
+  }
+
+  .practice-item .practice-icon {
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    margin-top: 2px;
+  }
+
+  .practice-item .practice-text {
+    font-size: 0.92rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .practice-item .practice-text strong {
+    color: var(--color-text);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1180px) {
+    .main {
+      grid-template-columns: minmax(0, var(--content-width));
+      gap: 0;
+      padding-right: 32px;
+      padding-left: 32px;
+    }
+    .page-toc { display: none; }
+  }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: var(--header-height) 20px 0; }
+    .content { padding: 32px 0 60px; }
+    .hero h1 { font-size: 2rem; }
+    .hero-subtitle { font-size: 1rem; }
+    .hero-install { align-items: flex-start; }
+    .hero-install code { white-space: normal; word-break: break-all; }
+    .card-grid { grid-template-columns: 1fr; }
+    .header-nav { display: none; }
+    .ai-orb { display: none; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    pre code { min-width: 0; width: auto; white-space: inherit; }
+  }
+
+  /* ── Mobile TOC ── */
+  .mobile-toc {
+    display: none;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .mobile-toc summary { background: transparent; padding: 0; font-size: 1rem; }
+  .mobile-toc ul { list-style: none; margin-top: 12px; }
+  .mobile-toc li a {
+    display: block;
+    padding: 6px 0;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .mobile-toc li a:hover { color: var(--color-accent); }
+
+  @media (max-width: 900px) { .mobile-toc { display: block; } }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-accent); border-radius: 3px; opacity: 0.3; }
+  ::-webkit-scrollbar-thumb:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- AI Orbs -->
+<div class="ai-orb ai-orb-1"></div>
+<div class="ai-orb ai-orb-2"></div>
+
+<!-- ━━ Header ━━ -->
+<header class="header">
+  <a class="header-brand" href="#">
+    <span class="logo">DC</span>
+    <span>DevEco Code</span>
+  </a>
+  <nav class="header-nav">
+    <a href="#quickstart">快速开始</a>
+    <a href="#harmonyos">HarmonyOS</a>
+    <a href="#goal">Goal</a>
+    <a href="#models">模型配置</a>
+    <a href="#migration">迁移</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <span class="header-spacer"></span>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="toggleTheme()" title="切换主题" id="themeBtn">&#9790;</button>
+    <a class="icon-btn" href="https://gitcode.com/openharmony-sig/deveco-code" title="GitCode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m15.585 4.586.486-.274q.032.17.06.303c.032.158.06.289.072.418.103 1.118.665 1.941 1.462 2.127 1.165.27 2.264-.177 2.856-1.164.711-1.184.403-2.634-.808-3.507C16.346.061 12.647-.609 8.663.56.072 3.095-2.867 13.65 3.23 20.122c2.608 2.769 5.92 3.964 9.68 3.873 4.817-.113 8.285-2.513 10.5-6.674 1.57-2.952-.137-6.178-3.405-6.849a21 21 0 0 0-5.675-.362 4.8 4.8 0 0 0-1.805.548c-.625.325-.805.998-.735 1.666.065.608.531.972 1.086 1.064 1.118.175 2.25.277 3.378.37.327.027.657.03.986.033.473.005.944.01 1.405.086 1.314.217 1.766 1.284 1.09 2.425a4.7 4.7 0 0 1-.577.766 6.55 6.55 0 0 1-3.318 1.964c-2.333.57-4.669.603-6.99-.13-2.645-.835-4.221-2.777-4.277-5.392A9.1 9.1 0 0 1 5.76 8.907c.36-.654.558-1.327.503-2.067a26 26 0 0 1-.05-.972l-.025-.565q.401.084.792.212c1.011.406 2.007.592 3.102.294a5.6 5.6 0 0 1 1.902-.122 4.76 4.76 0 0 0 2.921-.714c.218-.128.439-.251.681-.387"/></svg>
+    </a>
+  </div>
+</header>
+
+<!-- ━━ Sidebar ━━ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-title">快速开始</div>
+    <a href="#quickstart">安装与环境配置</a>
+    <a href="#login">启动与登录</a>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-title">HarmonyOS 开发</div>
+    <a href="#harmonyos">场景能力 <span class="badge">AI</span></a>
+    <a href="#goal">Goal 模式</a>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-title">配置</div>
+    <a href="#models">模型配置</a>
+    <a href="#tips">常用配置</a>
+    <a href="#skills">Skill / MCP / 插件</a>
+    <a href="#commands">自定义命令</a>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-title">更多</div>
+    <a href="#migration">OpenCode 迁移</a>
+    <a href="#best-practices">推荐配置</a>
+    <a href="#faq">FAQ</a>
+  </div>
+</aside>
+
+<!-- ━━ Main ━━ -->
+<div class="main">
+<div class="content">
+
+<!-- Hero -->
+<div class="hero">
+  <h1>DevEco Code</h1>
+  <p class="hero-subtitle">
+    面向 HarmonyOS（鸿蒙）开发场景的 AI Agent 工具<br>
+    代码编写 · 编译构建 · 设备运行 · 运行时调试<span class="typing-cursor"></span>
+  </p>
+  <div class="hero-install">
+    <span class="prompt">$</span>
+    <code>npm install -g @deveco/deveco-code</code>
+    <button class="copy-btn" onclick="copyInstall(this)" title="复制命令">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    </button>
+  </div>
+  <p class="hero-meta">基于 <a href="https://opencode.ai/docs/zh-cn">OpenCode</a> 开源项目扩展开发</p>
+</div>
+
+<!-- Mobile TOC -->
+<details class="mobile-toc">
+  <summary>目录导航</summary>
+  <ul>
+    <li><a href="#quickstart">快速开始</a></li>
+    <li><a href="#login">启动与登录</a></li>
+    <li><a href="#harmonyos">HarmonyOS 开发能力</a></li>
+    <li><a href="#goal">Goal 模式</a></li>
+    <li><a href="#models">模型配置</a></li>
+    <li><a href="#tips">常用配置</a></li>
+    <li><a href="#skills">Skill / MCP / 插件</a></li>
+    <li><a href="#commands">自定义命令</a></li>
+    <li><a href="#migration">OpenCode 迁移</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#best-practices">推荐配置</a></li>
+  </ul>
+</details>
+
+<!-- ═══ Section: Quick Start ═══ -->
+<div class="section" id="quickstart">
+  <div class="section-header">
+    <span class="section-icon">&#128230;</span>
+    <h2>快速开始</h2>
+  </div>
+
+  <div class="prose">
+    <h3>推荐系统配置</h3>
+    <table>
+      <thead><tr><th>项目</th><th>要求</th></tr></thead>
+      <tbody>
+        <tr><td><strong>操作系统</strong></td><td>Windows x64（推荐 Windows 11）、macOS Apple Silicon（M 系列）、macOS Intel（x64）</td></tr>
+        <tr><td><strong>Node.js</strong></td><td><a href="https://nodejs.org" target="_blank">22+</a></td></tr>
+        <tr><td><strong>DevEco Studio</strong></td><td><a href="https://developer.huawei.com/consumer/cn/deveco-studio/" target="_blank">6.1+</a></td></tr>
+        <tr><td><strong>环境变量</strong></td><td>设置 <code>DEVECO_HOME</code> 指向 DevEco Studio 安装目录</td></tr>
+        <tr><td><strong>Shell</strong></td><td>Bash、Zsh、PowerShell 或 Windows Terminal</td></tr>
+        <tr><td><strong>网络</strong></td><td>需要网络连接</td></tr>
+      </tbody>
+    </table>
+
+    <h3>一键安装</h3>
+  </div>
+
+  <div class="callout tip">
+    <span class="callout-icon">&#128161;</span>
+    <span>推荐使用 npm 官方或淘宝镜像源</span>
+  </div>
+
+  <div class="prose">
+    <pre><code>npm install -g @deveco/deveco-code</code></pre>
+
+    <h3>配置环境变量</h3>
+    <p>设置 <code>DEVECO_HOME</code> 并将工具链加入 PATH。</p>
+    <div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(event, 'deveco-home-mac')">macOS</button>
+        <button class="tab" onclick="switchTab(event, 'deveco-home-win')">Windows</button>
+      </div>
+      <div class="tab-panel">
+        <div class="tab-content active" id="deveco-home-mac">
+          <pre><code># 添加至 ~/.zshrc 或 ~/.bashrc
+export DEVECO_HOME="/Applications/DevEco-Studio.app/Contents"
+export PATH="$DEVECO_HOME/sdk/default/openharmony/toolchains:$PATH"</code></pre>
+        </div>
+        <div class="tab-content" id="deveco-home-win">
+          <pre><code># 系统环境变量中新建 DEVECO_HOME，指向 DevEco Studio 安装路径
+# 编辑 PATH，追加 %DEVECO_HOME%\sdk\default\openharmony\toolchains</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h3>更新与卸载</h3>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(event, 'update-tab')">更新</button>
+      <button class="tab" onclick="switchTab(event, 'uninstall-tab')">卸载</button>
+    </div>
+    <div class="tab-panel">
+      <div class="tab-content active" id="update-tab">
+        <pre><code>deveco upgrade</code></pre>
+      </div>
+      <div class="tab-content" id="uninstall-tab">
+        <pre><code>deveco uninstall
+# 或
+npm uninstall -g @deveco/deveco-code</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Section: Login ═══ -->
+<div class="section" id="login">
+  <div class="section-header">
+    <span class="section-icon">&#128274;</span>
+    <h2>启动与登录</h2>
+  </div>
+  <div class="prose">
+    <p>在终端中执行以下命令启动 DevEco Code：</p>
+    <pre><code>deveco</code></pre>
+    <p>首次启动后，使用华为账号登录即可开始使用。登录成功后可免费使用内置模型。</p>
+    <p>退出登录：</p>
+    <pre><code>deveco auth logout</code></pre>
+  </div>
+</div>
+
+<!-- ═══ Section: HarmonyOS ═══ -->
+<div class="section" id="harmonyos">
+  <div class="section-header">
+    <span class="section-icon">&#127775;</span>
+    <h2>HarmonyOS 开发能力</h2>
+  </div>
+
+  <div class="prose">
+    <h3>Agent 模式</h3>
+    <p class="section-desc">在 DevEco Code 中输入 <code>/agents</code> 可查看所有可用的 Agent 模式，按下 <kbd>Tab</kbd> 键可在不同模式之间快速切换。</p>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128736;</span> Build <span class="tag">默认</span></div>
+      <div class="card-desc">工程生成、代码生成、配置修正、测试执行、推包运行、发布执行</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128203;</span> Plan</div>
+      <div class="card-desc">需求拆解、技术方案、发布规划、测试规划、文档生成</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128221;</span> Goal</div>
+      <div class="card-desc">适合 <code>spec</code> 定义、规范驱动、代码生成和功能验证</div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <h3 style="margin-top: 32px;">开发工具</h3>
+    <table>
+      <thead><tr><th>工具</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>build_project</code></td><td>执行编译构建并导出构建产物</td></tr>
+        <tr><td><code>start_app</code></td><td>在模拟器/真机上运行应用</td></tr>
+        <tr><td><code>hdc_log</code></td><td>收集/清理设备日志、查看已连接模拟器</td></tr>
+        <tr><td><code>verify_ui</code></td><td>执行 UI 操作验证功能是否正确</td></tr>
+        <tr><td><code>check_ets_files</code></td><td>ArkTS 静态语法检查</td></tr>
+        <tr><td><code>arkts_knowledge_search</code></td><td>HarmonyOS 知识搜索</td></tr>
+        <tr><td><code>switch_cwd</code></td><td>切换构建项目路径</td></tr>
+      </tbody>
+    </table>
+
+    <h3>内置 Skill</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>说明</th><th>适用场景</th></tr></thead>
+      <tbody>
+        <tr><td><strong>arkui-knowledge</strong></td><td>ArkUI 声明式语法最佳实践指南</td><td>ArkUI 界面开发</td></tr>
+        <tr><td><strong>arkts-grammar-standards</strong></td><td>ArkTS 语法规则及 TypeScript 迁移差异参考</td><td>ArkTS 语法规范</td></tr>
+        <tr><td><strong>arkts-error-fixes</strong></td><td>编译与类型错误快速查询</td><td>快速调试</td></tr>
+        <tr><td><strong>deveco-create-project</strong></td><td>快速创建标准化 HarmonyOS 模板工程</td><td>项目初始化</td></tr>
+        <tr><td><strong>arkts-runtime-fix</strong></td><td>运行时常见问题修复方案</td><td>稳定性保障</td></tr>
+      </tbody>
+    </table>
+
+    <h3>典型应用场景</h3>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title"><span class="icon">&#127959;</span> 创建新工程</div>
+      <div class="card-desc">根据需求描述自动生成完整的 HarmonyOS 应用工程</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">&#10133;</span> 增量开发</div>
+      <div class="card-desc">基于已有工程新增功能、页面、Tab 切换等</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128295;</span> 编译错误修复</div>
+      <div class="card-desc">自动分析编译错误并生成修复方案</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128241;</span> 真机调试</div>
+      <div class="card-desc">在 DevEco Studio 完成签名配置后，支持真机部署与调试</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">&#127912;</span> 设计稿生成代码</div>
+      <div class="card-desc">配置多模态模型后，可基于设计稿图片自动生成界面代码</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Section: Goal ═══ -->
+<div class="section" id="goal">
+  <div class="section-header">
+    <span class="section-icon">&#128200;</span>
+    <h2>Goal 模式</h2>
+  </div>
+  <div class="prose">
+    <p>Goal 模式包含 <strong>5 个阶段</strong>：需求分析 → 架构设计 → 任务分解 → 代码实现 → 功能验证。</p>
+    <p>执行过程中在当前工程下新建 <code>.specs/</code> 目录，每个需求依次生成 <code>spec.md</code>、<code>plan.md</code>、<code>tasks.md</code>。</p>
+
+    <h3>切换模式</h3>
+    <p>按下 <code>Tab</code> 键可切换至 Goal 模式。</p>
+
+    <h3>模拟器 / 真机配置</h3>
+    <p>功能验证阶段需要配置模拟器或连接真机设备。参考 <a href="https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ide-emulator-create" target="_blank">创建模拟器</a>。</p>
+
+    <div class="callout info">
+      <span class="callout-icon">&#8505;</span>
+      <span>未配置模拟器或真机设备时，功能验证阶段仅执行编译验证。连接真机需确保工程已完成签名配置。</span>
+    </div>
+
+    <h3>UI 检查配置</h3>
+    <p>功能验证阶段如需检查 UI，设置环境变量 <code>ADDITIONAL_TOOL_GROUPS=ui_integration_test</code>。</p>
+
+    <div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(event, 'sdd-ui-mac')">macOS / Linux</button>
+        <button class="tab" onclick="switchTab(event, 'sdd-ui-win')">Windows</button>
+      </div>
+      <div class="tab-panel">
+        <div class="tab-content active" id="sdd-ui-mac">
+          <pre><code># 添加到 Shell 配置文件（如 ~/.zshrc、~/.bashrc）
+export ADDITIONAL_TOOL_GROUPS=ui_integration_test</code></pre>
+        </div>
+        <div class="tab-content" id="sdd-ui-win">
+          <pre><code># 系统设置 → 环境变量 → 新增用户变量
+ADDITIONAL_TOOL_GROUPS=ui_integration_test</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <details>
+      <summary>多模态模型配置（UI 检查）</summary>
+      <div class="details-body">
+        <ul>
+          <li><strong>已登录</strong>：默认使用内置 Qwen2.5-VL</li>
+          <li><strong>未登录</strong>：跳过 UI 检查</li>
+          <li><strong>自定义</strong>：在 <code>deveco.jsonc</code> 配置（仅支持 Qwen 系列）</li>
+        </ul>
+        <pre><code>{
+  "provider": {
+    "myprovider": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "alibaba",
+      "options": {
+        "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "apiKey": "xxxxxxxxxxxxx"
+      },
+      "models": {
+        "qwen3.5-flash": {
+          "tool_call": true,
+          "limit": { "context": 128000, "output": 4096 },
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        }
+      }
+    }
+  },
+  "agent": {
+    "ui_verification": {
+      "mode": "subagent",
+      "model": "myprovider/qwen3.5-flash",
+      "hidden": true
+    }
+  }
+}</code></pre>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ═══ Section: Models ═══ -->
+<div class="section" id="models">
+  <div class="section-header">
+    <span class="section-icon">&#129302;</span>
+    <h2>模型配置</h2>
+  </div>
+  <div class="prose">
+    <p>在 DevEco Code 中输入 <code>/models</code> 进入模型配置界面。</p>
+
+    <h3>使用免费模型</h3>
+    <p>当前免费提供 <strong>GLM-5.1</strong> 模型，登录后即可使用，无需额外配置。</p>
+
+    <h3>通过 Provider 配置</h3>
+    <p>在模型选择页面按 <code>Ctrl+A</code> 进入 Provider 界面，选择提供商、输入 API Key、选择模型。</p>
+
+    <h3>通过配置文件</h3>
+    <p>编辑 <code>~/.config/deveco/deveco.jsonc</code>（不存在则新建）。</p>
+
+    <div class="callout tip">
+      <span class="callout-icon">&#128161;</span>
+      <span>配置读取优先级：<code>.deveco/deveco.jsonc</code> > 项目目录 <code>deveco.jsonc</code> > <code>~/.config/deveco/deveco.jsonc</code></span>
+    </div>
+
+    <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "deveco": {
+      "name": "DevEco Code",
+      "models": {
+        "glm-5": {
+          "tool_call": true,
+          "limit": { "context": 200000, "output": 8192 }
+        }
+      },
+      "options": {
+        "baseURL": "https://cn.devecostudio.huawei.com/sse/DevEcoCode/maas/v2",
+        "apiKey": "{env:DEVECO_API_KEY}"
+      }
+    }
+  }
+}</code></pre>
+
+    <h3>配置多模态模型</h3>
+    <p>多模态模型支持图片输入，可通过以下方式配置：</p>
+    <ul>
+      <li><strong>界面配置</strong>：/models → Ctrl+A → 选择提供商（如 ZhipuAI、Alibaba）→ 输入 API Key → 选择支持图片的模型</li>
+      <li><strong>配置文件</strong>：在 <code>deveco.jsonc</code> 的 provider 中新增带 <code>modalities</code> 字段的模型配置</li>
+    </ul>
+
+    <details>
+      <summary>多模态模型配置文件示例</summary>
+      <div class="details-body">
+        <pre><code>{
+  "provider": {
+    "myprovider": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "alibaba",
+      "options": {
+        "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "apiKey": "xxxxxxxxxxxxxxxxxxx"
+      },
+      "models": {
+        "qwen3.6-plus": {
+          "tool_call": true,
+          "limit": { "context": 200000, "output": 8192 },
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        }
+      }
+    }
+  }
+}</code></pre>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ═══ Section: Tips ═══ -->
+<div class="section" id="tips">
+  <div class="section-header">
+    <span class="section-icon">&#128161;</span>
+    <h2>常用配置</h2>
+  </div>
+  <div class="prose">
+    <h3>配置绿灯模式</h3>
+    <p>启用后，所有工具调用将自动执行，无需逐次确认：</p>
+    <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": "allow"
+}</code></pre>
+
+    <h3>生成 AGENTS.md</h3>
+    <p><code>AGENTS.md</code> 是工程级别的上下文描述文件，用于辅助 AI 理解项目结构与开发规范。建议在开始开发前生成该文件，DevEco Code 将自动加载并用于提升代码生成的准确性与效率。</p>
+  </div>
+</div>
+
+<!-- ═══ Section: Skills ═══ -->
+<div class="section" id="skills">
+  <div class="section-header">
+    <span class="section-icon">&#9889;</span>
+    <h2>Skill / MCP / 插件</h2>
+  </div>
+
+  <div class="prose">
+    <table>
+      <thead><tr><th>类型</th><th>说明</th><th>配置方式</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Skill</strong></td><td>全局技能定义，支持目录放置、npx 安装、自定义创建</td><td><code>~/.config/deveco/skills/</code></td></tr>
+        <tr><td><strong>MCP</strong></td><td>外部工具集成协议，连接浏览器、数据库等第三方服务</td><td><code>deveco.jsonc</code></td></tr>
+        <tr><td><strong>插件</strong></td><td>社区插件扩展，如 Oh My OpenAgent</td><td><code>npm install -g</code> + <code>deveco.jsonc</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="prose" style="margin-top: 20px;">
+    <details>
+      <summary>Skill 安装详情</summary>
+      <div class="details-body">
+        <h4>方式一：目录放置</h4>
+        <p>将 Skill 文件放入 <code>~/.config/deveco/skills/</code>，重启后生效。</p>
+        <h4>方式二：npx 安装</h4>
+        <pre><code>npx skills add vercel-labs/agent-skills</code></pre>
+        <p>安装后存储在 <code>~/.agents/skills/</code> 目录。</p>
+        <h4>方式三：使用 skill-creator</h4>
+        <p>在 DevEco Code 内使用内置 <code>skill-creator</code> 创建自定义 Skill。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>MCP 配置示例（Playwright）</summary>
+      <div class="details-body">
+        <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@playwright/mcp@latest"],
+      "enabled": true
+    }
+  }
+}</code></pre>
+      </div>
+    </details>
+
+    <details>
+      <summary>插件配置示例（Oh My OpenAgent）</summary>
+      <div class="details-body">
+        <pre><code>npm install -g oh-my-openagent</code></pre>
+        <p>在 <code>deveco.jsonc</code> 中配置插件入口文件路径：</p>
+        <pre><code>{
+  "plugin": [
+    "&lt;插件入口文件的绝对路径&gt;"
+  ]
+}</code></pre>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ═══ Section: Commands ═══ -->
+<div class="section" id="commands">
+  <div class="section-header">
+    <span class="section-icon">&#128231;</span>
+    <h2>自定义命令</h2>
+  </div>
+  <div class="prose">
+    <p>支持 JSON 配置和 Markdown 文件两种方式定义自定义命令。</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title"><span class="icon">{ }</span> JSON 方式</div>
+        <div class="card-desc">在 <code>deveco.jsonc</code> 的 <code>command</code> 字段中定义命令名、模板、描述、agent 和 model。</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">&#128196;</span> Markdown 方式</div>
+        <div class="card-desc">在 <code>~/.config/deveco/commands/</code> 或 <code>.deveco/commands/</code> 放置 .md 文件，文件名即命令名。</div>
+      </div>
+    </div>
+
+    <details>
+      <summary>JSON 命令配置示例</summary>
+      <div class="details-body">
+        <pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "command": {
+    "test": {
+      "template": "Run the full test suite with coverage report...",
+      "description": "Run tests with coverage",
+      "agent": "build",
+      "model": "anthropic/claude-3-5-sonnet-20241022"
+    }
+  }
+}</code></pre>
+        <p>在 TUI 中运行：<code>/test</code></p>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ═══ Section: Migration ═══ -->
+<div class="section" id="migration">
+  <div class="section-header">
+    <span class="section-icon">&#128259;</span>
+    <h2>从 OpenCode 迁移至 DevEco Code</h2>
+  </div>
+  <div class="prose">
+    <p>按照以下对照表，将 OpenCode 配置迁移至 DevEco Code。</p>
+
+    <div class="callout info" style="margin-bottom: 16px;">
+      <span class="callout-icon">&#8505;</span>
+      <span>以下路径均相对于 DevEco Code 配置目录（默认为 <code>~/.config/deveco/</code>）</span>
+    </div>
+
+    <table>
+      <thead><tr><th>内容</th><th>迁移目标路径</th><th>支持 deveco.jsonc</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Skills</strong></td><td><code>skills/</code></td><td>✔</td></tr>
+        <tr><td><strong>Agents</strong></td><td><code>agents/</code></td><td>✔</td></tr>
+        <tr><td><strong>Plugins</strong></td><td><code>plugins/</code></td><td>✔</td></tr>
+        <tr><td><strong>MCP</strong></td><td>在 <code>deveco.jsonc</code> 中配置</td><td>✔</td></tr>
+        <tr><td><strong>主配置</strong></td><td><code>deveco.jsonc</code></td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <details>
+      <summary>迁移命令示例</summary>
+      <div class="details-body">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab(event, 'mig-skills')">Skills</button>
+          <button class="tab" onclick="switchTab(event, 'mig-agents')">Agents</button>
+          <button class="tab" onclick="switchTab(event, 'mig-plugins')">Plugins</button>
+          <button class="tab" onclick="switchTab(event, 'mig-config')">主配置</button>
+        </div>
+        <div class="tab-panel">
+          <div class="tab-content active" id="mig-skills">
+            <pre><code>cp -r {源路径}/skills/* ~/.config/deveco/skills/</code></pre>
+          </div>
+          <div class="tab-content" id="mig-agents">
+            <pre><code>cp -r {源路径}/agents/* ~/.config/deveco/agents/</code></pre>
+          </div>
+          <div class="tab-content" id="mig-plugins">
+            <pre><code>cp -r {源路径}/plugins/* ~/.config/deveco/plugins/</code></pre>
+          </div>
+          <div class="tab-content" id="mig-config">
+            <pre><code>cp {源路径}/opencode.jsonc ~/.config/deveco/deveco.jsonc</code></pre>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ═══ Section: Best Practices ═══ -->
+<div class="section" id="best-practices">
+  <div class="section-header">
+    <span class="section-icon">&#127775;</span>
+    <h2>推荐配置</h2>
+  </div>
+  <div class="practice-grid">
+    <div class="practice-item">
+      <span class="practice-text">登录华为账号后可<strong>免费使用内置模型</strong>，无需额外配置 API Key。</span>
+    </div>
+    <div class="practice-item">
+      <span class="practice-text">推荐使用 <strong>Build 模式</strong>执行日常开发任务，以获得最佳体验。</span>
+    </div>
+    <div class="practice-item">
+      <span class="practice-text">开始开发前建议先生成 <strong>AGENTS.md</strong>，以提升 AI 对项目的理解能力。</span>
+    </div>
+    <div class="practice-item">
+      <span class="practice-text"><strong>设计稿生成代码</strong>等功能需在 provider 中配置支持 <code>image</code> 输入的多模态模型。</span>
+    </div>
+    <div class="practice-item">
+      <span class="practice-text"><strong>真机调试</strong>需在 DevEco Studio 中预先完成应用签名配置。</span>
+    </div>
+    <div class="practice-item">
+      <span class="practice-text"><strong>Windows 用户</strong>推荐使用 PowerShell 或 Windows Terminal，避免终端兼容性问题。</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Section: FAQ ═══ -->
+<div class="section" id="faq">
+  <div class="section-header">
+    <span class="section-icon">&#128295;</span>
+    <h2>FAQ</h2>
+  </div>
+  <div class="prose">
+    <details>
+      <summary>1. DevEco Studio Terminal 交互异常</summary>
+      <div class="details-body">
+        <p><strong>原因</strong>：JetBrains Terminal 组件存在鼠标灵敏度与滚动条交互的兼容性问题。</p>
+        <p><strong>解决方案</strong>：使用 Windows Terminal 运行 DevEco Code。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>2. 生成 nul 等异常文件</summary>
+      <div class="details-body">
+        <p><strong>原因</strong>：AI 生成命令中包含无效路径时，可能创建非常规命名的文件。</p>
+        <p><strong>解决方案</strong>：使用 Git Bash 删除该文件。建议使用 CMD 运行 DevEco Code。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>3. Windows 10 全屏闪退</summary>
+      <div class="details-body">
+        <p><strong>原因</strong>：<code>conhost.exe</code> 处理 VT 序列时存在已知缺陷，全屏操作可能触发缓冲区溢出。</p>
+        <p><strong>解决方案</strong>：安装 <a href="https://apps.microsoft.com/detail/9N0DX20HK701" target="_blank">Windows Terminal</a>（Microsoft Store 免费下载）。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>4. Export 功能编码问题</summary>
+      <div class="details-body">
+        <p><strong>原因</strong>：PowerShell 的 <code>></code> 重定向默认使用 UTF-16 LE 编码，而 Import 使用 UTF-8。</p>
+        <p><strong>解决方案</strong>：使用 CMD 执行导出和导入：</p>
+        <pre><code>deveco export > session.json
+deveco import session.json</code></pre>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <p><span>DevEco Code</span> &mdash; 基于 OpenCode 开源项目扩展开发</p>
+</div>
+
+</div>
+<aside class="page-toc" aria-label="本页目录">
+  <div class="page-toc-title">本页内容</div>
+  <a href="#quickstart">快速开始</a>
+  <a href="#login">启动与登录</a>
+  <a href="#harmonyos">HarmonyOS 开发能力</a>
+  <a href="#goal">Goal 模式</a>
+  <a href="#models">模型配置</a>
+  <a href="#tips">常用配置</a>
+  <a href="#skills">Skill / MCP / 插件</a>
+  <a href="#commands">自定义命令</a>
+  <a href="#migration">OpenCode 迁移</a>
+  <a href="#best-practices">推荐配置</a>
+  <a href="#faq">FAQ</a>
+</aside>
+</div>
+
+<script>
+// Theme
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('dc-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '☾' : '☀';
+}
+
+(function() {
+  const saved = localStorage.getItem('dc-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeBtn').textContent = saved === 'dark' ? '☾' : '☀';
+})();
+
+// Tabs
+function switchTab(event, targetId) {
+  const container = event.target.closest('.tabs').parentElement;
+  container.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(targetId).classList.add('active');
+}
+
+// Copy install command
+function copyInstall(btn) {
+  navigator.clipboard.writeText('npm install -g @deveco/deveco-code').then(function() {
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(function() {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    }, 1500);
+  });
+}
+
+// Sidebar scroll tracking
+(function() {
+  const sections = document.querySelectorAll('.section[id]');
+  const links = document.querySelectorAll('.sidebar a, .page-toc a');
+
+  function update() {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 120) current = s.id;
+    });
+    links.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+    });
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+</script>
+
+</body>
+</html>
