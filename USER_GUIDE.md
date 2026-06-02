@@ -415,6 +415,14 @@ Oh my opencode：npm install -g oh-my-opencode
 - **`build`默认：工程生成、代码生成、配置修正、测试执行、推包运行、发布执行**
 - **`sdd`：spec定义、规范驱动、代码生成、功能验证**
 
+可通过 tab 键或输入“/agents”切换模式：
+
+![screenshot](./assets/user-guide/agent-mode-agents-command.png)
+
+输入“/agents”后，可以看到 3 大模式：
+
+![screenshot](./assets/user-guide/agent-mode-select-three-modes.png)
+
 ## 5.2 当前鸿蒙工具说明
 
 
@@ -447,9 +455,19 @@ Oh my opencode：npm install -g oh-my-opencode
 
 ### 5.4.1   0-1构建
 
-![screenshot](./assets/user-guide/scenario-greenfield-start.png)
+以plan模式为例，输入0-1构建需求：
 
-![screenshot](./assets/user-guide/scenario-greenfield-result.png)
+![screenshot](./assets/user-guide/scenario-greenfield-plan-input.png)
+
+计划生成后，确认是否切换为build模式执行计划：
+
+![screenshot](./assets/user-guide/scenario-greenfield-plan-approve.png)
+
+![screenshot](./assets/user-guide/scenario-greenfield-plan-to-build.png)
+
+应用生成后，自动构建并推包到设备运行：
+
+![screenshot](./assets/user-guide/scenario-greenfield-build-run.png)
 
 ### 5.4.2 增量开发
 
@@ -465,7 +483,7 @@ Oh my opencode：npm install -g oh-my-opencode
 
 ### 5.4.4 真机调试
 
-真机目前需要在DevecoStudio中生成密钥才能运行。后续版本提供插件即可在完成这一操作；
+在DevecoStudio中生成签名文件后，可以在真机上运行。后续版本会将签名功能集成在DevEco code中。
 
 ### 5.4.5 图生文场景
 
