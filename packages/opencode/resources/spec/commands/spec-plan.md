@@ -27,10 +27,10 @@ $ARGUMENTS
 ## Outline
 1. **Setup & Directory Resolution**:
     - Determine `CANDIDATE_FEATURE_DIR`:
-        - If `$ARGUMENTS` is not empty: Use the argument as the target folder name. Check if `.specs/{folder}` exists as a valid directory.
+        - If `$ARGUMENTS` is not empty: Use the argument as the target folder name. Check if `spec/{folder}` exists as a valid directory.
             - If exists: Set as `CANDIDATE_FEATURE_DIR`.
-            - If not exists: Read the current feature directory from `.specs/feature.json` as `CANDIDATE_FEATURE_DIR`.
-        - If `$ARGUMENTS` is empty: Read the current feature directory from `.specs/feature.json` as `CANDIDATE_FEATURE_DIR`.
+            - If not exists: Read the current feature directory from `spec/feature.json` as `CANDIDATE_FEATURE_DIR`.
+        - If `$ARGUMENTS` is empty: Read the current feature directory from `spec/feature.json` as `CANDIDATE_FEATURE_DIR`.
     - Resolve absolute paths:
         - `SPECS_DIR` = Absolute path of `CANDIDATE_FEATURE_DIR`
         - `FEATURE_SPEC` = `SPECS_DIR/spec.md`

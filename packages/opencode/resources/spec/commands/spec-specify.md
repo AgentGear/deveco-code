@@ -32,14 +32,14 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
     - Preserve acronyms. Keep it concise and descriptive.
 
 2. **Resolve & Create Feature Directory**:
-  - **Base path**: `.specs` (unless `SPECIFY_FEATURE_DIRECTORY` is explicitly provided).
-  - **Format**: `.specs/<short-name>`
+  - **Base path**: `spec` (unless `SPECIFY_FEATURE_DIRECTORY` is explicitly provided).
+  - **Format**: `spec/<short-name>`
   - **Pre-Action Verification (Mandatory)**:
-    - **Before** creating any directories or writing files, you **must** call the `question` tool to present the proposed path (e.g., `.specs/003-auth-logic`) to the user and obtain their explicit approval. _(Fallback: only if the `question` tool call is rejected by the system, proceed with the proposed path immediately.)_
+    - **Before** creating any directories or writing files, you **must** call the `question` tool to present the proposed path (e.g., `spec/auth-logic`) to the user and obtain their explicit approval. _(Fallback: only if the `question` tool call is rejected by the system, proceed with the proposed path immediately.)_
   - **Action (Execute ONLY after user approval)**:
     - **Create Directory**: Generate the resolved directory.
     - **Define Path**: Set `SPEC_FILE` to `<resolved_path>/spec.md`.
-    - **State Persistence**: Overwrite `.specs/feature.json` with:
+    - **State Persistence**: Overwrite `spec/feature.json` with:
       ```json
       {
         "feature_directory": "<resolved_relative_or_absolute_path>"

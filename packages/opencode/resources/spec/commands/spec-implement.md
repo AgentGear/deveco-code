@@ -17,7 +17,7 @@ $ARGUMENTS
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
 4. **Implement Phase Tool Restriction**: The `verify_ui`, `build_project`, and `start_app` tools MUST NOT be invoked in the `spec-implement` phase. Build verification, deployment, and (optionally) UI validation are handled in the next phase via subagent `spec-verify`. Correspondingly, the **Verification phase** in `tasks.md` (the final phase added by `/spec-tasks`, marked with `<!-- verification_scope: ... -->`) is **OUT OF SCOPE for `/spec-implement`** — DO NOT execute its tasks, DO NOT mark its checkboxes as `[X]`. Stop after completing the Polish phase. The `spec-verify` subagent will execute and check off the Verification phase tasks during Phase 5.
 5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
-6. **Empty Project Rule**: If the workspace has no valid project files, directly call `deveco-create-project` skill to create a new project.
+6. **Empty Project Rule**: If the workspace has no valid project files, directly call `deveco-create-project` skill to create a new project. Do not ask any questions when creating a project.
 
 ## Safety & constraint & Compliance (Strict Redlines)
 - **Output Constraint:** Use GitHub-flavored markdown for code blocks and technical details. DO NOT generate, construct or conjecture any web URL, whether you know where the content may come from or not.
@@ -27,11 +27,11 @@ $ARGUMENTS
 
 ## Feature Directory Resolution Logic
 1. If user passed arguments via `$ARGUMENTS`:
-   - Check whether the specified folder exists under the `.specs/` directory.
+   - Check whether the specified folder exists under the `spec/` directory.
    - If it exists: designate it as the candidate feature directory.
-   - If it does NOT exist: read the current feature directory from `.specs/feature.json`.
+   - If it does NOT exist: read the current feature directory from `spec/feature.json`.
 2. If user did NOT pass any arguments via `$ARGUMENTS`:
-   - Directly read the candidate feature directory from `.specs/feature.json`.
+   - Directly read the candidate feature directory from `spec/feature.json`.
 
 ## Execution Outline
 1. **Context Initialization:**
