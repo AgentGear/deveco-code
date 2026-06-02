@@ -17,7 +17,7 @@ import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SCOUT from "./prompt/scout.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
-import PROMPT_SDD from "./prompt/sdd.txt"
+import PROMPT_GOAL from "./prompt/goal.txt"
 import PROMPT_SPEC_VERIFY from "./prompt/spec-verify.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
@@ -156,9 +156,9 @@ export const layer = Layer.effect(
             native: true,
             prompt: PROMPT_BUILD,
           },
-          SDD: {
-            name: "SDD",
-            description: "Spec-Driven Development (SDD) agent for implementing complex requirements",
+          goal: {
+            name: "goal",
+            description: "Multi-turn goal-driven agent with verifiable termination",
             options: {},
             permission: Permission.merge(
               defaults,
@@ -169,12 +169,13 @@ export const layer = Layer.effect(
                 websearch: "allow",
                 todowrite: "allow",
                 spec_write: "allow",
+                task: "allow",
               }),
               user,
             ),
             mode: "primary",
             native: true,
-            prompt: PROMPT_SDD,
+            prompt: PROMPT_GOAL,
             color: "info",
           },
           "spec-verify": {

@@ -1,6 +1,6 @@
 ---
 description: Verification agent for build, test, and UI validation workflows
-agent: sdd
+agent: goal
 ---
 
 ## STRICT OPERATIONAL CONSTRAINTS
