@@ -70,6 +70,7 @@ import { FormatError, FormatUnknownError } from "@/cli/error"
 import { CommandPaletteProvider, useCommandPalette } from "./context/command-palette"
 import { OpencodeKeymapProvider, registerOpencodeKeymap, useBindings, useOpencodeKeymap } from "./keymap"
 import { localCredentialsResetPaths, resetLocalCredentials } from "@/auth/reset"
+import { openComplainPage } from "./util/complain"
 import path from "path"
 
 import type { EventSource } from "./context/sdk"
@@ -306,6 +307,43 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     renderer,
     attention,
   })
+  const latestConversationContext = () => {
+    if (route.data.type !== "session") return ""
+
+    const messages = sync.data.message[route.data.sessionID] ?? []
+    if (messages.length === 0) return ""
+
+    const textForMessage = (messageID: string) =>
+      (sync.data.part[messageID] ?? [])
+        .flatMap((part) => {
+          if (part.type !== "text" || !("text" in part)) return []
+          if ("synthetic" in part && part.synthetic) return []
+          if ("ignored" in part && part.ignored) return []
+          const text = part.text.trim()
+          return text ? [text] : []
+        })
+        .filter(Boolean)
+        .join("\n")
+
+    const latestAssistant = messages.findLast((message) => message.role === "assistant" && textForMessage(message.id))
+    if (latestAssistant) {
+      const parentID = "parentID" in latestAssistant ? latestAssistant.parentID : undefined
+      const user = parentID ? messages.find((message) => message.role === "user" && message.id === parentID) : undefined
+      const userText = user ? textForMessage(user.id) : ""
+      const assistantText = textForMessage(latestAssistant.id)
+      return [
+        userText ? `用户: ${userText}` : "",
+        assistantText ? `助手: ${assistantText}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+    }
+
+    const latestMessage = messages.findLast((message) => textForMessage(message.id))
+    if (!latestMessage) return ""
+
+    return textForMessage(latestMessage.id)
+  }
   const [ready, setReady] = createSignal(false)
   let localAuthDialogShown = false
   TuiPluginRuntime.init({
@@ -852,6 +890,28 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         description: "Submit complaints, suggestions or feedback",
         slashName: "feedback",
         run: () => openInBrowser(DEVECO_FEEDBACK_URL),
+        category: "System",
+      },
+      {
+        name: "complain.open",
+        title: "Complain",
+        description: "Open the complaint page",
+        slashName: "complain",
+        run: () => {
+          void (async () => {
+            const result = await openComplainPage(latestConversationContext())
+            if (result.ok) {
+              dialog.clear()
+              return
+            }
+            await DialogAlert.show(dialog, "Complain Unavailable", result.message)
+          })().catch((error) => {
+            toast.show({
+              message: errorMessage(error),
+              variant: "error",
+            })
+          })
+        },
         category: "System",
       },
       ...(sync.data.provider_next.connected.includes("deveco")
