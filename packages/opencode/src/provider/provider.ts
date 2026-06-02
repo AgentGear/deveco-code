@@ -1264,9 +1264,10 @@ export const layer = Layer.effect(
 
         // === DevEco Code: inject provider config if authenticated ===
         const devecoAuth = yield* auth.get("deveco").pipe(Effect.orElseSucceed(() => undefined))
-        if (devecoAuth) {
-          const { DEVECO_PROVIDER_CONFIG } = yield* Effect.promise(() => import("@/plugin/deveco-models"))
-          configProviders.push(["deveco", DEVECO_PROVIDER_CONFIG])
+        if (devecoAuth && devecoAuth.type === "oauth") {
+          const { getDevecoProviderConfig } = yield* Effect.promise(() => import("@/plugin/deveco-models"))
+          const config = yield* Effect.promise(() => getDevecoProviderConfig(devecoAuth.access))
+          configProviders.push(["deveco", config])
         }
 
         const disabled = new Set(cfg.disabled_providers ?? [])
@@ -1775,6 +1776,15 @@ export const layer = Layer.effect(
       if (cfg.small_model) {
         const parsed = parseModel(cfg.small_model)
         return yield* getModel(parsed.providerID, parsed.modelID).pipe(
+          Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)),
+        )
+      }
+
+      // For deveco provider, use small_model from dynamically fetched task_default_model_map (already cached)
+      if (providerID === "deveco") {
+        const { getTaskDefaultModelMap } = yield* Effect.promise(() => import("@/plugin/deveco-models"))
+        const smallModel = getTaskDefaultModelMap().small_model
+        return yield* getModel(ProviderID.make("deveco"), ModelID.make(smallModel)).pipe(
           Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)),
         )
       }
