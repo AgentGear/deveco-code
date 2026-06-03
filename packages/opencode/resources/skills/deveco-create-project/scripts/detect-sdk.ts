@@ -30,26 +30,6 @@ async function isDir(file: string) {
     .catch(() => false);
 }
 
-function defaults() {
-  if (process.platform === 'darwin') {
-    return ['/Applications/DevEco-Studio.app/Contents'];
-  }
-  if (process.platform === 'linux') {
-    const home = String(process.env.HOME || '').trim();
-    return [
-      home ? path.join(home, 'devecostudio/Contents') : '',
-      home ? path.join(home, 'DevEco-Studio/Contents') : '',
-    ].filter(Boolean);
-  }
-  const home = String(process.env.USERPROFILE || '').trim();
-  return [
-    'C:\\Program Files\\Huawei\\DevEco Studio',
-    'C:\\Program Files\\DevEco Studio',
-    'C:\\Program Files (x86)\\DevEco Studio',
-    home ? path.join(home, 'DevEco Studio') : '',
-  ].filter(Boolean);
-}
-
 function nodePath(home: string) {
   return process.platform === 'win32'
     ? path.join(home, 'tools', 'node', 'node.exe')
@@ -60,14 +40,6 @@ async function findDevEcoHome() {
   const env = envPath();
   if (env && (await isDir(env)) && (await Bun.file(nodePath(env)).exists())) {
     return env;
-  }
-  for (const item of defaults()) {
-    if (!(await isDir(item))) {
-      continue;
-    }
-    if (await Bun.file(nodePath(item)).exists()) {
-      return item;
-    }
   }
 }
 
