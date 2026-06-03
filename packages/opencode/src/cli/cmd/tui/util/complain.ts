@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, rmSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import { devecoAuth } from "@/plugin/deveco"
@@ -80,7 +80,8 @@ async function createComplainPayload(latestConversation: string) {
 async function openWithChrome(chromePath: string, complainData: unknown) {
   const existingPort = await findExistingDevtoolsPort(PROFILE_DIR)
   const port = existingPort ?? (await launchChrome(chromePath, PROFILE_DIR))
-  const webSocketDebuggerUrl = await createPageWebSocket(port)
+  const webSocketDebuggerUrl =
+    existingPort === undefined ? await findPageWebSocket(port) : await createPageWebSocket(port)
   const cdp = await connectDevtools(webSocketDebuggerUrl)
 
   try {
@@ -92,6 +93,8 @@ async function openWithChrome(chromePath: string, complainData: unknown) {
 }
 
 async function launchChrome(chromePath: string, profileDir: string) {
+  rmSync(join(profileDir, "DevToolsActivePort"), { force: true })
+
   const chrome = spawn(
     chromePath,
     [
@@ -207,6 +210,21 @@ async function createPageWebSocket(port: number) {
   if (response.ok) {
     const page = (await response.json()) as { webSocketDebuggerUrl?: string }
     if (page.webSocketDebuggerUrl) return page.webSocketDebuggerUrl
+  }
+
+  throw new Error("Chrome page target did not become ready.")
+}
+
+async function findPageWebSocket(port: number) {
+  const deadline = Date.now() + 5000
+  while (Date.now() < deadline) {
+    const response = await fetch(`http://127.0.0.1:${port}/json/list`).catch(() => undefined)
+    if (response?.ok) {
+      const pages = (await response.json()) as Array<{ type?: string; webSocketDebuggerUrl?: string }>
+      const page = pages.find((item) => item.type === "page" && item.webSocketDebuggerUrl)
+      if (page?.webSocketDebuggerUrl) return page.webSocketDebuggerUrl
+    }
+    await delay(50)
   }
 
   throw new Error("Chrome page target did not become ready.")
