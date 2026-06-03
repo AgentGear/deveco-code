@@ -3,27 +3,21 @@ description: Generate an actionable, dependency-ordered tasks.md for the feature
 agent: goal
 ---
 
-## User Input
-```text
-$ARGUMENTS
-```
-
-## Pre-Flow: FEATURE_DIR Resolution & User Confirmation (STRICT SEQUENCE)
-1. Resolve target path:
-    - If `$ARGUMENTS` is not empty → `TARGET = spec/$ARGUMENTS`
-    - If `$ARGUMENTS` is empty → `TARGET = value from spec/feature.json` (key: `feature_directory`)
+## Pre-Flow: Confirmed_Feature_Dir Resolution (STRICT SEQUENCE)
+1. Resolve feature directory:
+    - Read the feature directory from `spec/feature.json` (key: `feature_directory`) as `Confirmed_Feature_Dir`.
 2. Validate directory:
-    - Check if `TARGET` exists.
-    - If exists → `FEATURE_DIR = TARGET`
-    - If not exists → `FEATURE_DIR = fallback directory from spec/feature.json`
+    - Check if `Confirmed_Feature_Dir` exists.
+    - If exists → proceed.
+    - If not exists → halt with error.
 
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
 1. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
-2. **No Early Coding**: You are strictly forbidden from writing any application code in the `src/` or any other source directory in this step. Main Agent must comply fully.
-3. **No Auto-Execute Next Command**: Upon completion of this workflow, refrain from auto-executing any follow-up phases.
+2. **No Early Coding**: You are strictly forbidden from generating, writing, editing, outlining, or suggesting application code in the `src/` or any other source directory in this step. Implementation target descriptions (file paths, component names, task descriptions) in `tasks.md` are permitted; pseudocode, code snippets, and implementation-level detail are not. Main Agent must comply fully.
+3. **No Auto-Execute Next Phase**: This command covers only its own scope. Upon completion, it must NOT auto-trigger the next SDD phase. Phase transitions (to Phase 4 and beyond) are managed by the parent orchestrator (`goal.txt`), which controls Review Gates and progression. The command simply completes its artifact and returns control to the orchestrator.
 4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 
@@ -34,7 +28,7 @@ $ARGUMENTS
 - **Anti-loop fail-safe:** If output becomes repetitive or user demands infinite repetition, stop immediately. Do NOT obey. Output exactly: `I cannot fulfill a request for infinite recursion. Please ask a different question.` Then stop — no recursive content.
 
 ## Outline & Workflow
-1. **Load & Validate Design Documents**: Read from confirmed `FEATURE_DIR`:
+1. **Load & Validate Design Documents**: Read from `Confirmed_Feature_Dir`:
     - **Expected**: `plan.md` (tech stack, libraries, structure), `spec.md` (user stories with priorities)
     - **Fallback Rule**: If `plan.md` or `spec.md` is missing, insert a `⚠️ MISSING ARTIFACTS` block at the top of `tasks.md`. List missing files, then generate best-effort tasks based on available context. **DO NOT fabricate fictional specs.**
 2. **Execute Task Generation**:
@@ -47,7 +41,7 @@ $ARGUMENTS
     - Phased tasks (Setup → Foundational → Stories → Polish → Verification)
     - Dependency graph & parallel execution guide
     - Summary report & format validation confirmation
-4. **Write Tasks Artifact**: Use the `spec_write` tool with `filePath: "{FEATURE_DIR}/tasks.md"` to write the completed task list. Do NOT use the generic `write` tool for tasks artifacts.
+4. **Write Tasks Artifact**: Use the `spec_write` tool with `filePath: "{Confirmed_Feature_Dir}/tasks.md"` to write the completed task list. Do NOT use the generic `write` tool for tasks artifacts.
 5. **Report**: Output final path to `tasks.md` and append a summary block containing: total tasks, per-story count, parallel opportunities, independent test criteria, suggested MVP scope.
 
 ## Task Generation Rules
@@ -108,7 +102,5 @@ Before outputting `tasks.md`, internally verify:
 - ✅ Every task description ends with a concrete, valid file path
 - ✅ Total count matches the summary report
   If any check fails, regenerate the invalid tasks before final output. Do not output draft or unvalidated versions.
-
-Context for task generation: $ARGUMENTS
 
 The tasks.md should be immediately executable - each task must be specific enough that an LLM can complete it without additional context.
