@@ -283,9 +283,6 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   let providerScroll: ScrollBoxRenderable | undefined;
   let privacyScroll: ScrollBoxRenderable | undefined;
 
-  /** Rows kept visible below the privacy agreement scroll area (actions + help). */
-  const PRIVACY_SCROLL_FOOTER_ROWS = 5;
-
   // Async agreement status check — runs when entering privacy step
   const checkAgreementStatus = async () => {
     setCheckingStatus(true)
@@ -406,10 +403,64 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     return Math.min(filteredProviders().length, Math.max(cap, 5));
   });
 
-  const privacyScrollHeight = createMemo(() => {
-    const slot = props.bodySlotHeight ?? Math.floor(dimensions().height / 2) - 12;
-    return Math.max(3, slot - PRIVACY_SCROLL_FOOTER_ROWS);
+  const privacyBodyHeight = createMemo(
+    () => props.bodySlotHeight ?? Math.max(6, Math.floor(dimensions().height / 2) - 12),
+  );
+
+  /** Minimum rows always reserved for checkbox, hint, Agree, and Cancel (never scroll away). */
+  const PRIVACY_FOOTER_MIN_ROWS = 6;
+
+  /** Reserved rows below the agreement scrollbox (checkbox / options may wrap on narrow terminals). */
+  const privacyFooterRows = createMemo(() => {
+    const termW = Math.floor(dimensions().width);
+    const pad = homeContentPadX(termW);
+    const contentW = Math.max(20, Math.min(HOME_CONTENT_MAX_WIDTH, termW) - pad * 2);
+    const lineRows = (text: string) => Math.max(1, Math.ceil(text.length / contentW));
+    const checkboxRows = lineRows('☐  I have read and agree to the above agreements');
+    const hintRows = lineRows('(Press Space or click to check)');
+    const agreeRows = lineRows('> 1. Agree (check first)');
+    const cancelRows = 1;
+    let rows = checkboxRows + hintRows + agreeRows + cancelRows;
+    if (signBusy()) rows += 1;
+    if (signError() !== null) rows += 1;
+    return Math.max(PRIVACY_FOOTER_MIN_ROWS, rows);
   });
+
+  const privacyScrollHeight = createMemo(() => {
+    const slot = privacyBodyHeight();
+    // marginTop={1} between scrollbox and footer; footer rows are never sacrificed.
+    return Math.max(1, slot - privacyFooterRows() - 1);
+  });
+
+  const privacyContentWidth = createMemo(() => {
+    const termW = Math.floor(dimensions().width);
+    const pad = homeContentPadX(termW);
+    return Math.max(20, Math.min(HOME_CONTENT_MAX_WIDTH, termW) - pad * 2);
+  });
+
+  const privacyAgreementContentRows = createMemo(() => {
+    const w = privacyContentWidth();
+    const lineRows = (text: string) => Math.max(1, Math.ceil(text.length / w));
+    const intro = lineRows(
+      'Please read and agree to the following agreements to start the HarmonyOS development journey.',
+    );
+    const termsLink = lineRows('DevEco Code AI Terms Of Use');
+    const privacyLink = lineRows('DevEco Code AI Privacy Policy');
+    // section labels + marginTop spacers between blocks
+    return intro + 2 + termsLink + 2 + privacyLink;
+  });
+
+  const privacyScrollbarVisible = createMemo(
+    () => privacyAgreementContentRows() > privacyScrollHeight(),
+  );
+
+  const privacyVerticalScrollbar = createMemo(() => ({
+    visible: privacyScrollbarVisible(),
+    trackOptions: {
+      backgroundColor: theme.backgroundElement,
+      foregroundColor: theme.border,
+    },
+  }));
 
   const scrollPrivacyBy = (delta: number) => {
     if (!privacyScroll) {
@@ -784,7 +835,7 @@ if (st === 'entry') {
       width='100%'
       alignItems='center'
       justifyContent={onboardingJustify()}
-      height={step() === 'privacy' ? props.bodySlotHeight : undefined}
+      maxHeight={step() === 'privacy' ? props.bodySlotHeight : undefined}
       minHeight={0}
     >
       <Show when={step() === 'privacy'}>
@@ -808,11 +859,14 @@ if (st === 'entry') {
         </Show>
         <Show when={!checkingStatus() && !networkErrorNoCache()}>
           <OnboardingContent>
+            <box flexDirection='column' width='100%' minHeight={0} maxHeight={privacyBodyHeight()}>
               <scrollbox
                 ref={(r: ScrollBoxRenderable) => (privacyScroll = r)}
+                flexShrink={1}
+                minHeight={0}
                 maxHeight={privacyScrollHeight()}
                 width='100%'
-                scrollbarOptions={{ visible: false }}
+                verticalScrollbarOptions={privacyVerticalScrollbar()}
               >
                 <text fg={theme.text} selectable={false} wrapMode='word'>
                   Please read and agree to the following agreements to start the HarmonyOS development journey.
@@ -829,44 +883,42 @@ if (st === 'entry') {
                 <Link href={agreementConfig().privacy_url} fg={theme.primary}>
                   DevEco Code AI Privacy Policy
                 </Link>
+              </scrollbox>
 
-                <box onMouseUp={() => setCheckboxChecked(!checkboxChecked())}>
-                  <text fg={theme.text} selectable={false} marginTop={1} wrapMode='word'>
+              <box flexDirection='column' flexShrink={0} marginTop={1}>
+                <box onMouseUp={() => setCheckboxChecked(!checkboxChecked())} flexShrink={0}>
+                  <text fg={theme.text} selectable={false} wrapMode='word'>
                     {checkboxChecked() ? '☑' : '☐'}  I have read and agree to the above agreements
                   </text>
                 </box>
-                <text fg={theme.textMuted} selectable={false}>
+                <text fg={theme.textMuted} selectable={false} flexShrink={0}>
                   (Press Space or click to check)
                 </text>
-              </scrollbox>
-
-              <text
-                fg={privacyIndex() === 0 && checkboxChecked() ? theme.success : theme.textMuted}
-                selectable={false}
-                marginTop={1}
-              >
-                {selectionLead(privacyIndex() === 0)}
-                1. Agree {!checkboxChecked() ? '(check first)' : ''}
-              </text>
-              <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false}>
-                {selectionLead(privacyIndex() === 1)}
-                2. Cancel
-              </text>
-
-              <text fg={theme.textMuted} selectable={false} marginTop={1}>
-                Scroll: wheel or PgUp/PgDn · Enter to select · Space or click to check · Up/Down for options
-              </text>
-
-              <Show when={signBusy()}>
-                <text fg={theme.textMuted} selectable={false}>
-                  Signing agreement...
+                <text
+                  fg={privacyIndex() === 0 && checkboxChecked() ? theme.success : theme.textMuted}
+                  selectable={false}
+                  flexShrink={0}
+                  marginTop={1}
+                >
+                  {selectionLead(privacyIndex() === 0)}
+                  1. Agree {!checkboxChecked() ? '(check first)' : ''}
                 </text>
-              </Show>
-              <Show when={signError() !== null}>
-                <text fg={theme.error} selectable={false} wrapMode='word'>
-                  {signError()}
+                <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false} flexShrink={0}>
+                  {selectionLead(privacyIndex() === 1)}
+                  2. Cancel
                 </text>
-              </Show>
+                <Show when={signBusy()}>
+                  <text fg={theme.textMuted} selectable={false} flexShrink={0}>
+                    Signing agreement...
+                  </text>
+                </Show>
+                <Show when={signError() !== null}>
+                  <text fg={theme.error} selectable={false} wrapMode='word' flexShrink={0}>
+                    {signError()}
+                  </text>
+                </Show>
+              </box>
+            </box>
           </OnboardingContent>
         </Show>
       </Show>
