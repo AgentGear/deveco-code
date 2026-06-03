@@ -102,6 +102,7 @@ export const layer = Layer.effect(
           Truncate.GLOB,
           path.join(Global.Path.config, "*"),
           path.join(Global.Path.tmp, "*"),
+          path.join(Global.Path.data, "specs", "*"),
           ...skillDirs.map((dir) => path.join(dir, "*")),
         ]
         const readonlyExternalDirectory = {

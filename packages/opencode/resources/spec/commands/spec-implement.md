@@ -10,7 +10,7 @@ $ARGUMENTS
 
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
 1. **Intra-Plan Autonomy:** Within the approved `tasks.md` scope, you MUST proceed autonomously through sequential phases and tasks without intermediate user prompts, unless a failure, conflict, or explicit checkpoint is triggered.
-2. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+2. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 3. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.

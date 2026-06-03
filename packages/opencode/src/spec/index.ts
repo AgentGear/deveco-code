@@ -11,7 +11,6 @@ const log = Log.create({ service: "spec" })
 export const Info = Schema.Struct({
   commandsPath: Schema.String,
   templatesPath: Schema.String,
-  agentsPath: Schema.String,
 }).pipe(withStatics((s) => ({})))
 export type Info = Schema.Schema.Type<typeof Info>
 
@@ -26,19 +25,17 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const fsys = yield* AppFileSystem.Service
 
-    const { configDir, specDir } = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
+    const { specDir } = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
 
     log.info("spec resources initialized", {
       commands: path.join(specDir, "commands"),
       templates: path.join(specDir, "templates"),
-      agents: path.join(configDir, "agents"),
     })
 
     const get = Effect.fn("Spec.get")(function* () {
       return {
         commandsPath: path.join(specDir, "commands"),
         templatesPath: path.join(specDir, "templates"),
-        agentsPath: path.join(configDir, "agents"),
       }
     })
 

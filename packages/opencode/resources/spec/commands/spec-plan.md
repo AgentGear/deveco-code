@@ -11,7 +11,7 @@ $ARGUMENTS
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
 1. **No Early Coding (Non-Negotiable):** You are strictly forbidden from writing, generating, or even outlining application code in `src/` or any other source directory during this workflow. Output must remain strictly at the design/planning level. Main Agent must comply fully; no implicit code generation is allowed.
 2. **No Auto-Execute Next Command:** Upon completion of this planning workflow, refrain from auto-executing any follow-up phases. Main Agent is prohibited from triggering any downstream commands automatically.
-3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 4. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.

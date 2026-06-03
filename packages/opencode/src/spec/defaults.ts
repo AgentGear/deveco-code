@@ -60,8 +60,7 @@ export namespace Defaults {
   const log = Log.create({ service: "spec-defaults" })
 
   export const ensure = Effect.fn("Spec.Defaults.ensure")(function* (version: string, fsys: AppFileSystem.Interface) {
-    const configDir = Global.Path.config
-    const specDir = path.join(configDir, "specs")
+    const specDir = path.join(Global.Path.data, "specs")
     const versionFile = path.join(specDir, ".version")
 
     const current = yield* Effect.gen(function* () {
@@ -71,7 +70,7 @@ export namespace Defaults {
       return new TextDecoder().decode(buf)
     }).pipe(Effect.catch(() => Effect.succeed("")))
     if (current === version && current !== "local") {
-      return { configDir, specDir }
+      return { specDir }
     }
 
     log.info("extracting default spec resources", { version })
@@ -91,9 +90,7 @@ export namespace Defaults {
       if (typeof content === "string") {
         continue
       } else if (typeof content === "object" && !("encoding" in content)) {
-        const useConfigDir = name === "agents"
-        const baseDir = useConfigDir ? configDir : specDir
-        const targetDir = path.join(baseDir, name)
+        const targetDir = path.join(specDir, name)
         for (const [fileName, fileContent] of Object.entries(content as Record<string, EmbeddedSpecFile>)) {
           if (typeof fileContent === "string") {
             yield* fsys.writeWithDirs(path.join(targetDir, fileName), fileContent)
@@ -108,6 +105,6 @@ export namespace Defaults {
 
     yield* fsys.writeWithDirs(versionFile, version)
 
-    return { configDir, specDir }
+    return { specDir }
   })
 }
