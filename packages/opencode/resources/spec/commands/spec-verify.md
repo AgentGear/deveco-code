@@ -15,7 +15,8 @@ agent: goal
 7. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 8. **ArkTS Compilation Errors**: Immediately invoke `arkts-error-fixes` skill for automated repair.
 9. **ArkTS Runtime Crashes**: Immediately invoke `arkts-runtime-fix` skill for crash recovery and diagnostics.
-10. **UI Verification Rule**: Each time `verify_ui` is called, mandatorily set the parameter `freshStart=true` and execute exactly one user story's test cases per `verify_ui` invocation. **Each user story can only invoke the Fix → Re-verify cycle for at most 3 times in total.**
+10. **UI Verification Rule**: Each time `verify_ui` is called, mandatorily set the parameter `freshStart=true` and execute exactly one user story's test cases per `verify_ui` invocation. **Each user story can only invoke the Fix → Re-verify cycle for at most 3 times in total.** You MUST track `retry_count[story]` explicitly in your output before every re-verify invocation (see Phase 2 step 2). When `retry_count[story] ≥ 3`, you MUST output the marker `[RETRY_LIMIT_EXCEEDED] <story_id>` and move to the next story — do NOT attempt another `verify_ui` call for that story.
+11. **verify_ui Pre-call Assertion**: Before invoking `verify_ui` (both in Phase 1 step 4 and Phase 2 step 2d), you MUST output `[VERIFY_UI_CALL] story=<story_id> retry=<retry_count[story]> freshStart=true` as a single line immediately preceding the tool call. This creates an audit trail that survives context compaction. If you cannot produce this assertion, you MUST NOT call `verify_ui`.
 
 ## Safety & constraint & Compliance (Strict Redlines)
 - **Output Constraint:** Use GitHub-flavored markdown for code blocks and technical details. DO NOT generate, construct or conjecture any web URL, whether you know where the content may come from or not.
@@ -49,17 +50,18 @@ agent: goal
     - **UI verification failures** (`build+ui` scope only) → Identify which user stories failed. Proceed to step 2 for per-story remediation.
 
 2. **Per-Story Fix → Re-verify Cycle** (ONLY when `Verification_Scope == build+ui`):
-    Process EACH failed user story independently. Maintain a **per-story retry counter** (`retry_count[story]`, max 3 iterations per story):
+    Process EACH failed user story independently. Maintain a **per-story retry counter** (`retry_count[story]`, max 3 iterations per story). The counter starts at `0` for the initial Phase 1 verification; each subsequent fix→re-verify attempt increments it by `1`.
 
     For each failed story:
-    a. Apply targeted code fixes in `src/` to address the failures reported for **this specific user story**.
-    b. **`build_project`** — recompile with the fixed source code. A new HAP/package must be produced.
-    c. **`start_app`** — push the newly built package to the device/emulator and restart the application.
-    d. **`verify_ui`** — re-run ONLY this user story's test cases with `freshStart=true`. **Do NOT re-verify stories that already passed.**
-    e. **Evaluate this story**:
-       - **Story now passes** → Record as recovered. Move to the next failed story.
-       - **Story still fails AND `retry_count[story] < 3`** → Increment counter, repeat from step a.
-       - **Story still fails AND `retry_count[story] ≥ 3`** → Record this story as FAILED (retries exhausted). Move to the next failed story.
+    a. **Declare retry intent**: Before starting any fix work, output `[RETRY_ATTEMPT] story=<story_id> retry_count=<current_count>/3`. This assertion must appear as a separate line in your output.
+    b. Apply targeted code fixes in `src/` to address the failures reported for **this specific user story**.
+    c. **`build_project`** — recompile with the fixed source code. A new HAP/package must be produced.
+    d. **`start_app`** — push the newly built package to the device/emulator and restart the application.
+    e. **`verify_ui`** — re-run ONLY this user story's test cases with `freshStart=true`. **Do NOT re-verify stories that already passed.** Output the `[VERIFY_UI_CALL]` assertion (see Constraint 11) immediately before the tool invocation.
+    f. **Evaluate this story**:
+       - **Story now passes** → Record as recovered. Output `[RETRY_PASSED] story=<story_id> total_retries=<count>`. Move to the next failed story.
+       - **Story still fails AND `retry_count[story] < 3`** → Increment counter, output `[RETRY_CONTINUE] story=<story_id> retry_count=<new_count>/3`, repeat from step a.
+       - **Story still fails AND `retry_count[story] ≥ 3`** → Output `[RETRY_LIMIT_EXCEEDED] <story_id>` — this is a **mandatory termination marker**. Record this story as FAILED (retries exhausted). Do NOT attempt another `verify_ui` call for this story. Move to the next failed story.
 
     After all failed stories have been processed, proceed to step 4 (Report).
 
@@ -70,4 +72,5 @@ agent: goal
 
 5. **Loop Limits**:
     - **Build fix**: **unlimited** iterations — keep fixing until the build passes or the issue becomes intractable.
-    - **Per-story UI fix**: max **3 iterations** per user story, tracked independently. This is a hard cap — under no circumstances should this cycle exceed 3 rounds.
+    - **Per-story UI fix**: max **3 iterations** per user story, tracked independently via `retry_count[story]`. This is a hard cap — under no circumstances should this cycle exceed 3 rounds. When the cap is reached, the mandatory `[RETRY_LIMIT_EXCEEDED] <story_id>` marker must appear in the output, and no further `verify_ui` calls are permitted for that story.
+6. **Self-Audit Rule**: Before writing the Phase 2 Report (step 4), review your own output and verify that every `verify_ui` invocation was preceded by a `[VERIFY_UI_CALL]` assertion and that no `retry_count[story]` exceeded 3. If you discover a violation (e.g., a story was retried more than 3 times, or a `[RETRY_LIMIT_EXCEEDED]` marker was missing), correct the report to reflect the actual counts and flag the violation explicitly: `[AUDIT_VIOLATION] <story_id> exceeded 3 retries (actual: <count>)`.
