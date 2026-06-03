@@ -19,7 +19,7 @@ import os from "node:os"
 import path from "path"
 import { findDevEcoHome } from "./env"
 import * as Log from "@opencode-ai/core/util/log"
-import { DEVECO_PROVIDER_CONFIG } from "@/plugin/deveco-models"
+import { DEVECO_DEFAULTS, getTaskDefaultModelMap } from "@/plugin/deveco-models"
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/deveco"
 
 function addon() {
@@ -113,9 +113,9 @@ export async function resolveUIVerifyParams(worktree: string) {
       }
       if (auth instanceof Auth.Oauth && auth.access && auth.expires > Date.now()) {
         return {
-          baseURL: DEVECO_PROVIDER_CONFIG.api + "/no-stream",
+          baseURL: DEVECO_DEFAULTS.provider.api + "/no-stream",
           apiKey: auth.access,
-          modelName: "Qwen3_VL_235B_A22B_Instruct",
+          modelName: getTaskDefaultModelMap()["ui_verification"] ?? "Qwen3_VL_235B_A22B_Instruct",
         }
       }
     }
