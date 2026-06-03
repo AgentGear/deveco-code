@@ -21,7 +21,7 @@ const CG_RIGHT = [
   "",
   "  {muted}Collaborate with {/muted}{link}DevEco Code.{/link}", // {link} → theme.info in renderLogoRightRow
   "  AI copilot for HarmonyOS application development",
-  "  Powered by BITFUN & OpenCode",
+  "  Powered by BitFun & OpenCode",
   "",
   "  ⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯",
   "",

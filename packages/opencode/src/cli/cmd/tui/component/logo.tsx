@@ -88,7 +88,7 @@ export function Logo(props: { shape?: LogoType; column?: "left" | "right" } = {}
       return [<text fg={white} attributes={TextAttributes.BOLD} selectable={false}>{rightLine}</text>]
     }
     
-    // Line 6: "Powered by BITFUN & OpenCode" — white
+    // Line 6: "Powered by BitFun & OpenCode" — white
     if (lineIndex === 6 && rightLine.includes("Powered by")) {
       return [<text fg={white} selectable={false}>{rightLine}</text>]
     }
