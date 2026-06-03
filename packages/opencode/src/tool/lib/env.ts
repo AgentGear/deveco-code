@@ -15,7 +15,10 @@
 
 import fs from "fs/promises";
 import path from "path";
+import semver from "semver";
 import { Global } from "@opencode-ai/core/global";
+
+export const MIN_DEVECO_STUDIO_VERSION = "6.0.0";
 
 const savedDevEcoHomeFile = () => path.join(Global.Path.state, "deveco-home.json");
 
@@ -90,11 +93,34 @@ export function hdcPath(home: string) {
   return path.join(home, "sdk", "default", "openharmony", "toolchains", binary("hdc"));
 }
 
+function parseDevEcoStudioVersion(raw: unknown) {
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  return semver.coerce(trimmed)?.version;
+}
+
+async function readDevEcoStudioVersion(home: string) {
+  try {
+    const text = await fs.readFile(path.join(home, "product-info.json"), "utf8");
+    const data = JSON.parse(text) as { version?: unknown };
+    return parseDevEcoStudioVersion(data.version);
+  } catch {
+    return undefined;
+  }
+}
+
+function meetsMinDevEcoVersion(version: string) {
+  return semver.gte(version, MIN_DEVECO_STUDIO_VERSION);
+}
+
 export async function resolveDevEcoHome(home: string): Promise<string | undefined> {
   for (const candidate of devEcoHomeCandidates(home)) {
-    if ((await isDir(candidate)) && (await Bun.file(nodePath(candidate)).exists())) {
-      return candidate;
-    }
+    if (!(await isDir(candidate))) continue;
+    if (!(await Bun.file(nodePath(candidate)).exists())) continue;
+    const version = await readDevEcoStudioVersion(candidate);
+    if (!version || !meetsMinDevEcoVersion(version)) continue;
+    return candidate;
   }
   return undefined;
 }
@@ -155,7 +181,6 @@ export async function findDevEcoHome(): Promise<string | undefined> {
 
   const saved = await loadSavedDevEcoHome();
   if (saved) return saved;
-
   return (await findDevEcoHomes())[0];
 }
 

@@ -91,7 +91,7 @@ async function inputDevEcoHome(): Promise<string> {
   if (resolved) return resolved
   UI.println(
     UI.Style.TEXT_DANGER_BOLD +
-      "Invalid DevEco Studio path. Please enter a directory that contains DevEco Studio tools." +
+      "Invalid DevEco Studio path. Please enter a directory that contains DevEco Studio(v6.1 or later) tools." +
       UI.Style.TEXT_NORMAL,
   )
   return inputDevEcoHome()
@@ -99,7 +99,7 @@ async function inputDevEcoHome(): Promise<string> {
 
 async function selectDevEcoHome(candidates: string[]): Promise<string | undefined> {
   const selected = await prompts.select({
-    message: candidates.length ? "Please select DevEco Studio path" : "Please configure your DevEco Studio path:",
+    message: candidates.length ? "Please select DevEco Studio path (Requires version 6.1 or later.)" : "Please configure your DevEco Studio path (Requires version 6.1 or later.)",
     options: [
       ...candidates.map((candidate) => ({
         label: candidate,
