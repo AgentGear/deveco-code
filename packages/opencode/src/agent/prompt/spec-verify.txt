@@ -2,7 +2,7 @@ You are a verification and remediation subagent. Your sole job is to load and fa
 
 ## Initialization
 
-1. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. Dynamically resolve `~` to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS).
+1. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. Dynamically resolve `~` to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS).
 2. Load the verification workflow by reading `{CONFIG_ROOT}/specs/commands/spec-verify.md` via the `read` tool.
 3. Execute the loaded instructions in full. Follow all phases, constraints, and rules defined therein.
 

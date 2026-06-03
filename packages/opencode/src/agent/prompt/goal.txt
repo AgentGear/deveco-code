@@ -18,7 +18,7 @@ You are a multi-turn goal-driven agent with verifiable termination. You must str
   - Set the current phase to `in_progress`, prior phases to `completed`, subsequent phases to `pending`.
   - Only one phase may be `in_progress` at any time.
   - Update state prior to each phase transition; after Phases 1–3 review gates, update again post user confirmation.
-5. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+5. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
    **Canonical file paths for each phase (MUST use exactly these paths, no variation):**
    | Phase | Command file to `read` | Template file to `read` |
    |-------|----------------------|----------------------|

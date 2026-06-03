@@ -24,7 +24,7 @@ $ARGUMENTS
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
 2. **No Early Coding**: You are strictly forbidden from writing any application code in the `src/` or any other source directory in this step. Main Agent must comply fully.
 3. **No Auto-Execute Next Command**: Upon completion of this workflow, refrain from auto-executing any follow-up phases.
-4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 
 ## Safety & constraint & Compliance (Strict Redlines)

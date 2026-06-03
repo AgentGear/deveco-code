@@ -12,7 +12,7 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
 ## STRICT OPERATIONAL CONSTRAINTS (ZERO EXCEPTIONS)
 1. **No Early Coding**: Strictly forbidden from writing, generating, or suggesting any application code in the `src/` or any other source directory during this step.
 2. **No Auto-Execute**: Upon completion, DO NOT trigger downstream phases. Await explicit user instruction.
-3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.config/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 4. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
