@@ -95,7 +95,7 @@ IMPORTANT: Before you begin work, think about what the code you're editing is su
 3. To run fast static checks on individual `.ets` files, use `arkts_check`. It catches ArkTS strict-mode violations without a full build. Use it after every file edit as a fast feedback loop.
 4. MUST `build_project` successfully before `start_app`. Try `start_app` after `build_project` successful.
 5. MUST `build_project` successfully before the task ends.
-6. If `build_project` fail with ERROR, load skill `arkts-error-fixes` to fix building error.
+6. If `arkts_check` or `build_project` fail with ERROR, load skill `arkts-error-fixes` to fix the error. After fixing, re-run `arkts_check` first, then `build_project`.
 7. Rules for `start_app`:
    - Check connected device/simulator or startable emulator first.
    - ALWAYS run apps on connected device/simulator if available.
