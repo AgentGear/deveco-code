@@ -115,7 +115,7 @@ export async function resolveUIVerifyParams(worktree: string) {
         return {
           baseURL: DEVECO_PROVIDER_CONFIG.api + "/no-stream",
           apiKey: auth.access,
-          modelName: "Qwen2.5-VL-72B",
+          modelName: "Qwen3_VL_235B_A22B_Instruct",
         }
       }
     }
