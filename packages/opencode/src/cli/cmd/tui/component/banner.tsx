@@ -184,7 +184,7 @@ export function Banner(props?: { contentInset?: number }) {
   const taglinePadLeft = createMemo(() => Math.max(0, Math.floor((width() - taglineLen) / 2)));
 
   // Secondary line (text): muted “Powered by …”, centered via left-padding.
-  const poweredBy = "Powered by BITFUN & OpenCode";
+  const poweredBy = "Powered by BitFun & OpenCode";
   const poweredByLen = poweredBy.length;
   const poweredByPadLeft = createMemo(() => Math.max(0, Math.floor((width() - poweredByLen) / 2)));
   return (
