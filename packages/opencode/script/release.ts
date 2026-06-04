@@ -67,6 +67,9 @@ await $`mkdir -p ./dist/${pkg.name}`
 await $`cp -r ./bin ./dist/${pkg.name}/bin`
 await $`cp ./script/postinstall.mjs ./dist/${pkg.name}/postinstall.mjs`
 await Bun.file(`./dist/${pkg.name}/LICENSE`).write(await Bun.file("../../LICENSE").text())
+await Bun.file(`./dist/${pkg.name}/README.md`).write(await Bun.file("../../README.md").text())
+await $`mkdir -p ./dist/${pkg.name}/assets/readme`
+await $`cp ../../assets/readme/readme-screenshot.png ./dist/${pkg.name}/assets/readme/readme-screenshot.png`
 
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify(
@@ -80,6 +83,13 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
       },
       version: version,
       license: pkg.license,
+      files: [
+        "bin/**/*",
+        "postinstall.mjs",
+        "LICENSE",
+        "README.md",
+        "assets/**/*",
+      ],
       optionalDependencies: Object.fromEntries(Object.entries(binaries).map(([k, v]) => [k, v.version])),
     },
     null,

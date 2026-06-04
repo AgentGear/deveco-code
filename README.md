@@ -3,15 +3,16 @@
 </p>
 <p align="center">面向 HarmonyOS 开发场景的 AI Agent 工具。</p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/@deveco/deveco-code"><img alt="npm" src="https://img.shields.io/npm/v/@deveco/deveco-code?style=flat-square&label=npm" /></a>
-  <a href="https://gitcode.com/openharmony-sig/deveco-code/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/@deveco/deveco-code?style=flat-square&label=license" /></a>
-  <a href="https://gitcode.com/openharmony-sig/deveco-code"><img alt="GitCode" src="https://img.shields.io/badge/GitCode-openharmony--sig%2Fdeveco--code-blue?style=flat-square" /></a>
+  <a href="README_EN.md">English</a> · 简体中文
 </p>
+
 <p align="center">
-  <a href="README_EN.md">English</a> |
-  <a href="https://www.npmjs.com/package/@deveco/deveco-code">npm 包页面</a> |
-  <a href="https://gitcode.com/openharmony-sig/deveco-code">GitCode 仓库</a> |
-  <a href="https://opencode.ai">OpenCode</a>
+  <a href="https://www.npmjs.com/package/@deveco/deveco-code"><img alt="NPM Version" src="https://img.shields.io/npm/v/@deveco/deveco-code.svg" /></a>
+  <a href="https://www.npmjs.com/package/@deveco/deveco-code"><img alt="NPM Downloads" src="https://img.shields.io/npm/dm/@deveco/deveco-code.svg" /></a>
+  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-%3E%3D22-green.svg" />
+  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20(Arm%20%7C%20x64)%20%7C%20Windows-blue.svg" />
+  <a href="https://developer.huawei.com/consumer/cn/deveco-studio/"><img alt="DevEco Studio" src="https://img.shields.io/badge/DevEco%20Studio-%3E%3D6.1-orange.svg" /></a>
+  <a href="https://gitcode.com/openharmony-sig/deveco-code/blob/develop/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
 </p>
 
 <p align="center">
