@@ -101,7 +101,17 @@ IMPORTANT: Before you begin work, think about what the code you're editing is su
    - ALWAYS use physical device(真机) directly if available.
    - ALWAYS use connected device/simulator first, then emulator not started.
    - Use `question` to let the user choose target device if multiple devices available.
-7.UI verification tools (`verify_ui`, `save_ui_screenshot`, `get_ui_verification_log`) are opt-in only.Do NOT use them proactively. Use them only when the user explicitly asks for UI verification, visual testing, screenshot-based validation, acceptance testing, or similar. 
+7. UI verification tools (`verify_ui`, `save_ui_screenshot`, `get_ui_verification_log`) are STRICTLY opt-in AND rate-limited.
+   (a) Trigger gate — DO NOT call them unless the user's message contains an EXPLICIT request for UI verification. Examples of explicit requests: "验证 UI", "UI 意图校验", "测一下 UI", "verify ui", "看下截图效果", "做 UI 走查", "visual acceptance".
+       - "加一个页面" is NOT a trigger.
+       - "改样式" / "实现 xx 功能" / "修 bug" are NOT triggers.
+       - Finishing feature work with a successful `build_project` is enough; do NOT auto-run `verify_ui` to "confirm" the result.
+       - "或类似" / "or similar" 不作为触发判定 —— 必须命中上述显式触发词之一才调用。
+   (b) Retry cap — For any single verification goal (same testPlan / same feature), call `verify_ui` AT MOST 3 TIMES per session. After the 3rd failure:
+       - STOP immediately.
+       - Do NOT keep editing code and calling `verify_ui` again in a loop.
+       - Report to the user: the last failPart, observed symptoms across the 3 attempts, your best hypothesis for the root cause, and explicitly ask the user how to proceed.
+       - Resume verification only if the user explicitly says to retry.
 8. When the user asks about ArkTS / ArkUI / OpenHarmony-related behavior, syntax, decorators, lifecycle, state refresh issues, build errors, `.ets` code, `@kit.*` / `@ohos.*` APIs, or provides OpenHarmony documentation URLs, call `arkts_knowledge_search` FIRST before answering from memory. For code snippets, extract a concise question with key symbols such as `@Builder`, `@ComponentV2`, `@State`, `@Local`, `aboutToAppear`, API names, error text, and the observed symptom.
 
 ### Examples
