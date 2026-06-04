@@ -93,6 +93,13 @@ export function hdcPath(home: string) {
   return path.join(home, "sdk", "default", "openharmony", "toolchains", binary("hdc"));
 }
 
+function productInfoPath(home: string) {
+  if (process.platform === 'darwin') {
+    return path.join(home, 'Resources', 'product-info.json');
+  }
+  return path.join(home, 'product-info.json');
+}
+
 function parseDevEcoStudioVersion(raw: unknown) {
   if (typeof raw !== "string") return undefined;
   const trimmed = raw.trim();
@@ -102,8 +109,8 @@ function parseDevEcoStudioVersion(raw: unknown) {
 
 async function readDevEcoStudioVersion(home: string) {
   try {
-    const text = await fs.readFile(path.join(home, "product-info.json"), "utf8");
-    const data = JSON.parse(text) as { version?: unknown };
+    const text = await fs.readFile(productInfoPath(home), "utf8");
+    const data = JSON.parse(text) as { version?: "6.1.0" };
     return parseDevEcoStudioVersion(data.version);
   } catch {
     return undefined;
