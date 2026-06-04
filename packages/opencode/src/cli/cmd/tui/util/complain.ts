@@ -3,6 +3,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import { devecoAuth } from "@/plugin/deveco"
+import { getOrCreateDeviceId } from "@/plugin/analytics/storage"
 
 const TARGET_URL = "https://css-complain-drcn.platform.dbankcloud.cn/?next=1&theme=light&lang=zh-cn"
 const PROFILE_DIR = join(tmpdir(), "deveco-complain-chrome-profile")
@@ -60,13 +61,14 @@ function findChrome() {
 
 async function createComplainPayload(latestConversation: string) {
   const session = await devecoAuth.getSession().catch(() => null)
+  const deviceId = await getOrCreateDeviceId()
   return {
     accessToken: session?.accessToken ?? "",
     additionalContext: {
       dialogCard1: latestConversation,
     },
     appId: "5006203948",
-    deviceId: "270086000122081382",
+    deviceId,
     disableUserUpload: false,
     sceneId: "7",
     subSceneId: "20",

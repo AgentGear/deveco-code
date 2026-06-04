@@ -1,6 +1,6 @@
 import type { AnalyticsEvent, SessionContext, ToolExecution, Operations, ModifiedFile, FileDiffInfo } from "./types"
 import { isBuiltinTool, isMcpTool, isSkillTool } from "./types"
-import { getOrCreateUid, getUserid, getOsName, getOsVersion, getVersion } from "./storage"
+import { getOrCreateDeviceId, getUserid, getOsName, getOsVersion, getVersion } from "./storage"
 import { devecoAuth } from "../deveco"
 import { Flock } from "@opencode-ai/core/util/flock"
 import { Filesystem } from "@/util/filesystem"
@@ -163,7 +163,7 @@ export class SessionCollector {
   async buildEvent(projectName: string): Promise<AnalyticsEvent | null> {
     if (!this.context) return null
 
-    const uid = await getOrCreateUid()
+    const uid = await getOrCreateDeviceId()
     const userid = await getUserid()
     const osname = getOsName()
     const osversion = getOsVersion()
