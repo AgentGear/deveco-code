@@ -3,14 +3,9 @@ description: Execute the implementation planning workflow using the plan templat
 agent: goal
 ---
 
-## User Input
-```text
-$ARGUMENTS
-```
-
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
-1. **No Early Coding (Non-Negotiable):** You are strictly forbidden from writing, generating, or even outlining application code in `src/` or any other source directory during this workflow. Output must remain strictly at the design/planning level. Main Agent must comply fully; no implicit code generation is allowed.
-2. **No Auto-Execute Next Command:** Upon completion of this planning workflow, refrain from auto-executing any follow-up phases. Main Agent is prohibited from triggering any downstream commands automatically.
+1. **No Early Coding (Non-Negotiable):** You are strictly forbidden from generating, writing, editing, outlining, or suggesting application code in `src/` or any other source directory during this workflow. Architecture diagrams, data models, interface contracts, and implementation target descriptions are permitted; pseudocode, code snippets, and implementation-level logic are not. Main Agent must comply fully; no implicit code generation is allowed.
+2. **No Auto-Execute Next Phase**: This command covers only its own scope. Upon completion, it must NOT auto-trigger the next SDD phase. Phase transitions (to Phase 3 and beyond) are managed by the parent orchestrator (`goal.txt`), which controls Review Gates and progression. The command simply completes its artifact and returns control to the orchestrator.
 3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 4. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
@@ -26,15 +21,11 @@ $ARGUMENTS
 
 ## Outline
 1. **Setup & Directory Resolution**:
-    - Determine `CANDIDATE_FEATURE_DIR`:
-        - If `$ARGUMENTS` is not empty: Use the argument as the target folder name. Check if `spec/{folder}` exists as a valid directory.
-            - If exists: Set as `CANDIDATE_FEATURE_DIR`.
-            - If not exists: Read the current feature directory from `spec/feature.json` as `CANDIDATE_FEATURE_DIR`.
-        - If `$ARGUMENTS` is empty: Read the current feature directory from `spec/feature.json` as `CANDIDATE_FEATURE_DIR`.
-    - Resolve absolute paths:
-        - `SPECS_DIR` = Absolute path of `CANDIDATE_FEATURE_DIR`
-        - `FEATURE_SPEC` = `SPECS_DIR/spec.md`
-        - `IMPL_PLAN` = `SPECS_DIR/plan.md`
+    - Resolve `Confirmed_Feature_Dir`:
+        - Read the current feature directory from `spec/feature.json` as `Confirmed_Feature_Dir`.
+    - Resolve artifact paths:
+        - `FEATURE_SPEC` = `Confirmed_Feature_Dir/spec.md`
+        - `IMPL_PLAN` = `Confirmed_Feature_Dir/plan.md`
 
 2. **Check Existing Document** (if `IMPL_PLAN` already exists):
     - Preserve existing sections that remain valid and relevant.

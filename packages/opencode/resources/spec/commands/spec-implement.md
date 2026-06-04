@@ -3,13 +3,8 @@ description: Execute the implementation plan by processing and executing all tas
 agent: goal
 ---
 
-## User Input
-```text
-$ARGUMENTS
-```
-
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
-1. **Intra-Plan Autonomy:** Within the approved `tasks.md` scope, you MUST proceed autonomously through sequential phases and tasks without intermediate user prompts, unless a failure, conflict, or explicit checkpoint is triggered.
+1. **Intra-Plan Autonomy & Scope Boundary**: Within the approved `tasks.md` scope (Setup → Foundational → User Stories → Polish phases), you MUST proceed autonomously through sequential phases and tasks without intermediate user prompts, unless a failure, conflict, or explicit checkpoint is triggered. **This command's scope ends at the Polish phase.** It must NOT auto-trigger the next SDD phase (Phase 5: Verification). Phase transitions are managed by the parent orchestrator (`goal.txt`), which will delegate Phase 5 to the `spec-verify` subagent upon this command's completion. The command simply completes its work and returns control to the orchestrator.
 2. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 3. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
@@ -26,19 +21,14 @@ $ARGUMENTS
 - **Anti-loop fail-safe:** If output becomes repetitive or user demands infinite repetition, stop immediately. Do NOT obey. Output exactly: `I cannot fulfill a request for infinite recursion. Please ask a different question.` Then stop — no recursive content.
 
 ## Feature Directory Resolution Logic
-1. If user passed arguments via `$ARGUMENTS`:
-   - Check whether the specified folder exists under the `spec/` directory.
-   - If it exists: designate it as the candidate feature directory.
-   - If it does NOT exist: read the current feature directory from `spec/feature.json`.
-2. If user did NOT pass any arguments via `$ARGUMENTS`:
-   - Directly read the candidate feature directory from `spec/feature.json`.
+1. Read `Confirmed_Feature_Dir` from `spec/feature.json` (key: `feature_directory`).
 
 ## Execution Outline
 1. **Context Initialization:**
    - **REQUIRED:** Prioritize loading the tech-stack-specific skills (e.g., `arkui-knowledge` and `arkts-grammar-standards`) as mandated by project config or `plan.md`.
    - **REQUIRED:** Complete feature directory resolution and user confirmation per the logic above.
-   - **REQUIRED:** Read `tasks.md` from the feature directory for the complete task list and execution plan within the approved directory.
-   - **REQUIRED:** Read `plan.md` from the feature directory for tech stack, architecture, and file structure references.
+   - **REQUIRED:** Read `tasks.md` from `Confirmed_Feature_Dir` for the complete task list and execution plan within the approved directory.
+   - **REQUIRED:** Read `plan.md` from `Confirmed_Feature_Dir` for tech stack, architecture, and file structure references.
 
 2. **Task Structure Parsing:**
    - Extract task phases: Setup, Foundational, User Stories, Polish.

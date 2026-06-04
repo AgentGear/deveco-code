@@ -3,15 +3,9 @@ description: Create or update the feature specification from a natural language 
 agent: goal
 ---
 
-## User Input
-```text
-$ARGUMENTS
-```
-You **MUST** consider the user input before proceeding. If empty or whitespace-only, halt immediately and output: `ERROR: No feature description provided.`
-
 ## STRICT OPERATIONAL CONSTRAINTS (ZERO EXCEPTIONS)
-1. **No Early Coding**: Strictly forbidden from writing, generating, or suggesting any application code in the `src/` or any other source directory during this step.
-2. **No Auto-Execute**: Upon completion, DO NOT trigger downstream phases. Await explicit user instruction.
+1. **No Early Coding**: You are strictly forbidden from generating, writing, editing, outlining, or suggesting application code in the `src/` or any other source directory during this step. Specification-level descriptions (requirements, user stories, acceptance criteria) are permitted; pseudocode, code snippets, and implementation-level detail are not.
+2. **No Auto-Execute Next Phase**: This command covers only its own scope. Upon completion, it must NOT auto-trigger the next SDD phase. Phase transitions (to Phase 2 and beyond) are managed by the parent orchestrator (`goal.txt`), which controls Review Gates and progression. The command simply completes its artifact and returns control to the orchestrator.
 3. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
 4. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
@@ -30,19 +24,20 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
 1. **Generate Feature Short Name**:
     - Extract 2-4 meaningful keywords. Format: `action-noun` or `tech-concept` (e.g., `add-user-auth`, `oauth2-api-integration`).
     - Preserve acronyms. Keep it concise and descriptive.
+    - **Name Collision Check (Mandatory)**: If the generated short name matches an existing directory under `spec/`, you **must** call the `question` tool to present the collision to the user and ask whether to: (a) use the existing directory (update the spec inside it), or (b) choose a different name. Do NOT proceed without explicit user confirmation.
 
 2. **Resolve & Create Feature Directory**:
-  - **Base path**: `spec` (unless `SPECIFY_FEATURE_DIRECTORY` is explicitly provided).
+  - **Base path**: `spec` (unless a custom directory path is explicitly provided by the user).
   - **Format**: `spec/<short-name>`
   - **Pre-Action Verification (Mandatory)**:
     - **Before** creating any directories or writing files, you **must** call the `question` tool to present the proposed path (e.g., `spec/auth-logic`) to the user and obtain their explicit approval. _(Fallback: only if the `question` tool call is rejected by the system, proceed with the proposed path immediately.)_
   - **Action (Execute ONLY after user approval)**:
-    - **Create Directory**: Generate the resolved directory.
-    - **Define Path**: Set `SPEC_FILE` to `<resolved_path>/spec.md`.
+    - **Create Directory**: Generate the resolved directory. Set `Confirmed_Feature_Dir` to the resolved path.
+    - **Define Artifact Path**: The spec file path is `Confirmed_Feature_Dir/spec.md`.
     - **State Persistence**: Overwrite `spec/feature.json` with:
       ```json
       {
-        "feature_directory": "<resolved_relative_or_absolute_path>"
+        "feature_directory": "<Confirmed_Feature_Dir>"
       }
       ```
 
@@ -60,7 +55,7 @@ You **MUST** consider the user input before proceeding. If empty or whitespace-o
     - [ ] Generate Functional Requirements → Each must be testable. Document defaults in Assumptions.
     - [ ] Define Success Criteria → Measurable, tech-agnostic, user-focused.
     - [ ] Identify Key Entities (if applicable).
-    - [ ] Finalize & Write → Use the `spec_write` tool with `filePath: "{SPEC_FILE}"` to write the completed specification. Do NOT use the generic `write` tool for spec artifacts.
+    - [ ] Finalize & Write → Use the `spec_write` tool with `filePath: "Confirmed_Feature_Dir/spec.md"` to write the completed specification. Do NOT use the generic `write` tool for spec artifacts.
 
 ## Generation Guidelines
 
