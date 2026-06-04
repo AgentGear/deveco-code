@@ -99,7 +99,6 @@ Before outputting `tasks.md`, internally verify:
 - ✅ Every task starts with `- [ ]`
 - ✅ Every task has a unique sequential ID (T001, T002...)
 - ✅ US-phase tasks contain `[USx]` label; Setup/Foundational/Polish do NOT
-- ✅ Every task description ends with a concrete, valid file path
 - ✅ Total count matches the summary report
   If any check fails, regenerate the invalid tasks before final output. Do not output draft or unvalidated versions.
 
