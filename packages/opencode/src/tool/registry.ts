@@ -161,7 +161,12 @@ export const layer: Layer.Layer<
           const entries = Object.entries(def.args)
           const allZod = entries.every((entry) => isZodType(entry[1]))
           const zodParams = allZod ? z.object(def.args) : undefined
-          const jsonSchema = zodParams ? zodJsonSchema(zodParams) : legacyJsonSchema(entries)
+          const jsonSchema =
+            def.jsonSchema && isJsonSchemaObject(def.jsonSchema)
+              ? (def.jsonSchema as JSONSchema7)
+              : zodParams
+                ? zodJsonSchema(zodParams)
+                : legacyJsonSchema(entries)
           const parameters = zodParams
             ? Schema.declare<unknown>((u): u is unknown => zodParams.safeParse(u).success)
             : Schema.Unknown
@@ -416,6 +421,8 @@ export const defaultLayer = Layer.suspend(() =>
       Layer.provide(Reference.defaultLayer),
       Layer.provide(LSP.defaultLayer),
       Layer.provide(Instruction.defaultLayer),
+    )
+    .pipe(
       Layer.provide(Auth.defaultLayer),
       Layer.provide(AppFileSystem.defaultLayer),
       Layer.provide(Bus.layer),
@@ -424,8 +431,8 @@ export const defaultLayer = Layer.suspend(() =>
       Layer.provide(CrossSpawnSpawner.defaultLayer),
       Layer.provide(Ripgrep.defaultLayer),
       Layer.provide(Truncate.defaultLayer),
+      Layer.provide(RuntimeFlags.defaultLayer),
     )
-    .pipe(Layer.provide(RuntimeFlags.defaultLayer)),
 )
 
 function isZodType(value: unknown): value is z.ZodType {

@@ -160,6 +160,30 @@ function parseArgsJson(input?: string, inputSchema?: unknown): Record<string, un
   return value as Record<string, unknown>;
 }
 
+function parseToolArgs(args: unknown, inputSchema?: unknown): Record<string, unknown> {
+  if (!args || typeof args !== 'object' || Array.isArray(args)) return parseArgsJson(undefined, inputSchema);
+
+  const record = args as Record<string, unknown>;
+  if (typeof record.argsJson === 'string' && Object.keys(record).length === 1) {
+    return parseArgsJson(record.argsJson, inputSchema);
+  }
+
+  if (inputSchema && typeof inputSchema === 'object') {
+    const effectSchema = jsonSchemaToEffectSchema(inputSchema);
+
+    if (effectSchema) {
+      const decoded = Schema.decodeUnknownExit(effectSchema)(record, { errors: "all" });
+
+      if (Exit.isFailure(decoded)) {
+        const error = Cause.squash(decoded.cause);
+        throw new Error(`Args validation failed: ${formatSchemaError(error)}`);
+      }
+    }
+  }
+
+  return { ...record };
+}
+
 /**
  * Sanitizes and validates a file path to prevent path traversal attacks.
  * Ensures the resolved path is within the allowed worktree directory.
@@ -275,42 +299,21 @@ function normalizeToolList(
 }
 
 
-function buildArgsJsonExample(inputSchema: unknown): string | null {
-  if (!inputSchema || typeof inputSchema !== 'object' || Array.isArray(inputSchema)) return null;
-  const schema = inputSchema as { properties?: Record<string, { type?: string; items?: unknown; description?: string }> };
-  if (!schema.properties) return null;
-  const example: Record<string, unknown> = {};
-  for (const [key, prop] of Object.entries(schema.properties)) {
-    if (prop.type === 'array') {
-      example[key] = [`<${key}_item>`];
-    } else if (prop.type === 'boolean') {
-      example[key] = false;
-    } else if (prop.type === 'number' || prop.type === 'integer') {
-      example[key] = 0;
-    } else {
-      example[key] = `<${key}>`;
-    }
-  }
-  return JSON.stringify(example);
+function buildProxiedToolDescription(name: string, description: string | undefined): string {
+  return description?.trim() ?? `HarmonyOS N-API tool: ${name}.`;
 }
 
-function buildProxiedToolDescription(name: string, description: string | undefined, inputSchema: unknown): string {
-  const head =
-    description?.trim()
-    ?? `HarmonyOS N-API tool: ${name}. Provide the tool arguments as argsJson: a single JSON string whose parsed value is an object matching the input schema below.`;
-
-  if (inputSchema === undefined || inputSchema === null) return head;
-
-  const schemaText =
-    typeof inputSchema === 'string'
-      ? inputSchema
-      : JSON.stringify(inputSchema, null, 2);
-  if (!schemaText || schemaText === '{}' || schemaText.trim() === '') return head;
-
-  const example = buildArgsJsonExample(inputSchema);
-  const exampleLine = example ? `\nExample: argsJson='${example}'` : '';
-
-  return `${head}\n\nInput schema (object you must stringify into argsJson):\n\`\`\`json\n${schemaText}\n\`\`\`${exampleLine}`;
+function buildToolJsonSchema(inputSchema: unknown): Record<string, unknown> | undefined {
+  if (!inputSchema || typeof inputSchema !== 'object' || Array.isArray(inputSchema)) return undefined;
+  const schema = inputSchema as Record<string, unknown>;
+  return {
+    ...schema,
+    type: "object",
+    properties:
+      schema.properties && typeof schema.properties === 'object' && !Array.isArray(schema.properties)
+        ? schema.properties
+        : {},
+  };
 }
 
 
@@ -336,15 +339,9 @@ const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
   const tools = Object.fromEntries(
     listed.map(({ name, description, inputSchema }) => {
       const t = tool({
-        description: buildProxiedToolDescription(name, description, inputSchema),
-        args: {
-          argsJson: tool.schema
-            .string()
-            .optional()
-            .describe(
-              'JSON string of one object: the tool arguments, matching the Input schema block in the tool description.',
-            ),
-        },
+        description: buildProxiedToolDescription(name, description),
+        args: {},
+        jsonSchema: buildToolJsonSchema(inputSchema),
         async execute(args, ctx) {
           if (!process.env.DEVECO_HOME?.trim()) throw new Error('DEVECO_HOME environment variable is not configured. PLEASE set your DEVECO_HOME path manually and restart.');
           const worktree = resolveWorktree(ctx as { sessionID?: string; directory?: string; worktree?: string });
@@ -354,8 +351,9 @@ const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
               return "工具调用失败。请将以下内容原文告知用户，不要修改或补充，告知后立即停止，不要再调用任何工具：「UI 意图校验功能不可用：未配置多模态模型。请在配置文件中为 ui_verification agent 配置一个支持多模态的模型，或登录账号以使用内置多模态模型。」"
             }
           }
-          // Parse and validate args against inputSchema
-          const payload = parseArgsJson((args as { argsJson?: string }).argsJson, inputSchema);
+          // Validate direct tool arguments against the original schema. A legacy
+          // argsJson wrapper is still accepted for older callers.
+          const payload = parseToolArgs(args, inputSchema);
 
           // Validate file path parameters to prevent path traversal attacks
           validatePathParameters(payload, worktree);

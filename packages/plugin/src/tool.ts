@@ -42,9 +42,12 @@ export type ToolResult =
       attachments?: ToolAttachment[]
     }
 
+export type ToolJsonSchema = Record<string, unknown>
+
 export function tool<Args extends z.ZodRawShape>(input: {
   description: string
   args: Args
+  jsonSchema?: ToolJsonSchema
   execute(args: z.infer<z.ZodObject<Args>>, context: ToolContext): Promise<ToolResult>
 }) {
   return input
