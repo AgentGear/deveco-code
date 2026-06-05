@@ -55,6 +55,14 @@ interface ScriptOutput {
 
 let cachedScriptPath: string | undefined
 
+function scriptMatchesOnDisk(target: string): boolean {
+  try {
+    return fs.readFileSync(target, "utf-8") === ARKTS_CHECK_SCRIPT
+  } catch {
+    return false
+  }
+}
+
 async function ensureScriptOnDisk(): Promise<string> {
   if (cachedScriptPath && fs.existsSync(cachedScriptPath)) return cachedScriptPath
 
@@ -62,14 +70,12 @@ async function ensureScriptOnDisk(): Promise<string> {
   fs.mkdirSync(cacheDir, { recursive: true })
   const target = path.join(cacheDir, "arkts-check.cjs")
 
-  let needWrite = true
-  if (fs.existsSync(target)) {
-    try {
-      const existing = fs.readFileSync(target, "utf-8")
-      if (existing === ARKTS_CHECK_SCRIPT) needWrite = false
-    } catch {}
+  if (fs.existsSync(target) && scriptMatchesOnDisk(target)) {
+    cachedScriptPath = target
+    return target
   }
-  if (needWrite) fs.writeFileSync(target, ARKTS_CHECK_SCRIPT, "utf-8")
+
+  fs.writeFileSync(target, ARKTS_CHECK_SCRIPT, "utf-8")
   cachedScriptPath = target
   return target
 }
