@@ -311,6 +311,9 @@ for (const item of targets) {
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`
+  await $`mkdir -p ./dist/${name}/assets/readme`
+  await $`cp ../../assets/readme/readme-screenshot.png ./dist/${name}/assets/readme/readme-screenshot.png`
+
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
@@ -323,6 +326,7 @@ for (const item of targets) {
           "bin/**/*",
           "vendor/**/*",
           "README.md",
+          "assets/**/*",
         ],
       },
       null,
