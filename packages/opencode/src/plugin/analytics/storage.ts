@@ -39,6 +39,28 @@ export async function getOrCreateUid(): Promise<string> {
   return storage.uid
 }
 
+const DEVICE_ID_FILE = "device-id.json"
+
+function getDeviceIdFilePath(): string {
+  return path.join(Global.Path.data, DEVICE_ID_FILE)
+}
+
+export async function getOrCreateDeviceId(): Promise<string> {
+  const filePath = getDeviceIdFilePath()
+  try {
+    const content = await fs.readFile(filePath, "utf-8")
+    const parsed = JSON.parse(content)
+    if (typeof parsed.deviceId === "string" && parsed.deviceId.trim()) {
+      return parsed.deviceId
+    }
+  } catch {
+    // ignore
+  }
+  const newDeviceId = randomUUID()
+  await fs.writeFile(filePath, JSON.stringify({ deviceId: newDeviceId }, null, 2), "utf-8")
+  return newDeviceId
+}
+
 function isStorageShape(value: unknown): value is AnalyticsStorage {
   if (!value || typeof value !== "object") return false
   const item = value as Partial<AnalyticsStorage>
