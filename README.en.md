@@ -37,6 +37,8 @@ Example prompts:
 - Help me check for and fix syntax errors
 ```
 
+> We recommend using the [official npm registry](https://registry.npmjs.org/) or the [npmmirror (Taobao) registry](https://registry.npmmirror.com/) for installation. Other mirrors may have sync delays that cause installation failures or outdated versions.
+
 > For build, run, and related capabilities, install [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) and set the `DEVECO_HOME` environment variable.
 
 ## Overview
@@ -90,7 +92,9 @@ DevEco Code is distributed via npm. Prepare the following before installation:
 
 1. Install [Node.js](https://nodejs.org); **version 22 or higher is recommended**
 2. (Optional) Install [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/); **version 6.1 or higher is recommended**; if not installed, build, push, and other tools will be unavailable
-3. (Optional) Set `DEVECO_HOME` to point to your DevEco Studio installation directory (required when DevEco Studio is installed)
+3. (Optional) Set `DEVECO_HOME` to point to your DevEco Studio installation directory (required when DevEco Studio is installed). Default path examples:
+   - **macOS**: `/Applications/DevEco-Studio.app`
+   - **Windows**: `C:\Program Files\Huawei\DevEco Studio`
 
 Verify your Node.js environment in the terminal:
 
