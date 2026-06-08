@@ -53,7 +53,7 @@ DevEco Code is distributed via npm for the following platforms:
 
 | Platform | Architecture | Notes |
 | --- | --- | --- |
-| Windows | x64 | Windows 10 / 11 |
+| Windows | x64 | Windows 11 |
 | macOS | arm64 (Apple Silicon) | M-series chips |
 | macOS | x64 (Intel) | Intel Mac |
 
@@ -63,24 +63,24 @@ DevEco Code is distributed via npm for the following platforms:
 
 **Operating system**
 
-- **Windows**: Windows 11 22H2 or later (minimum: Windows 10 x64)
-- **macOS**: macOS 13 Ventura or later (Apple Silicon or Intel x64)
+- **Windows**: Windows 11 22H2 or later
+- **macOS**: macOS 15 Sequoia or later
 
 **Hardware**
 
-- **Everyday use** (short sessions, single-module edits, chat and code editing): 8 GB RAM or more; SSD recommended
+- **Everyday use** (short sessions, single-module edits, chat and code editing): 8 GB RAM or more
 - **Heavy use** (large projects, long sessions, frequent builds and emulator/device debugging): 16 GB RAM or more; reserve at least 20 GB free disk space for DevEco Studio, SDK, emulators, and build caches
 
 **Runtime and toolchain**
 
-- [Node.js](https://nodejs.org) **22 or higher** (runs the DevEco Code CLI)
+- [Node.js](https://nodejs.org) **22 or higher**
 - [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) **6.1 or higher** (builds, Hvigor, HDC, emulator/device run)
 - `DEVECO_HOME` set to your DevEco Studio installation directory
 
 **Terminal shell**
 
-- Windows: PowerShell 5.1+ or PowerShell 7+ (recommended), CMD
-- macOS: Bash or Zsh (system default terminal is fine)
+- Windows: PowerShell 7+ (recommended), PowerShell 5.1+
+- macOS: Zsh (recommended), Bash
 
 **Network**
 
@@ -91,8 +91,8 @@ DevEco Code is distributed via npm for the following platforms:
 DevEco Code is distributed via npm. Prepare the following before installation:
 
 1. Install [Node.js](https://nodejs.org); **version 22 or higher is recommended**
-2. (Optional) Install [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/); **version 6.1 or higher is recommended**; if not installed, build, push, and other tools will be unavailable
-3. (Optional) Set `DEVECO_HOME` to point to your DevEco Studio installation directory (required when DevEco Studio is installed). Default path examples:
+2. (Optional) Install [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/); **version 6.1 or higher is recommended**; if not installed, HarmonyOS app build, deployment, and other tools will be unavailable
+3. (Optional) Set `DEVECO_HOME` to point to your DevEco Studio installation directory. Default path examples:
    - **macOS**: `/Applications/DevEco-Studio.app`
    - **Windows**: `C:\Program Files\Huawei\DevEco Studio`
 
@@ -283,6 +283,6 @@ This project extends the open-source project [OpenCode](https://opencode.ai). De
 
 ***
 
-**Tip:** For common terminal commands (such as `/models`, `/help`, etc.), see the [OpenCode TUI documentation](https://opencode.ai/docs/tui/).
+**Tip:** For common terminal commands (such as `/models`, `/connect`, etc.), see the [OpenCode TUI documentation](https://opencode.ai/docs/tui/).
 
 **Feedback & Discussion** [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
