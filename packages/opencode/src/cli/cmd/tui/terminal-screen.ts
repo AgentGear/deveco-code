@@ -9,10 +9,7 @@ export function countTerminalLines(text: string): number {
   return normalized.split("\n").length
 }
 
-/**
- * Erase full-width rows starting at the current cursor row.
- * Used before writing exit banners so a prior session's logo does not show through.
- */
+/** Erase full-width rows starting at the current cursor row. */
 export function eraseTerminalLines(lineCount: number): string {
   if (lineCount <= 0) return ""
   let seq = ""
