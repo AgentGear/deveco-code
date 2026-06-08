@@ -438,6 +438,17 @@ class LocalAuthServer {
       const siteId = params.get("siteId")
       const quit = params.get("quit")
 
+      // Verify code matches the clientSecret we generated for this session
+      if (!code || code !== this.clientSecret) {
+        log.error("login callback: code mismatch or missing", { hasCode: !!code })
+        this.rejectCallback?.(new Error("Invalid callback: code verification failed"))
+        res.writeHead(302, {
+          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
+        })
+        res.end()
+        return
+      }
+
       if (quit === "true" || quit === "access_denied") {
         log.info("login callback: user cancelled", { quit })
         this.rejectCallback?.(
