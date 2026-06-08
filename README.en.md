@@ -177,6 +177,45 @@ You can also configure models in `deveco.jsonc`:
 }
 ```
 
+**UI Verification Configuration**
+
+UI verification is an optional capability during the feature verification phase, used to verify whether the interface matches requirement descriptions.
+
+This feature requires a multimodal model: when logged in, it defaults to using the built-in Qwen2.5-VL model; when not logged in, UI verification is skipped.
+
+To configure a third-party multimodal model (Qwen series only), specify it in the `agent` section of `deveco.jsonc`. Example using qwen3.5-flash:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "myprovider": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "alibaba",
+      "options": {
+        "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "apiKey": "your-api-key",
+      },
+      "models": {
+        "qwen3.5-flash": {
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+        },
+      },
+    },
+  },
+  "agent": {
+    "ui_verification": {
+      "mode": "subagent",
+      "model": "myprovider/qwen3.5-flash", // Format: <provider-name>/<model-name>
+      "hidden": true,
+    },
+  },
+}
+```
+
 Configuration file lookup priority:
 
 1. `.deveco/deveco.jsonc` in the project directory
@@ -200,6 +239,7 @@ DevEco Code integrates common HarmonyOS development tools:
 | `build_project` | Build the project and export build artifacts |
 | `start_app` | Run the application on an emulator or physical device |
 | `hdc_log` | Collect/clear device logs; list connected emulators |
+| `verify_ui` | Execute UI operations to verify features |
 | `check_ets_files` | ArkTS static syntax checking |
 | `arkts_knowledge_search` | HarmonyOS knowledge search |
 | `switch_cwd` | Switch the build project path |
