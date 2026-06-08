@@ -269,20 +269,20 @@ cp {源路径}/opencode.jsonc ~/.config/deveco/deveco.jsonc
 
 Skills、Agents、Plugins 也可以迁移到 `~/.config/deveco` 下的对应目录；MCP 配置项可迁移到 `deveco.jsonc` 中。
 
-## Contributing
+## 参与贡献
 
 欢迎贡献！请在提交 Pull Request 前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-## License
+## 帮助与支持
+
+- 常见问题请参阅 [FAQ 文档](https://gitcode.com/openharmony-sig/deveco-code/wiki/FAQ.md)
+- 终端常用命令（如 `/models`、`/connect` 等）请参阅 [OpenCode TUI 文档](https://opencode.ai/docs/zh-cn/tui/)
+- 反馈与交流 [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
+
+## 开源许可
 
 [MIT License](LICENSE)
 
 ## 基于 OpenCode 构建的声明
 
 本项目基于开源项目 [OpenCode](https://opencode.ai) 扩展开发。DevEco Code **并非** OpenCode 团队出品，也与 OpenCode 团队无任何附属或关联关系。如有与 DevEco Code 相关的问题，请通过 [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues) 反馈，而非联系 OpenCode 社区。
-
-***
-
-**提示：** 终端常用命令（如 `/models`、`/connect` 等）请参阅 [OpenCode TUI 文档](https://opencode.ai/docs/zh-cn/tui/)。
-
-**反馈与交流** [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
