@@ -439,13 +439,9 @@ class LocalAuthServer {
       const quit = params.get("quit")
 
       // Verify code matches the clientSecret we generated for this session
+      // If code doesn't match, silently ignore the request and keep waiting for the real callback
       if (!code || code !== this.clientSecret) {
-        log.error("login callback: code mismatch or missing", { hasCode: !!code })
-        this.rejectCallback?.(new Error("Invalid callback: code verification failed"))
-        res.writeHead(302, {
-          Location: `${this.baseUrl}/${this.failedRedirectUrl}`,
-        })
-        res.end()
+        log.warn("login callback: code mismatch or missing, ignoring", { hasCode: !!code })
         return
       }
 
