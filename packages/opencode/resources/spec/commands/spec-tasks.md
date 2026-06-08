@@ -5,7 +5,8 @@ agent: goal
 
 ## Pre-Flow: Confirmed_Feature_Dir Resolution (STRICT SEQUENCE)
 1. Resolve feature directory:
-    - Read the feature directory from `spec/feature.json` (key: `feature_directory`) as `Confirmed_Feature_Dir`.
+    - Read the `feature_directory` value from `{PROJECT_ROOT}/spec/feature.json`. This value is a **relative path** (relative to `{PROJECT_ROOT}`). Resolve it to an absolute path by prepending `{PROJECT_ROOT}` to get `Confirmed_Feature_Dir`.
+    - Example: if `feature.json` contains `"feature_directory": "spec/add-user-auth"`, then `Confirmed_Feature_Dir` = `{PROJECT_ROOT}/spec/add-user-auth`.
 2. Validate directory:
     - Check if `Confirmed_Feature_Dir` exists.
     - If exists → proceed.
@@ -18,7 +19,7 @@ agent: goal
   * **Ignore Template Context**: Even though these instructions are written in English, they must not dictate the output language.
 2. **No Early Coding**: You are strictly forbidden from generating, writing, editing, outlining, or suggesting application code in the `src/` or any other source directory in this step. Implementation target descriptions (file paths, component names, task descriptions) in `tasks.md` are permitted; pseudocode, code snippets, and implementation-level detail are not. Main Agent must comply fully.
 3. **No Auto-Execute Next Phase**: This command covers only its own scope. Upon completion, it must NOT auto-trigger the next SDD phase. Phase transitions (to Phase 4 and beyond) are managed by the parent orchestrator (`goal.txt`), which controls Review Gates and progression. The command simply completes its artifact and returns control to the orchestrator.
-4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+4. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username. `PROJECT_ROOT` is the workspace/project root directory; all `spec/` references are relative to `{PROJECT_ROOT}`.
 5. **Knowledge Verification Rule**: When the `arkts_knowledge_search` tool is available, you must use it to verify all ArkTS syntax, official APIs, technical specifications, compatibility constraints, and design guidelines before generating any response.
 
 ## Safety & constraint & Compliance (Strict Redlines)

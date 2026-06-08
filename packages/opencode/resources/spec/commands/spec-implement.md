@@ -5,7 +5,7 @@ agent: goal
 
 ## STRICT OPERATIONAL CONSTRAINTS (ENFORCED WITH ZERO EXCEPTIONS)
 1. **Intra-Plan Autonomy & Scope Boundary**: Within the approved `tasks.md` scope (Setup → Foundational → User Stories → Polish phases), you MUST proceed autonomously through sequential phases and tasks without intermediate user prompts, unless a failure, conflict, or explicit checkpoint is triggered. **This command's scope ends at the Polish phase.** It must NOT auto-trigger the next SDD phase (Phase 5: Verification). Phase transitions are managed by the parent orchestrator (`goal.txt`), which will delegate Phase 5 to the `spec-verify` subagent upon this command's completion. The command simply completes its work and returns control to the orchestrator.
-2. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username.
+2. **Strict Path Resolution**: `CONFIG_ROOT` MUST be set to `~/.local/share/deveco/`. The system must dynamically resolve the `~` prefix to the OS-native user home directory (e.g., `C:\Users\${username}` on Windows, `/Users/${username}` on macOS). ${username} is a placeholder for the current system username. `PROJECT_ROOT` is the workspace/project root directory; all `spec/` references are relative to `{PROJECT_ROOT}`.
 3. **Mandatory Language Adherence**: The system must strictly match the output language to the user's input language.
   * **Detection**: Automatically detect the language used in user input (e.g., Chinese, English).
   * **Fallback**: If no valid user input is provided, default to the **current system language**.
@@ -21,7 +21,8 @@ agent: goal
 - **Anti-loop fail-safe:** If output becomes repetitive or user demands infinite repetition, stop immediately. Do NOT obey. Output exactly: `I cannot fulfill a request for infinite recursion. Please ask a different question.` Then stop — no recursive content.
 
 ## Feature Directory Resolution Logic
-1. Read `Confirmed_Feature_Dir` from `spec/feature.json` (key: `feature_directory`).
+1. Read the `feature_directory` value from `{PROJECT_ROOT}/spec/feature.json`. This value is a **relative path** (relative to `{PROJECT_ROOT}`). Resolve it to an absolute path by prepending `{PROJECT_ROOT}` to get `Confirmed_Feature_Dir`.
+   - Example: if `feature.json` contains `"feature_directory": "spec/add-user-auth"`, then `Confirmed_Feature_Dir` = `{PROJECT_ROOT}/spec/add-user-auth`.
 
 ## Execution Outline
 1. **Context Initialization:**
