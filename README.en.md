@@ -273,6 +273,12 @@ Skills, Agents, and Plugins can also be migrated to the corresponding directorie
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a Pull Request.
 
+## Help & Support
+
+- For frequently asked questions, see the [FAQ document](https://gitcode.com/openharmony-sig/deveco-code/wiki/FAQ.md)
+- For common terminal commands (such as `/models`, `/connect`, etc.), see the [OpenCode TUI documentation](https://opencode.ai/docs/tui/)
+- Feedback & Discussion [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
+
 ## License
 
 [MIT License](LICENSE)
@@ -280,9 +286,3 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 ## Built on OpenCode
 
 This project extends the open-source project [OpenCode](https://opencode.ai). DevEco Code is **not** produced by the OpenCode team and is not affiliated with or associated with the OpenCode team in any way. For DevEco Code–related issues, please use [GitCode Issues](https://gitcode.com/openharmony-sig/deveco-code/issues) rather than contacting the OpenCode community.
-
-***
-
-**Tip:** For common terminal commands (such as `/models`, `/connect`, etc.), see the [OpenCode TUI documentation](https://opencode.ai/docs/tui/).
-
-**Feedback & Discussion** [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
