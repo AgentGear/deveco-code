@@ -2,7 +2,7 @@ import https from "https"
 import http from "http"
 import querystring from "querystring"
 import { resolveAgreementConfig, KV_DEVECO_CODE_PRIVACY_ACCEPTED, type AgreementConfig } from "@/cli/deveco-legal"
-import { devecoAuth } from "@/plugin/deveco"
+import { devecoAuth, saveAuthToDisk, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/deveco"
 import * as Log from "@opencode-ai/core/util/log"
 
 const log = Log.create({ service: "deveco-agreement" })
@@ -167,6 +167,13 @@ async function handleSessionTimeoutAndRetry<T>(
       log.warn("token refresh failed, cannot retry")
       return { result: parseResponse(rawResponse), refreshedToken: false }
     }
+
+    await saveAuthToDisk("deveco", {
+      type: "oauth",
+      access: newTokens.accessToken,
+      refresh: newTokens.refreshToken,
+      expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
+    })
 
     const retryRaw = await retryApiCall(newTokens.accessToken)
     return { result: parseResponse(retryRaw), refreshedToken: true }
