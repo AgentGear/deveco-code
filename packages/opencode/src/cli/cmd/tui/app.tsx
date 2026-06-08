@@ -38,7 +38,7 @@ import { useConnected } from "@tui/component/use-connected"
 import { DialogMcp } from "@tui/component/dialog-mcp"
 import { DialogStatus } from "@tui/component/dialog-status"
 import { DialogThemeList } from "@tui/component/dialog-theme-list"
-import { DEVECO_FEEDBACK_URL, DEVECO_GUIDE_URL } from "@/cli/deveco-links"
+import { DEVECO_FEEDBACK_URL, DEVECO_README_URL } from "@/cli/deveco-links"
 import { DialogAgent } from "@tui/component/dialog-agent"
 import { DialogSessionList } from "@tui/component/dialog-session-list"
 import { DialogConsoleOrg } from "@tui/component/dialog-console-org"
@@ -750,7 +750,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         title: "Help",
         description: "Open DevEco Code user guide",
         slashName: "help",
-        run: () => openInBrowser(DEVECO_GUIDE_URL),
+        run: () => openInBrowser(DEVECO_README_URL),
         category: "System",
       },
       {
