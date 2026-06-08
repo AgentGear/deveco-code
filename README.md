@@ -177,6 +177,45 @@ deveco auth logout
 }
 ```
 
+**UI 检查配置**
+
+UI 检查是功能验证阶段的可选能力，用于验证界面是否符合需求描述。
+
+该功能需调用多模态模型：已登录账号时默认使用内置 Qwen2.5-VL 模型，未登录时则跳过UI检查。
+
+如需配置第三方多模态模型（仅支持 Qwen 系列），可在 `deveco.jsonc` 的 `agent` 中指定，以qwen3.5-flash为例：
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "myprovider": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "alibaba",
+      "options": {
+        "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "apiKey": "your-api-key",
+      },
+      "models": {
+        "qwen3.5-flash": {
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+        },
+      },
+    },
+  },
+  "agent": {
+    "ui_verification": {
+      "mode": "subagent",
+      "model": "myprovider/qwen3.5-flash", // 格式为<provider-name>/<model-name>
+      "hidden": true,
+    },
+  },
+}
+```
+
 配置文件读取优先级：
 
 1. 项目目录下 `.deveco/deveco.jsonc`
@@ -200,6 +239,7 @@ DevEco Code 集成了常用 HarmonyOS 开发工具能力：
 | `build_project`          | 执行编译构建并导出构建产物        |
 | `start_app`              | 在模拟器或真机上运行应用         |
 | `hdc_log`                | 收集/清理设备日志/查看连接模拟器    |
+| `verify_ui`              | 执行 UI 操作验证功能是否正确        |
 | `check_ets_files`        | ArkTS 静态语法检查         |
 | `arkts_knowledge_search` | HarmonyOS 知识搜索 |
 | `switch_cwd`             | 切换构建项目路径             |
