@@ -438,6 +438,13 @@ class LocalAuthServer {
       const siteId = params.get("siteId")
       const quit = params.get("quit")
 
+      // Verify code matches the clientSecret we generated for this session
+      // If code doesn't match, silently ignore the request and keep waiting for the real callback
+      if (!code || code !== this.clientSecret) {
+        log.warn("login callback: code mismatch or missing, ignoring", { hasCode: !!code })
+        return
+      }
+
       if (quit === "true" || quit === "access_denied") {
         log.info("login callback: user cancelled", { quit })
         this.rejectCallback?.(
