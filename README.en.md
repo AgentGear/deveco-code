@@ -181,9 +181,9 @@ You can also configure models in `deveco.jsonc`:
 
 UI verification is an optional capability during the feature verification phase, used to verify whether the interface matches requirement descriptions.
 
-This feature requires a multimodal model: when logged in, it defaults to using the built-in Qwen2.5-VL model; when not logged in, UI verification is skipped.
+This feature requires a multimodal model: when logged in, it defaults to using the built-in Qwen3-VL model; when not logged in, UI verification is skipped.
 
-To configure a third-party multimodal model (Qwen series only), specify it in the `agent` section of `deveco.jsonc`. Example using qwen3.5-flash:
+To configure a third-party multimodal model (Qwen series only), specify it in the `agent` section of `deveco.jsonc`. Example using qwen3-vl-plus:
 
 ```jsonc
 {
@@ -197,7 +197,7 @@ To configure a third-party multimodal model (Qwen series only), specify it in th
         "apiKey": "your-api-key",
       },
       "models": {
-        "qwen3.5-flash": {
+        "qwen3-vl-plus": {
           "modalities": {
             "input": ["text", "image"],
             "output": ["text"],
@@ -209,7 +209,7 @@ To configure a third-party multimodal model (Qwen series only), specify it in th
   "agent": {
     "ui_verification": {
       "mode": "subagent",
-      "model": "myprovider/qwen3.5-flash", // Format: <provider-name>/<model-name>
+      "model": "myprovider/qwen3-vl-plus", // Format: <provider-name>/<model-name>
       "hidden": true,
     },
   },
