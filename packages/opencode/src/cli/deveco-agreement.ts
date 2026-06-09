@@ -14,6 +14,7 @@ export enum AgreementStatus {
   NEED_SIGN = "need_sign",
   NEED_RE_SIGN = "need_re_sign",
   NETWORK_ERROR = "network_error",
+  SESSION_EXPIRED = "session_expired",
 }
 
 export interface SignInfo {
@@ -292,9 +293,9 @@ class AgreementService {
       const resJson = JSON.parse(raw) as Record<string, unknown>
 
       if (isSessionTimeoutError(resJson[KEY_ERROR])) {
-        log.error("query agreement response: session timeout", { error: resJson[KEY_ERROR] })
+        log.error("query agreement response: session timeout after refresh failure", { error: resJson[KEY_ERROR] })
         return {
-          status: AgreementStatus.NEED_SIGN,
+          status: AgreementStatus.SESSION_EXPIRED,
           signInfo: null,
           versionInfo: null,
           error: resJson[KEY_ERROR] as string,
@@ -488,6 +489,17 @@ class AgreementService {
     // NETWORK_ERROR → show privacy step (let user see network error / retry)
     // Even with local cache, don't silently bypass — user should explicitly see the status
     if (overallStatus === AgreementStatus.NETWORK_ERROR) {
+      return {
+        privacyStatus,
+        termsStatus,
+        overallStatus,
+        canEnter: false,
+        hasLocalCache,
+      }
+    }
+
+    // SESSION_EXPIRED → refresh token failed, user needs to re-login
+    if (overallStatus === AgreementStatus.SESSION_EXPIRED) {
       return {
         privacyStatus,
         termsStatus,

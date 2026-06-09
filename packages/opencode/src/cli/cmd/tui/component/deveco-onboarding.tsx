@@ -271,6 +271,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const [checkingStatus, setCheckingStatus] = createSignal(step() === 'privacy');
   const [agreementCheckResult, setAgreementCheckResult] = createSignal<AgreementCheckResult | null>(null);
   const [networkErrorNoCache, setNetworkErrorNoCache] = createSignal(false);
+  const [sessionExpired, setSessionExpired] = createSignal(false);
   const [entryIndex, setEntryIndex] = createSignal(0);
   const [authMessage, setAuthMessage] = createSignal<string | null>(null);
   const [authBusy, setAuthBusy] = createSignal(false);
@@ -287,6 +288,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const checkAgreementStatus = async () => {
     setCheckingStatus(true)
     setNetworkErrorNoCache(false)
+    setSessionExpired(false)
     setSignError(null)
     setPrivacyIndex(1)
 
@@ -314,6 +316,14 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     // User sees the error and can choose to cancel (exit) or retry
     if (checkResult.overallStatus === AgreementStatus.NETWORK_ERROR) {
       setNetworkErrorNoCache(true)
+      setCheckingStatus(false)
+      return
+    }
+
+    // SESSION_EXPIRED → refresh token failed, user needs to re-login
+    if (checkResult.overallStatus === AgreementStatus.SESSION_EXPIRED) {
+      setSessionExpired(true)
+      setPrivacyIndex(0)
       setCheckingStatus(false)
       return
     }
@@ -678,6 +688,14 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
         if (signBusy() || checkingStatus()) {
           return;
         }
+        if (sessionExpired()) {
+          if (privacyIndex() === 0) {
+            setStep('entry');
+          } else {
+            void exit();
+          }
+          return;
+        }
         if (privacyIndex() === 0) {
           // Agree — requires checkbox checked
           if (checkboxChecked()) {
@@ -857,7 +875,22 @@ if (st === 'entry') {
             </text>
           </box>
         </Show>
-        <Show when={!checkingStatus() && !networkErrorNoCache()}>
+        <Show when={!checkingStatus() && sessionExpired()}>
+          <box flexDirection='column' alignItems='center'>
+            <text fg={theme.error} selectable={false}>
+              Your login session has expired. Please sign in again.
+            </text>
+            <text fg={privacyIndex() === 0 ? theme.success : theme.text} selectable={false} marginTop={1}>
+              {selectionLead(privacyIndex() === 0)}
+              1. Sign in again
+            </text>
+            <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false}>
+              {selectionLead(privacyIndex() === 1)}
+              2. Cancel
+            </text>
+          </box>
+        </Show>
+        <Show when={!checkingStatus() && !networkErrorNoCache() && !sessionExpired()}>
           <OnboardingContent>
             <box flexDirection='column' width='100%' minHeight={0} maxHeight={privacyBodyHeight()}>
               <scrollbox

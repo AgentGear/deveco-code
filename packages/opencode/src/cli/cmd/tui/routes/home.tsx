@@ -20,7 +20,7 @@ import { usePromptRef } from "../context/prompt"
 import { useLocal } from "../context/local"
 import { DevEcoOnboarding } from "../component/deveco-onboarding"
 import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
-import { agreementService } from "@/cli/deveco-agreement"
+import { agreementService, AgreementStatus } from "@/cli/deveco-agreement"
 import { devecoAuth, hasDevecoOAuthEntry } from "@/plugin/deveco"
 import type { AgreementConfig } from "@/cli/deveco-legal"
 
@@ -132,6 +132,11 @@ export function Home() {
         // Sync already done → apply immediately
         setDevecoReady(true)
       }
+    } else if (checkResult.overallStatus === AgreementStatus.SESSION_EXPIRED) {
+      // Session expired → redirect to login page
+      setDevecoInitialStep("entry")
+      setDevecoReady(false)
+      setAuthCheckDone(true)
     } else {
       // Logged in but agreements not compliant or network error → show privacy step immediately
       setDevecoInitialStep("privacy")
