@@ -857,7 +857,12 @@ class DevEcoAuth {
     const userInfo = this.getUserInfo()
     const jwtToken = userInfo?.jwtToken ?? (await tokenStorage.loadToken())
     if (!jwtToken) return null
-    return loginService.refreshToken(jwtToken)
+    const newTokens = await loginService.refreshToken(jwtToken)
+    if (newTokens && userInfo) {
+      userInfo.accessToken = newTokens.accessToken
+      userInfo.refreshToken = newTokens.refreshToken
+    }
+    return newTokens
   }
 
   private getUserInfo(): UserInfo | null {

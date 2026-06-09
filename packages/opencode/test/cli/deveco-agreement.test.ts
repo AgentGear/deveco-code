@@ -124,7 +124,7 @@ describe("agreement session timeout retry", () => {
     expect(result.canEnter).toBe(true)
   })
 
-  test("returns NEED_SIGN when token refresh fails", async () => {
+  test("returns SESSION_EXPIRED when token refresh fails", async () => {
     requestLog = []
     refreshTokenCalls = 0
     saveAuthCalls = []
@@ -146,5 +146,6 @@ describe("agreement session timeout retry", () => {
 
     expect(saveAuthCalls.length).toBe(0)
     expect(result.canEnter).toBe(false)
+    expect(result.overallStatus).toBe(AgreementStatus.SESSION_EXPIRED)
   })
 })
