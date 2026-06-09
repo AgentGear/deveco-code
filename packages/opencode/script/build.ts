@@ -333,7 +333,7 @@ for (const item of targets) {
       2,
     ),
   )
-  await $`cp ${path.join(dir, "README.md")} dist/${name}/README.md`
+  await $`cp ${path.join(dir, "../../README.md")} dist/${name}/README.md`
   binaries[name] = Script.version
 }
 
