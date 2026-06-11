@@ -28,8 +28,9 @@ agent: goal
 1. **Context Initialization:**
    - **REQUIRED:** Prioritize loading the tech-stack-specific skills (e.g., `arkui-knowledge` and `arkts-grammar-standards`) as mandated by project config or `plan.md`.
    - **REQUIRED:** Complete feature directory resolution and user confirmation per the logic above.
-   - **REQUIRED:** Read `tasks.md` from `Confirmed_Feature_Dir` for the complete task list and execution plan within the approved directory.
+   - **REQUIRED:** Read `spec.md` from `Confirmed_Feature_Dir` for feature requirements, user stories, and acceptance criteria. This is the authoritative source of truth for what the feature must accomplish — always refer back to it when making implementation decisions to avoid drifting from the original requirements.
    - **REQUIRED:** Read `plan.md` from `Confirmed_Feature_Dir` for tech stack, architecture, and file structure references.
+   - **REQUIRED:** Read `tasks.md` from `Confirmed_Feature_Dir` for the complete task list and execution plan within the approved directory.
 
 2. **Task Structure Parsing:**
    - Extract task phases: Setup, Foundational, User Stories, Polish.

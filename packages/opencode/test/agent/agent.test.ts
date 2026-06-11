@@ -85,6 +85,7 @@ it.instance("build asks and spec-verify allows UI verification tools by default"
       Effect.all([
         svc.get("build"),
         svc.get("spec-verify"),
+        svc.get("spec-implementation"),
         svc.get("goal"),
         svc.get("plan"),
         svc.get("general"),
@@ -95,18 +96,37 @@ it.instance("build asks and spec-verify allows UI verification tools by default"
       ]),
     )
 
-    const [build, specVerify, goal, plan, general, explore, compaction, title, summary] = agents
+    const [build, specVerify, specImplementation, goal, plan, general, explore, compaction, title, summary] = agents
 
     for (const tool of uiTools) {
       expect(evalPerm(build, tool)).toBe("ask")
       expect(evalPerm(specVerify, tool)).toBe("allow")
     }
 
-    for (const agent of [goal, plan, general, explore, compaction, title, summary]) {
+    for (const agent of [specImplementation, goal, plan, general, explore, compaction, title, summary]) {
       for (const tool of uiTools) {
         expect(evalPerm(agent, tool)).toBe("deny")
       }
     }
+  }),
+)
+
+it.instance("spec-implementation agent is a native subagent with correct permissions", () =>
+  Effect.gen(function* () {
+    const impl = yield* load((svc) => svc.get("spec-implementation"))
+    expect(impl).toBeDefined()
+    expect(impl?.mode).toBe("subagent")
+    expect(impl?.native).toBe(true)
+    expect(impl?.hidden).toBe(true)
+    expect(evalPerm(impl, "edit")).toBe("allow")
+    expect(evalPerm(impl, "write")).toBe("allow")
+    expect(evalPerm(impl, "read")).toBe("allow")
+    expect(evalPerm(impl, "bash")).toBe("allow")
+    expect(evalPerm(impl, "question")).toBe("allow")
+    expect(evalPerm(impl, "arkts_knowledge_search")).toBe("allow")
+    expect(evalPerm(impl, "build_project")).toBe("deny")
+    expect(evalPerm(impl, "start_app")).toBe("deny")
+    expect(evalPerm(impl, "verify_ui")).toBe("deny")
   }),
 )
 
