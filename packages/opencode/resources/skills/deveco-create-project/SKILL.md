@@ -16,7 +16,7 @@ Confirm the following parameters before execution. Ask the user if any required 
 | `projectPath` | Required | — | `/Users/yellow/Desktop/projects` |
 | `appName` | Required | — | `HelloWorld` |
 | `bundleName` | Auto-derived, no need to ask | `com.example.{appName lowercase}` | `com.example.helloworld` |
-| `apiLevel` | Optional | Auto-detect from DevEco SDK metadata, fallback to `22` | `21` |
+| `apiLevel` | Optional | Auto-detect from `DEVECO_HOME/sdk/default/sdk-pkg.json` | `21` |
 
 ### appName rules
 
@@ -31,13 +31,12 @@ When the user provides a Chinese or other non-ASCII name, you MUST:
 
 If `{projectPath}/{appName}` already exists and is not empty, the script will exit with code `2` and emit a `PROJECT_EXISTS` JSON payload. When you see it, ask the user via `AskUserQuestion` whether to overwrite, rename, or cancel — do NOT silently re-run or delete the directory yourself.
 
-If the user explicitly specifies an SDK/API level, pass it through directly.
-If the user does not specify one, do not let the model invent a version. Let the script detect it using this fixed priority:
+If the user explicitly specifies an SDK/API level, pass it through directly. It must fall within the supported range `17..defaultApiVersion`, where `defaultApiVersion` comes from `DEVECO_HOME/sdk/default/sdk-pkg.json` → `data.apiVersion`.
+If the user does not specify one, do not let the model invent a version. Let the script auto-detect from `DEVECO_HOME/sdk/default/sdk-pkg.json`.
 
-1. `DEVECO_HOME/sdk/default/sdk-pkg.json` → `data` → `apiVersion`
-2. fallback to `22`
+`DEVECO_HOME` must be configured and point to a valid DevEco Studio installation. If SDK metadata is missing or invalid, the script fails with a structured JSON error (`code`, `message`, `hint`) — there is no fallback API level.
 
-The script's stdout JSON (`apiLevel`, `source`, `detectedFrom`) is authoritative — do not re-read files under `{DEVECO_HOME}/sdk/**` to verify it.
+The script's stdout JSON (`apiLevel`, `sdkVersion`, `source`, `detectedFrom`) is authoritative — do not re-read files under `{DEVECO_HOME}/sdk/**` to verify it.
 
 ### Optional: Brief Requirement Checklist for Complex App Requests
 
@@ -76,7 +75,7 @@ Execution requirements:
 - Do not manually copy template files one by one.
 - Let the script handle recursive copying, binary asset copying, placeholder replacement, and basic validation.
 - The script is responsible for SDK detection. Do not decide the SDK version in the prompt by guesswork.
-- If the script exits with a non-zero code, report the error to the user and stop.
+- If the script exits with a non-zero code, report the JSON error payload (`code`, `message`, `hint`) to the user and stop.
 
 ### Step 2: Verify the Result
 
@@ -85,8 +84,6 @@ At minimum, verify that the following file exists:
 - `{projectPath}/{appName}/build-profile.json5`
 
 If the file is missing, treat the creation as failed and do not proceed to later compile or page-generation steps.
-
-If the script reports `source: "fallback"`, the local SDK metadata is incomplete — deliver the project path, warn the user (e.g. "Find no sdk-pkg.json, can not probe sdk version").
 
 ### Step 3: Switch Session Project Context (Required)
 
@@ -138,7 +135,7 @@ Output:
 
 - The absolute project path
 - App name / bundle name / API Level
-- `source` of the selected API level: `user_input` / `sdk_pkg` / `fallback`
+- `source` of the selected API level: `user_input` / `sdk_pkg`
 - Whether the template integrity check passed
 - Whether `switch_cwd` succeeded
 - Build/run/verification status when feature work was requested

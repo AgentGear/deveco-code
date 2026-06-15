@@ -17,18 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { detectApiLevel } from './detect-sdk.mjs';
-
-const API_CONFIGS = {
-  17: { sdkVersion: '5.0.5(17)', modelVersion: '5.0.5' },
-  18: { sdkVersion: '5.0.6(18)', modelVersion: '5.0.6' },
-  19: { sdkVersion: '5.0.7(19)', modelVersion: '5.0.7' },
-  20: { sdkVersion: '6.0.0(20)', modelVersion: '6.0.0' },
-  21: { sdkVersion: '6.0.1(21)', modelVersion: '6.0.1' },
-  22: { sdkVersion: '6.0.2(22)', modelVersion: '6.0.2' },
-  23: { sdkVersion: '6.1.0(23)', modelVersion: '6.1.0' },
-  24: { sdkVersion: '6.1.1(24)', modelVersion: '6.1.1' }
-};
+import { loadSdkMetadata, resolveApiLevel, SkillError } from './detect-sdk.mjs';
 
 const REQUIRED_FILES = [
   'build-profile.json5',
@@ -41,6 +30,11 @@ const REQUIRED_FILES = [
 ];
 
 const APP_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,127}$/;
+
+function emitError(payload, exitCode = 1) {
+  console.error(JSON.stringify(payload, null, 2));
+  process.exit(exitCode);
+}
 
 function parseArgs(argv) {
   const values = new Map();
@@ -78,8 +72,8 @@ function parseArgs(argv) {
   if (!bundleName) {
     throw new Error('Missing required argument --bundle-name');
   }
-  if (apiLevelRaw && (apiLevel === undefined || !Number.isInteger(apiLevel) || !API_CONFIGS[apiLevel])) {
-    throw new Error(`Unsupported apiLevel: ${apiLevelRaw}`);
+  if (apiLevelRaw && (apiLevel === undefined || !Number.isInteger(apiLevel))) {
+    throw new Error(`Invalid apiLevel: ${apiLevelRaw}`);
   }
 
   return {
@@ -92,13 +86,8 @@ function parseArgs(argv) {
 }
 
 async function resolve(args) {
-  if (args.apiLevel) {
-    return {
-      apiLevel: args.apiLevel,
-      source: 'user_input',
-    };
-  }
-  return detectApiLevel();
+  const metadata = await loadSdkMetadata();
+  return resolveApiLevel(metadata, args.apiLevel);
 }
 
 function copyDirectoryContents(sourceDir, targetDir) {
@@ -129,19 +118,15 @@ function replaceInFile(filePath, pairs) {
   }
 }
 
-function updateApiLevel(targetRoot, apiLevel) {
-  if (apiLevel === 22) {
-    return;
-  }
-  const config = API_CONFIGS[apiLevel];
+function updateApiLevel(targetRoot, sdkVersion, modelVersion) {
   replaceInFile(path.join(targetRoot, 'build-profile.json5'), [
-    ['6.0.2(22)', config.sdkVersion],
+    ['6.0.2(22)', sdkVersion],
   ]);
   replaceInFile(path.join(targetRoot, 'hvigor/hvigor-config.json5'), [
-    ['6.0.2', config.modelVersion],
+    ['6.0.2', modelVersion],
   ]);
   replaceInFile(path.join(targetRoot, 'oh-package.json5'), [
-    ['6.0.2', config.modelVersion],
+    ['6.0.2', modelVersion],
   ]);
 }
 
@@ -153,31 +138,35 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
 
   if (!APP_NAME_PATTERN.test(args.appName)) {
-    console.error(JSON.stringify({
+    emitError({
       code: 'APP_NAME_INVALID',
       message: `appName "${args.appName}" is invalid. It must start with an English letter and contain only [A-Za-z0-9_], length 1-128.`,
-      rawAppName: args.appName,
       hint: '请通过 AskUserQuestion 给出 2-3 个符合规范的 UpperCamelCase 英文候选名（中文按语义翻译，如 "购物车" → ShoppingCart / ShopCart / Cart），让用户选择，然后用新的 --app-name 重新运行脚本。不要自己替用户决定。',
-    }, null, 2));
-    process.exit(4);
+      details: { rawAppName: args.appName },
+    }, 4);
   }
 
   const resolved = await resolve(args);
+
   if (!fs.existsSync(args.templateDir)) {
-    throw new Error(`Template directory not found: ${args.templateDir}`);
+    emitError({
+      code: 'TEMPLATE_DIR_MISSING',
+      message: `Template directory not found: ${args.templateDir}`,
+      hint: '请确认内置 skill 资源完整，或重新安装/打包 Deveco Code。',
+      details: { templateDir: args.templateDir },
+    });
   }
 
   fs.mkdirSync(args.projectPath, { recursive: true });
   const targetRoot = path.join(args.projectPath, args.appName);
 
   if (fs.existsSync(targetRoot) && fs.readdirSync(targetRoot).length > 0) {
-    console.error(JSON.stringify({
+    emitError({
       code: 'PROJECT_EXISTS',
       message: `Target "${targetRoot}" already exists and is not empty.`,
-      targetRoot,
       hint: '请通过 AskUserQuestion 向用户提供"覆盖 / 重命名 / 取消"三个选项后再决定如何继续。Never overwrite without explicit user confirmation.',
-    }, null, 2));
-    process.exit(2);
+      details: { targetRoot },
+    }, 2);
   }
 
   copyDirectoryContents(args.templateDir, targetRoot);
@@ -188,11 +177,16 @@ async function main() {
   replaceInFile(path.join(targetRoot, 'AppScope/app.json5'), [
     ['com.example.myapplication', args.bundleName],
   ]);
-  updateApiLevel(targetRoot, resolved.apiLevel);
+  updateApiLevel(targetRoot, resolved.sdkVersion, resolved.modelVersion);
 
   const missingFiles = verifyFiles(targetRoot);
   if (missingFiles.length > 0) {
-    throw new Error(`Template copy incomplete. Missing files: ${missingFiles.join(', ')}`);
+    emitError({
+      code: 'TEMPLATE_COPY_INCOMPLETE',
+      message: `Template copy incomplete. Missing files: ${missingFiles.join(', ')}`,
+      hint: '请确认 skill 模板资源完整，清理目标目录后重新创建。',
+      details: { missingFiles, targetRoot },
+    });
   }
 
   console.log(JSON.stringify({
@@ -200,6 +194,8 @@ async function main() {
     appName: args.appName,
     bundleName: args.bundleName,
     apiLevel: resolved.apiLevel,
+    sdkVersion: resolved.sdkVersion,
+    modelVersion: resolved.modelVersion,
     source: resolved.source,
     detectedFrom: resolved.detectedFrom,
     devecoHome: resolved.devecoHome,
@@ -210,7 +206,13 @@ async function main() {
 try {
   await main();
 } catch (error) {
+  if (error instanceof SkillError) {
+    emitError(error.payload);
+  }
   const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exit(1);
+  emitError({
+    code: 'SCRIPT_ERROR',
+    message,
+    hint: '请检查脚本参数与环境配置后重试。',
+  });
 }
