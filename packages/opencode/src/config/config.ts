@@ -46,6 +46,7 @@ import { ConfigSkills } from "./skills"
 import { ConfigVariable } from "./variable"
 import { Npm } from "@opencode-ai/core/npm"
 import { withTransientReadRetry } from "@/util/effect-http-client"
+import { ConfigExperimental } from "@opencode-ai/core/config/experimental"
 
 const log = Log.create({ service: "config" })
 
@@ -325,6 +326,9 @@ export const Info = Schema.Struct({
       }),
       mcp_timeout: Schema.optional(PositiveInt).annotate({
         description: "Timeout in milliseconds for model context protocol (MCP) requests",
+      }),
+      policies: Schema.optional(Schema.mutable(Schema.Array(ConfigExperimental.Policy))).annotate({
+        description: "Policy statements applied to supported resources, such as provider access",
       }),
     }),
   ),

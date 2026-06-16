@@ -597,7 +597,7 @@ function openaiCompatibleReasoningEfforts(id: string) {
 }
 
 function anthropicOpus47OrLater(apiId: string) {
-  const version = /opus-(\d+)[.-](\d+)(?:[.-]|$)/i.exec(apiId)
+  const version = /opus-(\d+)[.-](\d+)(?:[.@-]|$)/i.exec(apiId)
   if (!version) return false
   const major = Number(version[1])
   const minor = Number(version[2])
@@ -697,6 +697,10 @@ export function variants(model: Provider.Model): Record<string, Record<string, a
               {
                 thinking: {
                   type: "adaptive",
+                  // Opus 4.7+ flips the API default for `display` to "omitted", which
+                  // returns empty thinking blocks. Force "summarized" so summaries
+                  // survive (4.6/Sonnet 4.6 already default to "summarized").
+                  ...(adaptiveOpus ? { display: "summarized" } : {}),
                 },
                 effort,
               },
