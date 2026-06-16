@@ -320,7 +320,7 @@ function buildNextAction(report: CrashReport) {
   return "Load harmony-jscrash-fixes, inspect the top stack frames, make a minimal fix, then verify with compilation and runtime evidence."
 }
 
-function formatReport(report: CrashReport) {
+export function formatReport(report: CrashReport) {
   return [
     report.status === "detected" ? "Crash signature detected." : "No clear crash signature detected.",
     `source: ${report.source}`,
@@ -342,7 +342,7 @@ function formatReport(report: CrashReport) {
   ].join("\n")
 }
 
-function buildReport(
+export function buildReport(
   input: string,
   source: string,
   device: string,
