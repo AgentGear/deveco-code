@@ -730,7 +730,11 @@ export const layer = Layer.effect(
         }
 
         if (Flag.DEVECO_PERMISSION) {
-          result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.DEVECO_PERMISSION))
+          try {
+            result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.DEVECO_PERMISSION))
+          } catch (err) {
+            log.warn("DEVECO_PERMISSION contains invalid JSON, skipping", { err })
+          }
         }
 
         if (result.tools) {

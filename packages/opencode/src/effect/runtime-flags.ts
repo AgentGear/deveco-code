@@ -15,8 +15,8 @@ const enabledByExperimental = (name: string) =>
 export class Service extends ConfigService.Service<Service>()("@opencode/RuntimeFlags", {
   autoShare: bool("DEVECO_AUTO_SHARE"),
   pure: bool("DEVECO_PURE"),
-  disableDefaultSkills: bool("DEVECO_DISABLE_DEFAULT_SKILLS"),
   disableDefaultPlugins: bool("DEVECO_DISABLE_DEFAULT_PLUGINS"),
+  diffViewer: bool("DEVECO_DIFF_VIEWER"),
   disableChannelDb: bool("DEVECO_DISABLE_CHANNEL_DB"),
   disableEmbeddedWebUi: bool("DEVECO_DISABLE_EMBEDDED_WEB_UI"),
   disableExternalSkills: bool("DEVECO_DISABLE_EXTERNAL_SKILLS"),
