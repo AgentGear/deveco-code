@@ -19,6 +19,7 @@ import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
 import PROMPT_GOAL from "./prompt/goal.txt"
 import PROMPT_SPEC_VERIFY from "./prompt/spec-verify.txt"
+import PROMPT_SPEC_IMPLEMENTATION from "./prompt/spec-implementation.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@opencode-ai/core/global"
@@ -179,6 +180,25 @@ export const layer = Layer.effect(
             native: true,
             prompt: PROMPT_GOAL,
             color: "info",
+          },
+          "spec-implementation": {
+            name: "spec-implementation",
+            description: "Execute implementation tasks from an approved spec",
+            options: {},
+            permission: Permission.merge(
+              defaults,
+              Permission.fromConfig({
+                question: "allow",
+                arkts_knowledge_search: "allow",
+                build_project: "deny",
+                start_app: "deny",
+              }),
+              user,
+            ),
+            mode: "subagent",
+            native: true,
+            hidden: true,
+            prompt: PROMPT_SPEC_IMPLEMENTATION,
           },
           "spec-verify": {
             name: "spec-verify",
