@@ -67,7 +67,11 @@ export function isLocal() {
 
 export class UpgradeFailedError extends Schema.TaggedErrorClass<UpgradeFailedError>()("UpgradeFailedError", {
   stderr: Schema.String,
-}) {}
+}) {
+  override get message() {
+    return this.stderr
+  }
+}
 
 // Response schemas for external version APIs
 const NpmPackage = Schema.Struct({ version: Schema.String })
@@ -121,6 +125,42 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
       },
       Effect.catch((err) => Effect.succeed({ code: 1, stdout: "", stderr: errorMessage(err) })),
     )
+
+    const getBrewFormula = Effect.fnUntraced(function* () {
+      const tapFormula = yield* text(["brew", "list", "--formula", "anomalyco/tap/opencode"])
+      if (tapFormula.includes("opencode")) return "anomalyco/tap/opencode"
+      const coreFormula = yield* text(["brew", "list", "--formula", "opencode"])
+      if (coreFormula.includes("opencode")) return "opencode"
+      return "opencode"
+    })
+
+    const upgradeFailure = (method: Method, result?: { code: number; stdout: string; stderr: string }) => {
+      if (method === "choco") return "not running from an elevated command shell"
+      if (result) return `Upgrade failed for ${method} (exit code ${result.code}).`
+      return `Upgrade failed for ${method}.`
+    }
+
+    const upgradeCurl = Effect.fnUntraced(
+      function* (target: string) {
+        const response = yield* httpOk.execute(HttpClientRequest.get("https://opencode.ai/install"))
+        const body = yield* response.text
+        const bodyBytes = new TextEncoder().encode(body)
+        const result = yield* appProcess.run(
+          ChildProcess.make("bash", [], {
+            stdin: Stream.make(bodyBytes),
+            env: { VERSION: target },
+            extendEnv: true,
+          }),
+        )
+        return {
+          code: result.exitCode,
+          stdout: result.stdout.toString("utf8"),
+          stderr: result.stderr.toString("utf8"),
+        }
+      },
+      Effect.mapError(() => new UpgradeFailedError({ stderr: upgradeFailure("curl") })),
+    )
+
 
     const result: Interface = {
       info: Effect.fn("Installation.info")(function* () {
@@ -180,10 +220,10 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
             upgradeResult = yield* run(["bun", "install", "-g", `@deveco/deveco-code@${target}`])
             break
           default:
-            return yield* new UpgradeFailedError({ stderr: `Unknown method: ${m}` })
+            return yield* new UpgradeFailedError({ stderr: `Unknown installation method: ${m}` })
         }
         if (!upgradeResult || upgradeResult.code !== 0) {
-          return yield* new UpgradeFailedError({ stderr: upgradeResult?.stderr || "" })
+          return yield* new UpgradeFailedError({ stderr: upgradeFailure(m, upgradeResult) })
         }
         log.info("upgraded", {
           method: m,

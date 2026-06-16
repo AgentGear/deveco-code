@@ -20,31 +20,28 @@ import { testEffect } from "../lib/effect"
 const encoder = new TextEncoder()
 const sink = { [Symbol.for("effect/Sink/TypeId")]: Symbol.for("effect/Sink/TypeId") } as any
 
-type SpawnResult = string | { stdout?: string; stderr?: string; code?: number }
-
 function mockHttpClient(handler: (request: HttpClientRequest.HttpClientRequest) => Response) {
   const client = HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, handler(request))))
   return Layer.succeed(HttpClient.HttpClient, client)
 }
 
-// spawn handler may return a plain string (stdout, exit 0) or an object controlling stdout/stderr/exit code.
-function mockSpawner(handler: (cmd: string, args: readonly string[]) => SpawnResult = () => "") {
+function mockSpawner(
+  handler: (cmd: string, args: readonly string[]) => string | { code: number; stdout?: string; stderr?: string } = () =>
+    "",
+) {
   const spawner = ChildProcessSpawner.make((command) => {
     const std = ChildProcess.isStandardCommand(command) ? command : undefined
-    const raw = handler(std?.command ?? "", std?.args ?? [])
-    const result =
-      typeof raw === "string"
-        ? { stdout: raw, stderr: "", code: 0 }
-        : { stdout: raw.stdout ?? "", stderr: raw.stderr ?? "", code: raw.code ?? 0 }
+    const result = handler(std?.command ?? "", std?.args ?? [])
+    const output = typeof result === "string" ? { code: 0, stdout: result, stderr: "" } : result
     return Effect.succeed(
       ChildProcessSpawner.makeHandle({
         pid: ChildProcessSpawner.ProcessId(0),
-        exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(result.code)),
+        exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(output.code)),
         isRunning: Effect.succeed(false),
         kill: () => Effect.void,
-        stdin: sink,
-        stdout: result.stdout ? Stream.make(encoder.encode(result.stdout)) : Stream.empty,
-        stderr: result.stderr ? Stream.make(encoder.encode(result.stderr)) : Stream.empty,
+        stdin: { [Symbol.for("effect/Sink/TypeId")]: Symbol.for("effect/Sink/TypeId") } as any,
+        stdout: output.stdout ? Stream.make(encoder.encode(output.stdout)) : Stream.empty,
+        stderr: output.stderr ? Stream.make(encoder.encode(output.stderr)) : Stream.empty,
         all: Stream.empty,
         getInputFd: () => sink,
         getOutputFd: () => Stream.empty,
@@ -64,7 +61,7 @@ function jsonResponse(body: unknown) {
 
 function testLayer(
   httpHandler: (request: HttpClientRequest.HttpClientRequest) => Response,
-  spawnHandler?: (cmd: string, args: readonly string[]) => SpawnResult,
+  spawnHandler?: (cmd: string, args: readonly string[]) => string | { code: number; stdout?: string; stderr?: string },
 ) {
   const appProcess = AppProcess.layer.pipe(Layer.provide(mockSpawner(spawnHandler)))
   return Installation.layer.pipe(Layer.provide(mockHttpClient(httpHandler)), Layer.provide(appProcess))
@@ -197,6 +194,46 @@ describe("installation", () => {
         const result = yield* Installation.use.upgrade("unknown", "1.2.3").pipe(Effect.flip)
         expect(result).toBeInstanceOf(UpgradeFailedError)
         expect(result.stderr).toContain("Unknown method")
+      }),
+    )
+  })
+
+  describe("upgrade", () => {
+    testEffect(
+      testLayer(
+        () => jsonResponse({}),
+        (cmd) => {
+          if (cmd === "npm") return { code: 1, stderr: "token=secret command output" }
+          return ""
+        },
+      ),
+    ).effect("returns sanitized typed errors for failed package upgrades", () =>
+      Effect.gen(function* () {
+        const error = yield* Effect.flip(Installation.use.upgrade("npm", "9.9.9"))
+        expect(error).toBeInstanceOf(Installation.UpgradeFailedError)
+        expect(error.stderr).toBe("Upgrade failed for npm (exit code 1).")
+        expect(error.message).toBe(error.stderr)
+        expect(error.stderr).not.toContain("secret")
+        expect(error.stderr).not.toContain("command output")
+      }),
+    )
+
+    testEffect(
+      testLayer(
+        () => new Response("install script with token=secret", { status: 200 }),
+        (cmd) => {
+          if (cmd === "bash") return { code: 1, stderr: "script output with token=secret" }
+          return ""
+        },
+      ),
+    ).effect("returns sanitized typed errors when the curl install script fails", () =>
+      Effect.gen(function* () {
+        const error = yield* Effect.flip(Installation.use.upgrade("curl", "9.9.9"))
+        expect(error).toBeInstanceOf(Installation.UpgradeFailedError)
+        expect(error.stderr).toBe("Upgrade failed for curl (exit code 1).")
+        expect(error.message).toBe(error.stderr)
+        expect(error.stderr).not.toContain("secret")
+        expect(error.stderr).not.toContain("script output")
       }),
     )
   })
