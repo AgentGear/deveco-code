@@ -41,6 +41,7 @@ import { DialogThemeList } from "@tui/component/dialog-theme-list"
 import { DEVECO_FEEDBACK_URL, DEVECO_README_URL } from "@/cli/deveco-links"
 import { DialogAgent } from "@tui/component/dialog-agent"
 import { DialogSessionList } from "@tui/component/dialog-session-list"
+import { DialogWorkspaceList } from "@tui/component/dialog-workspace-list"
 import { DialogConsoleOrg } from "@tui/component/dialog-console-org"
 import { DialogPrivacy } from "@tui/component/dialog-privacy"
 import { ThemeProvider, useTheme } from "@tui/context/theme"
@@ -83,8 +84,7 @@ import path from "path"
 import type { EventSource } from "./context/sdk"
 import { DialogVariant } from "./component/dialog-variant"
 
-const appBindingCommands = [
-  "command.palette.show",
+const appGlobalBindingCommands = [
   "session.list",
   "session.new",
   "session.quick_switch.1",
@@ -96,6 +96,10 @@ const appBindingCommands = [
   "session.quick_switch.7",
   "session.quick_switch.8",
   "session.quick_switch.9",
+] as const
+
+const appBindingCommands = [
+  "command.palette.show",
   "model.list",
   "model.cycle_recent",
   "model.cycle_recent_reverse",
@@ -115,6 +119,7 @@ const appBindingCommands = [
   "theme.mode.lock",
   "help.open",
   "docs.open",
+  "workspace.list",
   "app.debug",
   "app.console",
   "app.heap_snapshot",
@@ -699,6 +704,16 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
           dialog.clear()
         },
       },
+      {
+        name: "workspace.list",
+        title: "Manage workspaces",
+        category: "Workspace",
+        hidden: !Flag.OPENCODE_EXPERIMENTAL_WORKSPACES,
+        slashName: "workspaces",
+        run: () => {
+          dialog.replace(() => <DialogWorkspaceList />)
+        },
+      },
       ...Array.from({ length: 9 }, (_, i) => ({
         name: `session.quick_switch.${i + 1}`,
         title: `Switch to session in quick slot ${i + 1}`,
@@ -1066,6 +1081,10 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
   useBindings(() => ({
     mode: OPENCODE_BASE_MODE,
     bindings: tuiConfig.keybinds.gather("app", appBindingCommands),
+  }))
+
+  useBindings(() => ({
+    bindings: tuiConfig.keybinds.gather("app.global", appGlobalBindingCommands),
   }))
 
   useBindings(() => ({

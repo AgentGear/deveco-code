@@ -60,6 +60,7 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   outputTokenMax: positiveInteger("DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
   bashDefaultTimeoutMs: positiveInteger("DEVECO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
   experimentalNativeLlm: bool("DEVECO_EXPERIMENTAL_NATIVE_LLM"),
+  experimentalWebSockets: bool("DEVECO_EXPERIMENTAL_WEBSOCKETS"),
   client: Config.string("DEVECO_CLIENT").pipe(Config.withDefault("cli")),
 }) {}
 

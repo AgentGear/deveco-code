@@ -20,7 +20,6 @@ import { extractPromptFromParts } from "@/utils/prompt"
 import { UserMessage } from "@opencode-ai/sdk/v2"
 import { useSessionLayout } from "@/pages/session/session-layout"
 
-const USE_DESKTOP_V2 = import.meta.env.VITE_DEVECO_CHANNEL !== "prod"
 
 export type SessionCommandContext = {
   navigateMessageByOffset: (offset: number) => void
@@ -72,7 +71,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   })
   const activeFileTab = tabState.activeFileTab
   const closableTab = tabState.closableTab
-  const desktopV2 = () => platform.platform === "desktop" && USE_DESKTOP_V2
+  const desktopV2 = () => platform.platform === "desktop" && settings.general.newLayoutDesigns()
   const shown = () => (desktopV2() ? settings.general.showFileTree() : true)
 
   const messages = () => {

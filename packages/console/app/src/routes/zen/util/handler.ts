@@ -507,7 +507,6 @@ export async function handler(
       if (retry.retryCount !== MAX_FAILOVER_RETRIES) {
         let topPriority = Infinity
         const providers = allProviders
-          .filter((provider) => !provider.disabled)
           .filter((provider) => provider.weight !== 0)
           .filter((provider) => !retry.excludeProviders.includes(provider.id))
           .filter((provider) => {
@@ -991,10 +990,6 @@ export async function handler(
             return undefined
           })(),
         }),
-        db
-          .update(KeyTable)
-          .set({ timeUsed: sql`now()` })
-          .where(and(eq(KeyTable.workspaceID, authInfo.workspaceID), eq(KeyTable.id, authInfo.apiKeyId))),
         ...(() => {
           if (billingSource === "subscription") {
             const plan = authInfo.billing.subscription!.plan

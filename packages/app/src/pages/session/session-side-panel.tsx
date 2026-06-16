@@ -28,7 +28,6 @@ import { createOpenSessionFileTab, createSessionTabs, getTabReorderIndex, type S
 import { setSessionHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
 
-const USE_DESKTOP_V2 = import.meta.env.VITE_DEVECO_CHANNEL !== "prod"
 
 type RenderDiff = (SnapshotFileDiff & { file: string }) | VcsFileDiff
 
@@ -60,7 +59,7 @@ export function SessionSidePanel(props: {
   const { sessionKey, tabs, view, params } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
-  const desktopV2 = () => platform.platform === "desktop" && USE_DESKTOP_V2
+  const desktopV2 = () => platform.platform === "desktop" && settings.general.newLayoutDesigns()
   const shown = createMemo(() => (desktopV2() ? settings.general.showFileTree() : true))
 
   const reviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
@@ -205,7 +204,7 @@ export function SessionSidePanel(props: {
   })
 
   return (
-    <Show when={isDesktop() && !(import.meta.env.VITE_DEVECO_CHANNEL !== "prod" && !params.id)}>
+    <Show when={isDesktop() && !(settings.general.newLayoutDesigns() && !params.id)}>
       <aside
         id="review-panel"
         aria-label={language.t("session.panel.reviewAndFiles")}
