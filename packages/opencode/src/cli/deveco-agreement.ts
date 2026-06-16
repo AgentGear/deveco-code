@@ -1,7 +1,7 @@
 import https from "https"
 import http from "http"
 import querystring from "querystring"
-import { resolveAgreementConfig, KV_DEVECO_CODE_PRIVACY_ACCEPTED, type AgreementConfig } from "@/cli/deveco-legal"
+import { resolveAgreementConfig, getPrivacyAcceptedKey, getSignPendingKey, type AgreementConfig } from "@/cli/deveco-legal"
 import { devecoAuth, saveAuthToDisk, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/deveco"
 import * as Log from "@opencode-ai/core/util/log"
 
@@ -114,7 +114,7 @@ async function tmsPost(tmsUrl: string, body: TmsFormBody): Promise<string> {
     const options: http.RequestOptions | https.RequestOptions = {
       method: "POST",
       headers,
-      timeout: 20000,
+      timeout: 10000,
     }
 
     const req = httpModule.request(tmsUrl, options, (res) => {
@@ -463,12 +463,13 @@ class AgreementService {
    */
   async checkAllAgreements(
     accessToken: string,
+    userId: string,
     kvStore: { get: (key: string, defaultValue: unknown) => unknown },
   ): Promise<AgreementCheckResult> {
     const queryResult = await this.queryAgreement(accessToken)
 
     const overallStatus = queryResult.status
-    const hasLocalCache = kvStore.get(KV_DEVECO_CODE_PRIVACY_ACCEPTED, false) === true
+    const hasLocalCache = kvStore.get(getPrivacyAcceptedKey(userId), false) === true
 
     // For privacy/terms individual status, both share the same overall query result
     // since we query both in one request
@@ -486,9 +487,19 @@ class AgreementService {
       }
     }
 
-    // NETWORK_ERROR → show privacy step (let user see network error / retry)
-    // Even with local cache, don't silently bypass — user should explicitly see the status
+    // NETWORK_ERROR → allow entry if local cache exists (offline degradation)
+    // Without local cache, show privacy step so user can see the network error
     if (overallStatus === AgreementStatus.NETWORK_ERROR) {
+      if (hasLocalCache) {
+        log.info("agreement query network error, but local cache exists — allowing entry")
+        return {
+          privacyStatus,
+          termsStatus,
+          overallStatus,
+          canEnter: true,
+          hasLocalCache,
+        }
+      }
       return {
         privacyStatus,
         termsStatus,
@@ -516,6 +527,32 @@ class AgreementService {
       overallStatus,
       canEnter: false,
       hasLocalCache,
+    }
+  }
+
+  /**
+   * Retry any pending offline agreement sign. Called on app startup as a
+   * fire-and-forget operation. If a pending sign exists and the API is
+   * reachable, syncs the sign and clears the pending flag.
+   */
+  async retryPendingSign(
+    accessToken: string,
+    userId: string,
+    kvStore: { get: (key: string, defaultValue: unknown) => unknown; set: (key: string, value: unknown) => void },
+  ): Promise<void> {
+    const hasPending = kvStore.get(getSignPendingKey(userId), false) === true
+    if (!hasPending) {
+      return
+    }
+
+    log.info("found pending offline agreement sign, retrying...", { userId })
+    const signResult = await this.signAgreement(accessToken, false)
+
+    if (signResult.isUpload) {
+      kvStore.set(getSignPendingKey(userId), false)
+      log.info("pending offline agreement sign synced successfully", { userId })
+    } else {
+      log.warn(`pending offline agreement sign retry failed: ${signResult.error ?? "unknown error"}`, { userId })
     }
   }
 }

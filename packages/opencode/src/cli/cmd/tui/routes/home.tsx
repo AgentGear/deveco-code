@@ -106,6 +106,9 @@ export function Home() {
       }
     }
 
+    // Get userId for user-specific KV cache keys
+    const userId = session.userId || await devecoAuth.getUserId() || ''
+
     // Build-time flag or runtime env: skip agreement query and sign check, enter conversation directly
     if (
       (typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) ||
@@ -119,15 +122,32 @@ export function Home() {
       return
     }
 
+    // Wait for KV store to finish loading from disk before reading local cache.
+    // Without this, kv.get() returns defaults and hasLocalCache is always false,
+    // causing the offline degradation path to never trigger on startup.
+    if (!kv.ready) {
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          if (kv.ready) { resolve(); return }
+          setTimeout(check, 50)
+        }
+        check()
+        setTimeout(() => resolve(), 5000)
+      })
+    }
+
     // Remote query agreement signing status
     // Inject project-level agreement config overrides before making API calls
     agreementService.configure(sync.data.config.agreement as AgreementConfig | undefined)
-    const checkResult = await agreementService.checkAllAgreements(accessToken, kv)
+    const checkResult = await agreementService.checkAllAgreements(accessToken, userId, kv)
 
     if (checkResult.canEnter) {
-      // Logged in + agreements compliant → cache result, apply when sync completes
+      // Logged in + agreements compliant (or offline with local cache) →
+      // cache result, apply when sync completes
       setAuthCanEnter(true)
       setAuthCheckDone(true)
+      // Background retry: if there's a pending offline sign, try to sync it now
+      void agreementService.retryPendingSign(accessToken, userId, kv)
       if (sync.status === "complete") {
         // Sync already done → apply immediately
         setDevecoReady(true)
