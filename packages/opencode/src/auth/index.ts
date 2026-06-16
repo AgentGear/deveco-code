@@ -2,9 +2,7 @@ import path from "path"
 import { Effect, Layer, Record, Result, Schema, Context } from "effect"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
 import { Global } from "@opencode-ai/core/global"
-import { AppFileSystem } from "@opencode-ai/core/filesystem"
-import { LocalCrypto } from "@/security/local-crypto"
-import { LOCAL_CREDENTIALS_CORRUPTED_MESSAGE } from "./messages"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 
 export const OAUTH_DUMMY_KEY = "opencode-oauth-dummy-key"
 
@@ -53,34 +51,18 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Au
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    const fsys = yield* AppFileSystem.Service
+    const fsys = yield* FSUtil.Service
     const decode = Schema.decodeUnknownOption(Info)
 
     const all = Effect.fn("Auth.all")(function* () {
-      const decodeData = (input: Record<string, unknown>) => {
-        const data = LocalCrypto.decryptAuthData(input)
-        return Record.filterMap(data, (value) => Result.fromOption(decode(value), () => undefined))
-      }
-
-      if (process.env.DEVECO_AUTH_CONTENT) {
-        let parsed: unknown
+      if (process.env.OPENCODE_AUTH_CONTENT) {
         try {
-          parsed = JSON.parse(process.env.DEVECO_AUTH_CONTENT)
+          return JSON.parse(process.env.OPENCODE_AUTH_CONTENT)
         } catch (err) {}
-        if (parsed && typeof parsed === "object") {
-          return yield* Effect.try({
-            try: () => decodeData(parsed as Record<string, unknown>),
-            catch: fail(LOCAL_CREDENTIALS_CORRUPTED_MESSAGE),
-          })
-        }
       }
 
-      const encrypted = (yield* fsys.readJson(file).pipe(Effect.orElseSucceed(() => ({})))) as Record<string, unknown>
-      const data = yield* Effect.try({
-        try: () => decodeData(encrypted),
-        catch: fail(LOCAL_CREDENTIALS_CORRUPTED_MESSAGE),
-      })
-      return data
+      const data = (yield* fsys.readJson(file).pipe(Effect.orElseSucceed(() => ({})))) as Record<string, unknown>
+      return Record.filterMap(data, (value) => Result.fromOption(decode(value), () => undefined))
     })
 
     const get = Effect.fn("Auth.get")(function* (providerID: string) {
@@ -92,8 +74,9 @@ export const layer = Layer.effect(
       const data = yield* all()
       if (norm !== key) delete data[key]
       delete data[norm + "/"]
-      const next = LocalCrypto.encryptAuthData({ ...data, [norm]: info })
-      yield* fsys.writeJson(file, next, 0o600).pipe(Effect.mapError(fail("Failed to write auth data")))
+      yield* fsys
+        .writeJson(file, { ...data, [norm]: info }, 0o600)
+        .pipe(Effect.mapError(fail("Failed to write auth data")))
     })
 
     const remove = Effect.fn("Auth.remove")(function* (key: string) {
@@ -101,15 +84,13 @@ export const layer = Layer.effect(
       const data = yield* all()
       delete data[key]
       delete data[norm]
-      yield* fsys
-        .writeJson(file, LocalCrypto.encryptAuthData(data), 0o600)
-        .pipe(Effect.mapError(fail("Failed to write auth data")))
+      yield* fsys.writeJson(file, data, 0o600).pipe(Effect.mapError(fail("Failed to write auth data")))
     })
 
     return Service.of({ get, all, set, remove })
   }),
 )
 
-export const defaultLayer = layer.pipe(Layer.provide(AppFileSystem.defaultLayer))
+export const defaultLayer = layer.pipe(Layer.provide(FSUtil.defaultLayer))
 
 export * as Auth from "."

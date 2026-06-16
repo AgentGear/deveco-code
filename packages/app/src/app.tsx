@@ -33,6 +33,7 @@ import { CommentsProvider } from "@/context/comments"
 import { FileProvider } from "@/context/file"
 import { ServerSDKProvider } from "@/context/server-sdk"
 import { ServerSyncProvider } from "@/context/server-sync"
+import { GlobalProvider } from "@/context/global"
 import { HighlightsProvider } from "@/context/highlights"
 import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
 import { LayoutProvider } from "@/context/layout"
@@ -47,7 +48,6 @@ import DirectoryLayout from "@/pages/directory-layout"
 import Layout from "@/pages/layout"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
-import { ServersProvider } from "./context/servers"
 
 if (import.meta.env.VITE_DEVECO_CHANNEL !== "prod") {
   document.body.classList.remove("text-12-regular")
@@ -321,7 +321,7 @@ export function AppInterface(props: {
 }) {
   return (
     <ServerProvider defaultServer={props.defaultServer} servers={props.servers}>
-      <ServersProvider>
+      <GlobalProvider defaultServer={props.defaultServer} servers={props.servers}>
         <ConnectionGate disableHealthCheck={props.disableHealthCheck}>
           <ServerKey>
             <QueryProvider>
@@ -342,7 +342,7 @@ export function AppInterface(props: {
             </QueryProvider>
           </ServerKey>
         </ConnectionGate>
-      </ServersProvider>
+      </GlobalProvider>
     </ServerProvider>
   )
 }

@@ -113,6 +113,7 @@ export async function handler(
       client: ocClient,
       user_agent: userAgent,
       "model.variant": variant,
+      "model.tier": opts.modelList === "full" ? "zen" : "go",
     })
     const zenData = ZenData.list(opts.modelList)
     const modelInfo = validateModel(zenData, model)
@@ -679,12 +680,10 @@ export async function handler(
       ...(() => {
         if (data.billing.subscription)
           return {
-            isSubscription: true,
             subscription: data.billing.subscription.plan,
           }
         if (data.billing.lite)
           return {
-            isSubscription: true,
             subscription: "lite",
           }
         return {}

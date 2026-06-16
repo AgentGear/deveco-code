@@ -17,103 +17,10 @@ const generated = await import("./generate.ts")
 import { Script } from "@opencode-ai/script"
 import pkg from "../package.json"
 
-// Load migrations from migration directories
-const migrationDirs = (
-  await fs.promises.readdir(path.join(dir, "migration"), {
-    withFileTypes: true,
-  })
-)
-  .filter((entry) => entry.isDirectory() && /^\d{4}\d{2}\d{2}\d{2}\d{2}\d{2}/.test(entry.name))
-  .map((entry) => entry.name)
-  .sort()
-
-const migrations = await Promise.all(
-  migrationDirs.map(async (name) => {
-    const file = path.join(dir, "migration", name, "migration.sql")
-    const sql = await Bun.file(file).text()
-    const match = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(name)
-    const timestamp = match
-      ? Date.UTC(
-          Number(match[1]),
-          Number(match[2]) - 1,
-          Number(match[3]),
-          Number(match[4]),
-          Number(match[5]),
-          Number(match[6]),
-        )
-      : 0
-    return { sql, timestamp, name }
-  }),
-)
-console.log(`Loaded ${migrations.length} migrations`)
-
-// Load default skills from resources/skills/
-async function walk(directory: string): Promise<string[]> {
-  const result: string[] = []
-  async function recurse(dir: string) {
-    for (const entry of await fs.promises.readdir(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name)
-      if (entry.isSymbolicLink()) {
-        continue
-      }
-      if (entry.isDirectory()) {
-        await recurse(full)
-      } else if (entry.name !== ".DS_Store") {
-        result.push(full)
-      }
-    }
-  }
-  await recurse(directory)
-  return result
-}
-
-const defaultSkillsDir = path.join(dir, "resources/skills")
-type EmbeddedFile = string | { encoding: "base64"; content: string }
-
-const binaryExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bin"])
-const defaultSkillsData: Record<string, Record<string, EmbeddedFile>> = {}
-if (fs.existsSync(defaultSkillsDir)) {
-  for (const entry of await fs.promises.readdir(defaultSkillsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue
-    const files: Record<string, EmbeddedFile> = {}
-    const skillPath = path.join(defaultSkillsDir, entry.name)
-    for (const file of await walk(skillPath)) {
-      const rel = path.relative(skillPath, file).replaceAll("\\", "/")
-      files[rel] = binaryExtensions.has(path.extname(file).toLowerCase())
-        ? { encoding: "base64", content: Buffer.from(await Bun.file(file).arrayBuffer()).toString("base64") }
-        : await Bun.file(file).text()
-    }
-    defaultSkillsData[entry.name] = files
-  }
-}
-console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
-
-const defaultSpecDir = path.join(dir, "resources/spec")
-const defaultSpecData: Record<string, Record<string, EmbeddedFile> | EmbeddedFile> = {}
-if (fs.existsSync(defaultSpecDir)) {
-  for (const entry of await fs.promises.readdir(defaultSpecDir, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      const files: Record<string, EmbeddedFile> = {}
-      const specPath = path.join(defaultSpecDir, entry.name)
-      for (const file of await walk(specPath)) {
-        const rel = path.relative(specPath, file).replaceAll("\\", "/")
-        files[rel] = binaryExtensions.has(path.extname(file).toLowerCase())
-          ? { encoding: "base64", content: Buffer.from(await Bun.file(file).arrayBuffer()).toString("base64") }
-          : await Bun.file(file).text()
-      }
-      defaultSpecData[entry.name] = files
-    } else if (entry.isFile()) {
-      defaultSpecData[entry.name] = await Bun.file(path.join(defaultSpecDir, entry.name)).text()
-    }
-  }
-}
-console.log(`Loaded ${Object.keys(defaultSpecData).length} default spec resources`)
-
 const singleFlag = process.argv.includes("--single")
 const baselineFlag = process.argv.includes("--baseline")
 const skipInstall = process.argv.includes("--skip-install")
 const sourcemapsFlag = process.argv.includes("--sourcemaps")
-const skipAgreementFlag = process.argv.includes("--skip-agreement")
 const plugin = createSolidTransformPlugin()
 const skipEmbedWebUi = process.argv.includes("--skip-embed-web-ui")
 
@@ -150,6 +57,35 @@ const allTargets: {
   avx2?: false
 }[] = [
   {
+    os: "linux",
+    arch: "arm64",
+  },
+  {
+    os: "linux",
+    arch: "x64",
+  },
+  {
+    os: "linux",
+    arch: "x64",
+    avx2: false,
+  },
+  {
+    os: "linux",
+    arch: "arm64",
+    abi: "musl",
+  },
+  {
+    os: "linux",
+    arch: "x64",
+    abi: "musl",
+  },
+  {
+    os: "linux",
+    arch: "x64",
+    abi: "musl",
+    avx2: false,
+  },
+  {
     os: "darwin",
     arch: "arm64",
   },
@@ -158,8 +94,22 @@ const allTargets: {
     arch: "x64",
   },
   {
+    os: "darwin",
+    arch: "x64",
+    avx2: false,
+  },
+  {
+    os: "win32",
+    arch: "arm64",
+  },
+  {
     os: "win32",
     arch: "x64",
+  },
+  {
+    os: "win32",
+    arch: "x64",
+    avx2: false,
   },
 ]
 
@@ -185,18 +135,6 @@ const targets = singleFlag
   : allTargets
 
 await $`rm -rf dist`
-
-// Vendored binaries cache (downloaded by postinstall.ts during bun install)
-const cacheDir = path.join(dir, ".build-cache")
-const rgCacheDir = path.join(cacheDir, "ripgrep")
-const mcpCacheDir = path.join(cacheDir, "mcp-bridge")
-
-const RG_VERSION = "15.1.0"
-const rgArchiveMap: Record<string, { archive: string; binary: string }> = {
-  "darwin-arm64": { archive: `ripgrep-${RG_VERSION}-aarch64-apple-darwin.tar.gz`, binary: "rg" },
-  "darwin-x64":   { archive: `ripgrep-${RG_VERSION}-x86_64-apple-darwin.tar.gz`, binary: "rg" },
-  "win32-x64":    { archive: `ripgrep-${RG_VERSION}-x86_64-pc-windows-msvc.zip`, binary: "rg.exe" },
-}
 
 const binaries: Record<string, string> = {}
 if (!skipInstall) {
@@ -241,29 +179,26 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
-      outfile: `dist/${name}/bin/deveco`,
+      outfile: `dist/${name}/bin/opencode`,
       execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : [])],
     define: {
-      DEVECO_VERSION: `'${Script.version}'`,
-      DEVECO_MIGRATIONS: JSON.stringify(migrations),
-      DEVECO_MODELS_DEV: generated.modelsData,
+      OPENCODE_VERSION: `'${Script.version}'`,
+      OPENCODE_MODELS_DEV: generated.modelsData,
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
-      DEVECO_WORKER_PATH: workerPath,
-      DEVECO_CHANNEL: `'${Script.channel}'`,
-      DEVECO_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
-      DEVECO_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
-      DEVECO_DEFAULT_SPEC_RESOURCES: JSON.stringify(defaultSpecData),
-      DEVECO_SKIP_AGREEMENT: skipAgreementFlag ? "true" : "false",
+      OPENCODE_WORKER_PATH: workerPath,
+      OPENCODE_CHANNEL: `'${Script.channel}'`,
+      OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
+      ...(item.os === "linux" ? { "process.env.OPENTUI_LIBC": JSON.stringify(item.abi ?? "glibc") } : {}),
     },
   })
 
   // Smoke test: only run if binary is for current platform
   if (item.os === process.platform && item.arch === process.arch && !item.abi) {
-    const binaryPath = `dist/${name}/bin/deveco`
+    const binaryPath = `dist/${name}/bin/opencode`
     console.log(`Running smoke test: ${binaryPath} --version`)
     try {
       const versionOutput = await $`${binaryPath} --version`.text()
@@ -274,75 +209,30 @@ for (const item of targets) {
     }
   }
 
-  // Copy mcp-bridge-native from cache
-  const mcpKey = `${item.os}-${item.arch}`
-  const mcpCache = path.join(mcpCacheDir, mcpKey)
-  const cachedNode = path.join(mcpCache, "napi_bridge.node")
-  if (!fs.existsSync(cachedNode)) {
-    console.error(`  ERROR: mcp-bridge cache not found for ${mcpKey}. Run "bun install" first to download vendored binaries.`)
-    process.exit(1)
-  }
-  {
-    const vendorDir = path.join(dir, "dist", name, "vendor", "mcp-bridge-native")
-    await fs.promises.mkdir(vendorDir, { recursive: true })
-    await fs.promises.copyFile(path.join(mcpCache, "package.json"), path.join(vendorDir, "package.json"))
-    await fs.promises.copyFile(cachedNode, path.join(vendorDir, "napi_bridge.node"))
-    console.log(`  Bundled mcp-bridge for ${mcpKey}`)
-  }
-
-  // Copy ripgrep from cache
-  const rgKey = `${item.os}-${item.arch}`
-  const rgInfo = rgArchiveMap[rgKey]
-  if (rgInfo) {
-    const cachePath = path.join(rgCacheDir, rgKey, rgInfo.binary)
-    if (!fs.existsSync(cachePath)) {
-      console.error(`  ERROR: ripgrep cache not found for ${rgKey}. Run "bun install" first to download vendored binaries.`)
-      process.exit(1)
-    }
-    const vendorDir = path.join(dir, "dist", name, "vendor", "ripgrep")
-    await fs.promises.mkdir(vendorDir, { recursive: true })
-    const rgBinaryName = item.os === "win32" ? "rg.exe" : "rg"
-    const rgDest = path.join(vendorDir, rgBinaryName)
-    await fs.promises.copyFile(cachePath, rgDest)
-    if (item.os !== "win32") {
-      await fs.promises.chmod(rgDest, 0o755)
-    }
-    console.log(`  Bundled ripgrep for ${rgKey}`)
-  }
-
   await $`rm -rf ./dist/${name}/bin/tui`
-  await $`mkdir -p ./dist/${name}/assets/readme`
-  await $`cp ../../assets/readme/readme-screenshot.png ./dist/${name}/assets/readme/readme-screenshot.png`
-
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name: `@deveco/deveco-code-${item.os === "win32" ? "windows" : item.os}-${item.arch}`,
+        name,
         version: Script.version,
         preferUnplugged: true,
         os: [item.os],
         cpu: [item.arch],
-        files: [
-          "bin/**/*",
-          "vendor/**/*",
-          "README.md",
-          "assets/**/*",
-        ],
+        ...(item.abi ? { libc: [item.abi] } : {}),
       },
       null,
       2,
     ),
   )
-  await $`cp ${path.join(dir, "../../README.md")} dist/${name}/README.md`
   binaries[name] = Script.version
 }
 
 if (Script.release) {
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
-      await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}`)
+      await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
     } else {
-      await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}`)
+      await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
     }
   }
   await $`gh release upload v${Script.version} ./dist/*.zip ./dist/*.tar.gz --clobber --repo ${process.env.GH_REPO}`

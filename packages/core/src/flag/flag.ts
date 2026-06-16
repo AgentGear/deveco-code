@@ -1,6 +1,6 @@
 import { Config } from "effect"
 
-function truthy(key: string) {
+export function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
   return value === "true" || value === "1"
 }
@@ -54,6 +54,9 @@ export const Flag = {
   // external tooling set these env vars at runtime.
   get DEVECO_DISABLE_PROJECT_CONFIG() {
     return truthy("DEVECO_DISABLE_PROJECT_CONFIG")
+  },
+  get DEVECO_EXPERIMENTAL_REFERENCES() {
+    return enabledByExperimental("DEVECO_EXPERIMENTAL_REFERENCES")
   },
   get DEVECO_TUI_CONFIG() {
     return process.env["DEVECO_TUI_CONFIG"]

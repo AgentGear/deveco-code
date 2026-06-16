@@ -1,7 +1,4 @@
 import { cmd } from "@/cli/cmd/cmd"
-import * as prompts from "@clack/prompts"
-import { tui } from "./app"
-import { requireLogin } from "@/plugin/deveco"
 import { Rpc } from "@/util/rpc"
 import { type rpc } from "./worker"
 import path from "path"
@@ -16,7 +13,6 @@ import type { GlobalEvent } from "@opencode-ai/sdk/v2"
 import type { EventSource } from "./context/sdk"
 import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
 import { writeHeapSnapshot } from "v8"
-import { TuiConfig } from "./config/tui"
 import {
   DEVECO_PROCESS_ROLE,
   DEVECO_RUN_ID,
@@ -24,15 +20,12 @@ import {
   sanitizedProcessEnv,
 } from "@opencode-ai/core/util/opencode-process"
 import { validateSession } from "./validate-session"
-import { findDevEcoHomes, isDevEcoHome, loadSavedDevEcoHome, resolveDevEcoHome, saveDevEcoHome } from "@/tool/lib/env"
 
 declare global {
-  const DEVECO_WORKER_PATH: string
+  const OPENCODE_WORKER_PATH: string
 }
 
 type RpcClient = ReturnType<typeof Rpc.client<typeof rpc>>
-const customDevEcoHomeOption = "__custom_deveco_home__"
-const skipDevEcoHomeOption = "__skip_deveco_home__"
 
 function createWorkerFetch(client: RpcClient): typeof fetch {
   const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -63,7 +56,7 @@ function createEventSource(client: RpcClient): EventSource {
 }
 
 async function target() {
-  if (typeof DEVECO_WORKER_PATH !== "undefined") return DEVECO_WORKER_PATH
+  if (typeof OPENCODE_WORKER_PATH !== "undefined") return OPENCODE_WORKER_PATH
   const dist = new URL("./cli/cmd/tui/worker.js", import.meta.url)
   if (await Filesystem.exists(fileURLToPath(dist))) return dist
   return new URL("./worker.ts", import.meta.url)
@@ -82,85 +75,14 @@ export function resolveThreadDirectory(project?: string, envPWD = process.env.PW
   return Filesystem.resolve(cwd)
 }
 
-async function inputDevEcoHome(): Promise<string> {
-  const home = await prompts.text({
-    message: "Enter DEVECO_HOME path",
-  })
-  if (prompts.isCancel(home)) process.exit(1)
-  const resolved = await resolveDevEcoHome(home)
-  if (resolved) return resolved
-  UI.println(
-    UI.Style.TEXT_DANGER_BOLD +
-      "Invalid DevEco Studio path. Please enter a directory that contains DevEco Studio(v6.1 or later) tools." +
-      UI.Style.TEXT_NORMAL,
-  )
-  return inputDevEcoHome()
-}
-
-async function selectDevEcoHome(candidates: string[]): Promise<string | undefined> {
-  const selected = await prompts.select({
-    message: candidates.length ? "Please select DevEco Studio path (Requires version 6.1 or later.)" : "Please configure your DevEco Studio path (Requires version 6.1 or later.)",
-    options: [
-      ...candidates.map((candidate) => ({
-        label: candidate,
-        value: candidate,
-      })),
-      {
-        label: "Enter a custom path",
-        value: customDevEcoHomeOption,
-      },
-      {
-        label: "Skip (DevEco Studio Tools will be unavailable.)",
-        value: skipDevEcoHomeOption,
-      },
-    ],
-    initialValue: candidates[0] ?? customDevEcoHomeOption,
-  })
-  if (prompts.isCancel(selected)) process.exit(1)
-  if (selected === customDevEcoHomeOption) return inputDevEcoHome()
-  if (selected === skipDevEcoHomeOption) return undefined
-  return selected
-}
-
-async function applyDevEcoHome(home: string) {
-  const resolved = await saveDevEcoHome(home)
-  if (resolved) process.env.DEVECO_HOME = resolved
-}
-
-async function ensureDevEcoHomeForTuiStartup() {
-  const configured = process.env.DEVECO_HOME?.trim()
-  if (configured) {
-    if (await isDevEcoHome(configured)) return
-  }
-
-  const saved = await loadSavedDevEcoHome()
-  if (saved) {
-    process.env.DEVECO_HOME = saved
-    return
-  }
-
-  const candidates = await findDevEcoHomes()
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    if (candidates[0]) await applyDevEcoHome(candidates[0])
-    return
-  }
-  UI.println(
-    UI.Style.TEXT_DANGER_BOLD +
-      "DEVECO_HOME environment variable is not configured, features may be unusable." +
-      UI.Style.TEXT_NORMAL,
-  )
-  const selected = await selectDevEcoHome(candidates)
-  if (selected) await applyDevEcoHome(selected)
-}
-
 export const TuiThreadCommand = cmd({
   command: "$0 [project]",
-  describe: "start deveco tui",
+  describe: "start opencode tui",
   builder: (yargs) =>
     withNetworkOptions(yargs)
       .positional("project", {
         type: "string",
-        describe: "path to start deveco in",
+        describe: "path to start opencode in",
       })
       .option("model", {
         type: "string",
@@ -190,13 +112,7 @@ export const TuiThreadCommand = cmd({
         describe: "agent to use",
       }),
   handler: async (args) => {
-    const loggedIn = await requireLogin()
-    if (!loggedIn) {
-      process.exit(1)
-    }
-
-    await ensureDevEcoHomeForTuiStartup()
-
+    const { TuiConfig } = await import("./config/tui")
     // Keep ENABLE_PROCESSED_INPUT cleared even if other code flips it.
     // (Important when running under `bun run` wrappers on Windows.)
     const unguard = win32InstallCtrlCGuard()
@@ -289,7 +205,7 @@ export const TuiThreadCommand = cmd({
             events: undefined,
           }
         : {
-            url: "http://deveco.internal",
+            url: "http://opencode.internal",
             fetch: createWorkerFetch(client),
             events: createEventSource(client),
           }

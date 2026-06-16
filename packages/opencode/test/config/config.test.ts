@@ -1,4 +1,5 @@
 import { test, expect, describe, afterEach, beforeEach, spyOn } from "bun:test"
+import { ConfigV1 } from "@opencode-ai/core/v1/config/config"
 import { Effect, Exit, Layer, Option } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { NodeFileSystem, NodePath } from "@effect/platform-node"
@@ -12,7 +13,7 @@ import type { InstanceContext } from "../../src/project/instance-context"
 import { Auth } from "../../src/auth"
 import { Account } from "../../src/account/account"
 import { AccessToken, AccountID, OrgID } from "../../src/account/schema"
-import { AppFileSystem } from "@opencode-ai/core/filesystem"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Env } from "../../src/env"
 import {
   provideTmpdirInstance,
@@ -31,9 +32,10 @@ import fs from "fs/promises"
 import os from "os"
 import { pathToFileURL } from "url"
 import { Global } from "@opencode-ai/core/global"
-import { ProjectID } from "../../src/project/schema"
+import { ProjectV2 } from "@opencode-ai/core/project"
 import { Filesystem } from "@/util/filesystem"
 import { ConfigPlugin } from "@/config/plugin"
+import { ConfigPluginV1 } from "@opencode-ai/core/v1/config/plugin"
 import { AccountTest } from "../fake/account"
 import { AuthTest } from "../fake/auth"
 import { NpmTest } from "../fake/npm"
@@ -100,7 +102,7 @@ const configLayer = (
     Layer.provideMerge(infra),
     Layer.provide(NpmTest.noop),
     Layer.provide(Layer.succeed(HttpClient.HttpClient, options.client ?? unexpectedHttp)),
-    Layer.provideMerge(AppFileSystem.defaultLayer),
+    Layer.provideMerge(FSUtil.defaultLayer),
   )
 
 const layer = configLayer()
@@ -127,9 +129,9 @@ const clearEffect = (wait = false) =>
     )
 const clear = (wait = false) => Effect.runPromise(clearEffect(wait))
 // Get managed config directory from environment (set in preload.ts)
-const managedConfigDir = process.env.DEVECO_TEST_MANAGED_CONFIG_DIR!
+const managedConfigDir = process.env.OPENCODE_TEST_MANAGED_CONFIG_DIR!
 const originalTestToken = process.env.TEST_TOKEN
-const originalConsoleToken = process.env.DEVECO_CONSOLE_TOKEN
+const originalConsoleToken = process.env.OPENCODE_CONSOLE_TOKEN
 
 beforeEach(async () => {
   await clear(true)
@@ -139,20 +141,20 @@ afterEach(async () => {
   await fs.rm(managedConfigDir, { force: true, recursive: true }).catch(() => {})
   if (originalTestToken === undefined) delete process.env.TEST_TOKEN
   else process.env.TEST_TOKEN = originalTestToken
-  if (originalConsoleToken === undefined) delete process.env.DEVECO_CONSOLE_TOKEN
-  else process.env.DEVECO_CONSOLE_TOKEN = originalConsoleToken
+  if (originalConsoleToken === undefined) delete process.env.OPENCODE_CONSOLE_TOKEN
+  else process.env.OPENCODE_CONSOLE_TOKEN = originalConsoleToken
   await clear(true)
 })
 
 const writeManagedSettingsEffect = (settings: object, filename?: string) =>
-  AppFileSystem.use.writeWithDirs(path.join(managedConfigDir, filename ?? "opencode.json"), JSON.stringify(settings))
+  FSUtil.use.writeWithDirs(path.join(managedConfigDir, filename ?? "opencode.json"), JSON.stringify(settings))
 
 async function writeConfig(dir: string, config: object, name = "opencode.json") {
   await Filesystem.write(path.join(dir, name), JSON.stringify(config))
 }
 
 const writeConfigEffect = (dir: string, config: object, name = "opencode.json") =>
-  AppFileSystem.use.writeWithDirs(path.join(dir, name), JSON.stringify(config))
+  FSUtil.use.writeWithDirs(path.join(dir, name), JSON.stringify(config))
 
 const withInstanceDir = <A, E, R>(dir: string, effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
@@ -200,10 +202,8 @@ const withConfigTree = <A, E, R>(
       [
         input.global ? writeConfigEffect(global, schemaConfig(input.global)) : undefined,
         input.project ? writeConfigEffect(directory, schemaConfig(input.project)) : undefined,
-        input.local ? writeConfigEffect(path.join(directory, ".deveco"), schemaConfig(input.local)) : undefined,
-      ].filter(
-        (effect): effect is Effect.Effect<void, AppFileSystem.Error, AppFileSystem.Service> => effect !== undefined,
-      ),
+        input.local ? writeConfigEffect(path.join(directory, ".opencode"), schemaConfig(input.local)) : undefined,
+      ].filter((effect): effect is Effect.Effect<void, FSUtil.Error, FSUtil.Service> => effect !== undefined),
       { concurrency: "unbounded" },
     )
     return yield* withGlobalConfigDir(global, withInstanceDir(directory, effect))
@@ -275,7 +275,7 @@ async function check(map: (dir: string) => string) {
         const cfg = await load(ctx)
         expect(cfg.snapshot).toBe(true)
         expect(ctx.directory).toBe(Filesystem.resolve(tmp.path))
-        expect(ctx.project.id).not.toBe(ProjectID.global)
+        expect(ctx.project.id).not.toBe(ProjectV2.ID.global)
       },
     })
   } finally {
@@ -311,23 +311,23 @@ it.effect("creates global jsonc config with schema when no global configs exist"
     Effect.gen(function* () {
       yield* Config.use.get().pipe(provideInstanceEffect(dir))
 
-      const content = yield* AppFileSystem.use.readFileString(path.join(dir, "opencode.jsonc"))
+      const content = yield* FSUtil.use.readFileString(path.join(dir, "opencode.jsonc"))
       expect(content).toContain('"$schema": "https://opencode.ai/config.json"')
     }).pipe(Effect.provide(testInstanceStoreLayer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
   ),
 )
 
-it.effect("does not create global config when DEVECO_CONFIG_DIR is set", () =>
+it.effect("does not create global config when OPENCODE_CONFIG_DIR is set", () =>
   Effect.gen(function* () {
     const custom = yield* tmpdirScoped()
     yield* withGlobalConfig({}, ({ dir }) =>
       withProcessEnv(
-        "DEVECO_CONFIG_DIR",
+        "OPENCODE_CONFIG_DIR",
         custom,
         Effect.gen(function* () {
           yield* Config.use.get().pipe(provideInstanceEffect(dir))
 
-          expect(yield* AppFileSystem.use.existsSafe(path.join(dir, "opencode.jsonc"))).toBe(false)
+          expect(yield* FSUtil.use.existsSafe(path.join(dir, "opencode.jsonc"))).toBe(false)
         }).pipe(Effect.provide(testInstanceStoreLayer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
       ),
     )
@@ -362,9 +362,9 @@ it.instance("updates config and preserves empty shell sentinel", () =>
       "config.json",
     )
 
-    yield* Config.Service.use((svc) => svc.update(ConfigParse.schema(Config.Info, { shell: "" }, "test:config")))
+    yield* Config.Service.use((svc) => svc.update(ConfigParse.schema(ConfigV1.Info, { shell: "" }, "test:config")))
 
-    const writtenConfig = yield* AppFileSystem.use.readJson(path.join(test.directory, "config.json"))
+    const writtenConfig = yield* FSUtil.use.readJson(path.join(test.directory, "config.json"))
     expect(writtenConfig).toMatchObject({ shell: "" })
   }),
 )
@@ -374,7 +374,7 @@ it.effect("updates global config and omits empty shell key in json", () =>
     Effect.gen(function* () {
       yield* Config.use.updateGlobal({ shell: "" })
 
-      const writtenConfig = yield* AppFileSystem.use.readJson(path.join(dir, "opencode.json"))
+      const writtenConfig = yield* FSUtil.use.readJson(path.join(dir, "opencode.json"))
       expect(writtenConfig).not.toHaveProperty("shell")
     }),
   ),
@@ -386,8 +386,8 @@ it.effect("updates global config and omits empty shell key in jsonc", () =>
       yield* Config.use.updateGlobal({ shell: "" })
 
       const file = path.join(dir, "opencode.jsonc")
-      const writtenConfig = yield* AppFileSystem.use.readFileString(file)
-      const parsed = ConfigParse.schema(Config.Info, ConfigParse.jsonc(writtenConfig, file), file)
+      const writtenConfig = yield* FSUtil.use.readFileString(file)
+      const parsed = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(writtenConfig, file), file)
       expect(writtenConfig).not.toContain('"shell"')
       expect(parsed.shell).toBeUndefined()
       expect(parsed.model).toBe("test/model")
@@ -450,7 +450,7 @@ it.instance("ignores legacy tui keys in opencode config", () =>
 it.instance("loads JSONC config file", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(
+    yield* FSUtil.use.writeWithDirs(
       path.join(test.directory, "opencode.jsonc"),
       `{
         // This is a comment
@@ -510,7 +510,7 @@ it.instance("preserves env variables when adding $schema to config", () =>
     Effect.gen(function* () {
       const test = yield* TestInstance
       // Config without $schema - should trigger auto-add
-      yield* AppFileSystem.use.writeWithDirs(
+      yield* FSUtil.use.writeWithDirs(
         path.join(test.directory, "opencode.json"),
         JSON.stringify({ username: "{env:PRESERVE_VAR}" }),
       )
@@ -518,7 +518,7 @@ it.instance("preserves env variables when adding $schema to config", () =>
       expect(config.username).toBe("secret_value")
 
       // Read the file to verify the env variable was preserved
-      const content = yield* AppFileSystem.use.readFileString(path.join(test.directory, "opencode.json"))
+      const content = yield* FSUtil.use.readFileString(path.join(test.directory, "opencode.json"))
       expect(content).toContain("{env:PRESERVE_VAR}")
       expect(content).not.toContain("secret_value")
       expect(content).toContain("$schema")
@@ -529,7 +529,7 @@ it.instance("preserves env variables when adding $schema to config", () =>
 it.instance("handles file inclusion substitution", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(path.join(test.directory, "included.txt"), "test-user")
+    yield* FSUtil.use.writeWithDirs(path.join(test.directory, "included.txt"), "test-user")
     yield* writeConfigEffect(test.directory, {
       $schema: "https://opencode.ai/config.json",
       username: "{file:included.txt}",
@@ -542,7 +542,7 @@ it.instance("handles file inclusion substitution", () =>
 it.instance("handles file inclusion with replacement tokens", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(path.join(test.directory, "included.md"), "const out = await Bun.$`echo hi`")
+    yield* FSUtil.use.writeWithDirs(path.join(test.directory, "included.md"), "const out = await Bun.$`echo hi`")
     yield* writeConfigEffect(test.directory, {
       $schema: "https://opencode.ai/config.json",
       username: "{file:included.md}",
@@ -581,7 +581,7 @@ const accountTokenIt = configIt({
     config: () =>
       Effect.succeed(
         Option.some({
-          provider: { opencode: { options: { apiKey: "{env:DEVECO_CONSOLE_TOKEN}" } } },
+          provider: { opencode: { options: { apiKey: "{env:OPENCODE_CONSOLE_TOKEN}" } } },
         }),
       ),
     token: () => Effect.succeed(Option.some(AccessToken.make("st_test_token"))),
@@ -610,7 +610,7 @@ it.instance("validates config schema and throws on invalid fields", () =>
 it.instance("throws error for invalid JSON", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(path.join(test.directory, "opencode.json"), "{ invalid json }")
+    yield* FSUtil.use.writeWithDirs(path.join(test.directory, "opencode.json"), "{ invalid json }")
     const exit = yield* Config.use.get().pipe(Effect.exit)
     expect(Exit.isFailure(exit)).toBe(true)
   }),
@@ -722,11 +722,11 @@ it.instance("migrates mode field to agent field", () =>
   }),
 )
 
-it.instance("loads config from .deveco directory", () =>
+it.instance("loads config from .opencode directory", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "agent", "test.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "agent", "test.md"),
       `---
 model: test/model
 ---
@@ -747,8 +747,8 @@ Test agent prompt`,
 it.instance("agent markdown permission config preserves user key order", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "agent", "ordered.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "agent", "ordered.md"),
       `---
 permission:
   bash: allow
@@ -763,11 +763,11 @@ Ordered permissions`,
   }),
 )
 
-it.instance("loads agents from .deveco/agents (plural)", () =>
+it.instance("loads agents from .opencode/agents (plural)", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "agents", "helper.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "agents", "helper.md"),
       `---
 model: test/model
 mode: subagent
@@ -775,8 +775,8 @@ mode: subagent
 Helper agent prompt`,
     )
 
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "agents", "nested", "child.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "agents", "nested", "child.md"),
       `---
 model: test/model
 mode: subagent
@@ -802,19 +802,19 @@ Nested agent prompt`,
   }),
 )
 
-it.instance("loads commands from .deveco/command (singular)", () =>
+it.instance("loads commands from .opencode/command (singular)", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "command", "hello.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "command", "hello.md"),
       `---
 description: Test command
 ---
 Hello from singular command`,
     )
 
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "command", "nested", "child.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "command", "nested", "child.md"),
       `---
 description: Nested command
 ---
@@ -835,19 +835,19 @@ Nested command template`,
   }),
 )
 
-it.instance("loads commands from .deveco/commands (plural)", () =>
+it.instance("loads commands from .opencode/commands (plural)", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "commands", "hello.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "commands", "hello.md"),
       `---
 description: Test command
 ---
 Hello from plural commands`,
     )
 
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "commands", "nested", "child.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "commands", "nested", "child.md"),
       `---
 description: Nested command
 ---
@@ -872,10 +872,10 @@ it.instance("updates config and writes to file", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* Config.Service.use((svc) =>
-      svc.update(ConfigParse.schema(Config.Info, { model: "updated/model" }, "test:config")),
+      svc.update(ConfigParse.schema(ConfigV1.Info, { model: "updated/model" }, "test:config")),
     )
 
-    const writtenConfig = yield* AppFileSystem.use.readJson(path.join(test.directory, "config.json"))
+    const writtenConfig = yield* FSUtil.use.readJson(path.join(test.directory, "config.json"))
     expect(writtenConfig).toMatchObject({ model: "updated/model" })
   }),
 )
@@ -887,35 +887,35 @@ it.instance("gets config directories", () =>
   }),
 )
 
-it.effect("does not try to install dependencies in read-only DEVECO_CONFIG_DIR", () =>
+it.effect("does not try to install dependencies in read-only OPENCODE_CONFIG_DIR", () =>
   Effect.gen(function* () {
     if (process.platform === "win32") return
 
     const dir = yield* tmpdirScoped()
     const readonly = path.join(dir, "readonly")
-    yield* AppFileSystem.use.ensureDir(readonly)
-    yield* AppFileSystem.use.chmod(readonly, 0o555)
-    yield* Effect.addFinalizer(() => AppFileSystem.use.chmod(readonly, 0o755).pipe(Effect.ignore))
+    yield* FSUtil.use.ensureDir(readonly)
+    yield* FSUtil.use.chmod(readonly, 0o555)
+    yield* Effect.addFinalizer(() => FSUtil.use.chmod(readonly, 0o755).pipe(Effect.ignore))
 
-    yield* withProcessEnv("DEVECO_CONFIG_DIR", readonly, Config.use.get().pipe(provideInstanceEffect(dir)))
+    yield* withProcessEnv("OPENCODE_CONFIG_DIR", readonly, Config.use.get().pipe(provideInstanceEffect(dir)))
   }).pipe(Effect.provide(testInstanceStoreLayer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
 )
 
-it.effect("installs dependencies in writable DEVECO_CONFIG_DIR", () =>
+it.effect("installs dependencies in writable OPENCODE_CONFIG_DIR", () =>
   Effect.gen(function* () {
     const dir = yield* tmpdirScoped()
     const configDir = path.join(dir, "configdir")
-    yield* AppFileSystem.use.ensureDir(configDir)
+    yield* FSUtil.use.ensureDir(configDir)
 
     yield* withProcessEnv(
-      "DEVECO_CONFIG_DIR",
+      "OPENCODE_CONFIG_DIR",
       configDir,
       Config.Service.use((svc) => svc.get().pipe(Effect.andThen(svc.waitForDependencies()))).pipe(
         provideInstanceEffect(dir),
       ),
     )
 
-    expect(yield* AppFileSystem.use.readFileString(path.join(configDir, ".gitignore"))).toContain("package-lock.json")
+    expect(yield* FSUtil.use.readFileString(path.join(configDir, ".gitignore"))).toContain("package-lock.json")
   }).pipe(Effect.provide(testInstanceStoreLayer), Effect.provide(CrossSpawnSpawner.defaultLayer)),
 )
 
@@ -927,11 +927,11 @@ it.instance("resolves scoped npm plugins in config", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     const pluginDir = path.join(test.directory, "node_modules", "@scope", "plugin")
-    yield* AppFileSystem.use.writeWithDirs(
+    yield* FSUtil.use.writeWithDirs(
       path.join(test.directory, "package.json"),
       JSON.stringify({ name: "config-fixture", version: "1.0.0", type: "module" }, null, 2),
     )
-    yield* AppFileSystem.use.writeWithDirs(
+    yield* FSUtil.use.writeWithDirs(
       path.join(pluginDir, "package.json"),
       JSON.stringify(
         {
@@ -944,7 +944,7 @@ it.instance("resolves scoped npm plugins in config", () =>
         2,
       ),
     )
-    yield* AppFileSystem.use.writeWithDirs(path.join(pluginDir, "index.js"), "export default {}\n")
+    yield* FSUtil.use.writeWithDirs(path.join(pluginDir, "index.js"), "export default {}\n")
     yield* writeConfigEffect(test.directory, { plugin: ["@scope/plugin"] })
 
     const config = yield* Config.use.get()
@@ -979,7 +979,7 @@ it.effect("global config remains global when project config is disabled", () =>
       local: { model: "local/model" },
     },
     withProcessEnv(
-      "DEVECO_DISABLE_PROJECT_CONFIG",
+      "OPENCODE_DISABLE_PROJECT_CONFIG",
       "true",
       Effect.gen(function* () {
         const config = yield* Config.use.get()
@@ -993,8 +993,8 @@ it.effect("global config remains global when project config is disabled", () =>
 it.instance("does not error when only custom agent is a subagent", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
-    yield* AppFileSystem.use.writeWithDirs(
-      path.join(test.directory, ".deveco", "agent", "helper.md"),
+    yield* FSUtil.use.writeWithDirs(
+      path.join(test.directory, ".opencode", "agent", "helper.md"),
       `---
 model: test/model
 mode: subagent
@@ -1133,7 +1133,7 @@ it.instance("migrates legacy write tool to edit permission", () =>
 )
 
 // Managed settings tests
-// Note: preload.ts sets DEVECO_TEST_MANAGED_CONFIG which Global.Path.managedConfig uses
+// Note: preload.ts sets OPENCODE_TEST_MANAGED_CONFIG which Global.Path.managedConfig uses
 
 it.instance(
   "managed settings override user settings",
@@ -1286,7 +1286,7 @@ it.instance("permission config preserves user key order", () =>
 
 test("config parser preserves permission order while rejecting unknown top-level keys", () => {
   const config = ConfigParse.schema(
-    Config.Info,
+    ConfigV1.Info,
     {
       permission: {
         bash: "allow",
@@ -1299,7 +1299,7 @@ test("config parser preserves permission order while rejecting unknown top-level
 
   expect(Object.keys(config.permission!)).toEqual(["bash", "*", "edit"])
   try {
-    ConfigParse.schema(Config.Info, { invalid_field: true }, "test")
+    ConfigParse.schema(ConfigV1.Info, { invalid_field: true }, "test")
     throw new Error("expected config parse to fail")
   } catch (err) {
     const error = err as { data?: { issues?: Array<{ code?: string; keys?: string[]; path?: string[] }> } }
@@ -1401,7 +1401,7 @@ it.instance("MCP config deep merges preserving base config properties", () =>
   }),
 )
 
-it.instance("local .deveco config can override MCP from project config", () =>
+it.instance("local .opencode config can override MCP from project config", () =>
   Effect.gen(function* () {
     const test = yield* TestInstance
     yield* writeConfigEffect(test.directory, {
@@ -1414,9 +1414,9 @@ it.instance("local .deveco config can override MCP from project config", () =>
         },
       },
     })
-    yield* AppFileSystem.use.ensureDir(path.join(test.directory, ".deveco"))
+    yield* FSUtil.use.ensureDir(path.join(test.directory, ".opencode"))
     yield* writeConfigEffect(
-      path.join(test.directory, ".deveco"),
+      path.join(test.directory, ".opencode"),
       {
         $schema: "https://opencode.ai/config.json",
         mcp: {
@@ -1500,15 +1500,18 @@ test("remote well-known config can use FetchHttpClient layer", async () => {
     ).pipe(
       Effect.scoped,
       Effect.provide(
-        Config.layer.pipe(
-          Layer.provide(testFlock),
-          Layer.provide(AppFileSystem.defaultLayer),
-          Layer.provide(Env.defaultLayer),
-          Layer.provide(wellKnownAuth(server.url.origin)),
-          Layer.provide(AccountTest.empty),
-          Layer.provideMerge(infra),
-          Layer.provide(NpmTest.noop),
-          Layer.provide(FetchHttpClient.layer),
+        Layer.mergeAll(
+          Config.layer.pipe(
+            Layer.provide(testFlock),
+            Layer.provide(FSUtil.defaultLayer),
+            Layer.provide(Env.defaultLayer),
+            Layer.provide(wellKnownAuth(server.url.origin)),
+            Layer.provide(AccountTest.empty),
+            Layer.provideMerge(infra),
+            Layer.provide(NpmTest.noop),
+            Layer.provide(FetchHttpClient.layer),
+          ),
+          testInstanceStoreLayer,
         ),
       ),
       Effect.runPromise,
@@ -1683,7 +1686,7 @@ describe("resolvePluginSpec", () => {
 })
 
 describe("deduplicatePluginOrigins", () => {
-  const dedupe = (plugins: ConfigPlugin.Spec[]) =>
+  const dedupe = (plugins: ConfigPluginV1.Spec[]) =>
     ConfigPlugin.deduplicatePluginOrigins(
       plugins.map((spec) => ({
         spec,
@@ -1705,7 +1708,7 @@ describe("deduplicatePluginOrigins", () => {
   })
 
   test("keeps path plugins separate from package plugins", () => {
-    const plugins = ["oh-my-opencode@2.4.3", "file:///project/.deveco/plugin/oh-my-opencode.js"]
+    const plugins = ["oh-my-opencode@2.4.3", "file:///project/.opencode/plugin/oh-my-opencode.js"]
 
     const result = dedupe(plugins)
 
@@ -1713,11 +1716,11 @@ describe("deduplicatePluginOrigins", () => {
   })
 
   test("deduplicates direct path plugins by exact spec", () => {
-    const plugins = ["file:///project/.deveco/plugin/demo.ts", "file:///project/.deveco/plugin/demo.ts"]
+    const plugins = ["file:///project/.opencode/plugin/demo.ts", "file:///project/.opencode/plugin/demo.ts"]
 
     const result = dedupe(plugins)
 
-    expect(result).toEqual(["file:///project/.deveco/plugin/demo.ts"])
+    expect(result).toEqual(["file:///project/.opencode/plugin/demo.ts"])
   })
 
   test("preserves order of remaining plugins", () => {
@@ -1733,8 +1736,8 @@ describe("deduplicatePluginOrigins", () => {
       { global: { plugin: ["my-plugin@1.0.0"] } },
       Effect.gen(function* () {
         const test = yield* TestInstance
-        yield* AppFileSystem.use.writeWithDirs(
-          path.join(test.directory, ".deveco", "plugin", "my-plugin.js"),
+        yield* FSUtil.use.writeWithDirs(
+          path.join(test.directory, ".opencode", "plugin", "my-plugin.js"),
           "export default {}",
         )
 
@@ -1746,12 +1749,12 @@ describe("deduplicatePluginOrigins", () => {
   )
 })
 
-describe("DEVECO_DISABLE_PROJECT_CONFIG", () => {
+describe("OPENCODE_DISABLE_PROJECT_CONFIG", () => {
   it.instance(
     "skips project config files when flag is set",
     () =>
       withProcessEnv(
-        "DEVECO_DISABLE_PROJECT_CONFIG",
+        "OPENCODE_DISABLE_PROJECT_CONFIG",
         "true",
         Effect.gen(function* () {
           const config = yield* Config.use.get()
@@ -1762,14 +1765,14 @@ describe("DEVECO_DISABLE_PROJECT_CONFIG", () => {
     { config: { model: "project/model", username: "project-user" } },
   )
 
-  it.instance("skips project .deveco/ directories when flag is set", () =>
+  it.instance("skips project .opencode/ directories when flag is set", () =>
     withProcessEnv(
-      "DEVECO_DISABLE_PROJECT_CONFIG",
+      "OPENCODE_DISABLE_PROJECT_CONFIG",
       "true",
       Effect.gen(function* () {
         const test = yield* TestInstance
-        yield* AppFileSystem.use.writeWithDirs(
-          path.join(test.directory, ".deveco", "command", "test-cmd.md"),
+        yield* FSUtil.use.writeWithDirs(
+          path.join(test.directory, ".opencode", "command", "test-cmd.md"),
           "# Test Command\nThis is a test command.",
         )
         const directories = yield* Config.use.directories()
@@ -1780,7 +1783,7 @@ describe("DEVECO_DISABLE_PROJECT_CONFIG", () => {
 
   it.instance("still loads global config when flag is set", () =>
     withProcessEnv(
-      "DEVECO_DISABLE_PROJECT_CONFIG",
+      "OPENCODE_DISABLE_PROJECT_CONFIG",
       "true",
       Effect.gen(function* () {
         const config = yield* Config.use.get()
@@ -1794,10 +1797,10 @@ describe("DEVECO_DISABLE_PROJECT_CONFIG", () => {
     "skips relative instructions with warning when flag is set but no config dir",
     () =>
       withProcessEnvs(
-        { DEVECO_CONFIG_DIR: undefined, DEVECO_DISABLE_PROJECT_CONFIG: "true" },
+        { OPENCODE_CONFIG_DIR: undefined, OPENCODE_DISABLE_PROJECT_CONFIG: "true" },
         Effect.gen(function* () {
           const test = yield* TestInstance
-          yield* AppFileSystem.use.writeWithDirs(path.join(test.directory, "CUSTOM.md"), "# Custom Instructions")
+          yield* FSUtil.use.writeWithDirs(path.join(test.directory, "CUSTOM.md"), "# Custom Instructions")
           // The relative instruction should be skipped without error
           const config = yield* Config.use.get()
           expect(config).toBeDefined()
@@ -1807,12 +1810,12 @@ describe("DEVECO_DISABLE_PROJECT_CONFIG", () => {
   )
 
   it.instance(
-    "DEVECO_CONFIG_DIR still works when flag is set",
+    "OPENCODE_CONFIG_DIR still works when flag is set",
     () =>
       Effect.gen(function* () {
         const configDir = yield* tmpdirScoped({ config: { model: "configdir/model" } })
         yield* withProcessEnvs(
-          { DEVECO_DISABLE_PROJECT_CONFIG: "true", DEVECO_CONFIG_DIR: configDir },
+          { OPENCODE_DISABLE_PROJECT_CONFIG: "true", OPENCODE_CONFIG_DIR: configDir },
           Effect.gen(function* () {
             const config = yield* Config.use.get()
             expect(config.model).toBe("configdir/model")
@@ -1823,13 +1826,13 @@ describe("DEVECO_DISABLE_PROJECT_CONFIG", () => {
   )
 })
 
-// Regression for #28206: malformed DEVECO_PERMISSION JSON used to crash
+// Regression for #28206: malformed OPENCODE_PERMISSION JSON used to crash
 // the app on startup with an unhandled SyntaxError. Loading the config with
 // an invalid JSON value in this env var should not throw.
-describe("DEVECO_PERMISSION env var", () => {
-  it.instance("does not crash when DEVECO_PERMISSION contains invalid JSON", () =>
+describe("OPENCODE_PERMISSION env var", () => {
+  it.instance("does not crash when OPENCODE_PERMISSION contains invalid JSON", () =>
     withProcessEnv(
-      "DEVECO_PERMISSION",
+      "OPENCODE_PERMISSION",
       "{invalid",
       Effect.gen(function* () {
         const config = yield* Config.use.get()
@@ -1840,13 +1843,13 @@ describe("DEVECO_PERMISSION env var", () => {
   )
 })
 
-describe("DEVECO_CONFIG_CONTENT token substitution", () => {
-  it.instance("substitutes {env:} tokens in DEVECO_CONFIG_CONTENT", () =>
+describe("OPENCODE_CONFIG_CONTENT token substitution", () => {
+  it.instance("substitutes {env:} tokens in OPENCODE_CONFIG_CONTENT", () =>
     withProcessEnv(
       "TEST_CONFIG_VAR",
       "test_api_key_12345",
       withProcessEnv(
-        "DEVECO_CONFIG_CONTENT",
+        "OPENCODE_CONFIG_CONTENT",
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           username: "{env:TEST_CONFIG_VAR}",
@@ -1859,12 +1862,12 @@ describe("DEVECO_CONFIG_CONTENT token substitution", () => {
     ),
   )
 
-  it.instance("substitutes {file:} tokens in DEVECO_CONFIG_CONTENT", () =>
+  it.instance("substitutes {file:} tokens in OPENCODE_CONFIG_CONTENT", () =>
     Effect.gen(function* () {
       const test = yield* TestInstance
-      yield* AppFileSystem.use.writeWithDirs(path.join(test.directory, "api_key.txt"), "secret_key_from_file")
+      yield* FSUtil.use.writeWithDirs(path.join(test.directory, "api_key.txt"), "secret_key_from_file")
       yield* withProcessEnv(
-        "DEVECO_CONFIG_CONTENT",
+        "OPENCODE_CONFIG_CONTENT",
         JSON.stringify({
           $schema: "https://opencode.ai/config.json",
           username: "{file:./api_key.txt}",
@@ -1882,7 +1885,7 @@ describe("DEVECO_CONFIG_CONTENT token substitution", () => {
 
 test("parseManagedPlist strips MDM metadata keys", async () => {
   const config = ConfigParse.schema(
-    Config.Info,
+    ConfigV1.Info,
     ConfigParse.jsonc(
       await ConfigManaged.parseManagedPlist(
         JSON.stringify({
@@ -1910,7 +1913,7 @@ test("parseManagedPlist strips MDM metadata keys", async () => {
 
 test("parseManagedPlist parses server settings", async () => {
   const config = ConfigParse.schema(
-    Config.Info,
+    ConfigV1.Info,
     ConfigParse.jsonc(
       await ConfigManaged.parseManagedPlist(
         JSON.stringify({
@@ -1930,7 +1933,7 @@ test("parseManagedPlist parses server settings", async () => {
 
 test("parseManagedPlist parses permission rules", async () => {
   const config = ConfigParse.schema(
-    Config.Info,
+    ConfigV1.Info,
     ConfigParse.jsonc(
       await ConfigManaged.parseManagedPlist(
         JSON.stringify({
@@ -1960,7 +1963,7 @@ test("parseManagedPlist parses permission rules", async () => {
 
 test("parseManagedPlist parses enabled_providers", async () => {
   const config = ConfigParse.schema(
-    Config.Info,
+    ConfigV1.Info,
     ConfigParse.jsonc(
       await ConfigManaged.parseManagedPlist(
         JSON.stringify({
@@ -1977,7 +1980,7 @@ test("parseManagedPlist parses enabled_providers", async () => {
 
 test("parseManagedPlist handles empty config", async () => {
   const config = ConfigParse.schema(
-    Config.Info,
+    ConfigV1.Info,
     ConfigParse.jsonc(
       await ConfigManaged.parseManagedPlist(JSON.stringify({ $schema: "https://opencode.ai/config.json" })),
       "test:mobileconfig",

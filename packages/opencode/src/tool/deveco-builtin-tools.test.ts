@@ -3,7 +3,7 @@ import path from "path"
 import { Effect, Layer } from "effect"
 import { FetchHttpClient } from "effect/unstable/http"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
-import { AppFileSystem } from "@opencode-ai/core/filesystem"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Auth } from "@/auth"
 import { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
@@ -60,7 +60,7 @@ const registryLayer = (auth = Auth.defaultLayer) =>
     )
     .pipe(
       Layer.provide(auth),
-      Layer.provide(AppFileSystem.defaultLayer),
+      Layer.provide(FSUtil.defaultLayer),
       Layer.provide(Bus.layer),
       Layer.provide(FetchHttpClient.layer),
       Layer.provide(Format.defaultLayer),

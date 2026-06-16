@@ -9,6 +9,7 @@ import { Config } from "../../src/config/config"
 import { RuntimeFlags } from "../../src/effect/runtime-flags"
 import { Global } from "@opencode-ai/core/global"
 import { Permission } from "../../src/permission"
+import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Plugin } from "../../src/plugin"
 import { Provider } from "../../src/provider/provider"
 import { Skill } from "../../src/skill"
@@ -25,10 +26,9 @@ const agentLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
   )
 
 const it = testEffect(agentLayer())
-const scout = testEffect(agentLayer({ experimentalScout: true }))
 
 // Helper to evaluate permission for a tool with wildcard pattern
-function evalPerm(agent: Agent.Info | undefined, permission: string): Permission.Action | undefined {
+function evalPerm(agent: Agent.Info | undefined, permission: string): PermissionV1.Action | undefined {
   if (!agent) return undefined
   return Permission.evaluate(permission, "*", agent.permission).action
 }
@@ -55,7 +55,6 @@ it.instance("returns default native agents when no config", () =>
     expect(names).toContain("plan")
     expect(names).toContain("general")
     expect(names).toContain("explore")
-    expect(names).not.toContain("scout")
     expect(names).toContain("compaction")
     expect(names).toContain("title")
     expect(names).toContain("summary")
@@ -70,11 +69,6 @@ it.instance("build agent has correct default properties", () =>
     expect(build?.native).toBe(true)
     expect(evalPerm(build, "edit")).toBe("allow")
     expect(evalPerm(build, "bash")).toBe("allow")
-    expect(evalPerm(build, "repo_clone")).toBe("deny")
-    expect(evalPerm(build, "repo_overview")).toBe("deny")
-    expect(evalPerm(build, "verify_ui")).toBe("ask")
-    expect(evalPerm(build, "save_ui_screenshot")).toBe("ask")
-    expect(evalPerm(build, "get_ui_verification_log")).toBe("ask")
   }),
 )
 
@@ -137,7 +131,7 @@ it.instance("plan agent denies edits except .deveco/plans/*", () =>
     // Wildcard is denied
     expect(evalPerm(plan, "edit")).toBe("deny")
     // But specific path is allowed
-    expect(Permission.evaluate("edit", ".deveco/plans/foo.md", plan!.permission).action).toBe("allow")
+    expect(Permission.evaluate("edit", ".opencode/plans/foo.md", plan!.permission).action).toBe("allow")
   }),
 )
 
@@ -164,31 +158,12 @@ it.instance("explore agent asks for external directories and allows whitelisted 
   }),
 )
 
-scout.instance("scout agent allows repo cloning and repo cache reads", () =>
-  Effect.gen(function* () {
-    const scout = yield* load((svc) => svc.get("scout"))
-    expect(scout).toBeDefined()
-    expect(scout?.mode).toBe("subagent")
-    expect(evalPerm(scout, "repo_clone")).toBe("allow")
-    expect(evalPerm(scout, "repo_overview")).toBe("allow")
-    expect(evalPerm(scout, "edit")).toBe("deny")
-    expect(
-      Permission.evaluate(
-        "external_directory",
-        path.join(Global.Path.repos, "github.com", "owner", "repo", "README.md"),
-        scout!.permission,
-      ).action,
-    ).toBe("allow")
-  }),
-)
-
-scout.instance(
+it.instance(
   "reference config does not create subagents",
   () =>
     Effect.gen(function* () {
       const agents = yield* load((svc) => svc.list())
       const names = agents.map((agent) => agent.name)
-      expect(names).toContain("scout")
       expect(names).not.toContain("effect")
       expect(names).not.toContain("effectFull")
       expect(names).not.toContain("localdocs")
@@ -663,11 +638,11 @@ description: Permission skill.
         ),
       )
 
-      const home = process.env.DEVECO_TEST_HOME
-      process.env.DEVECO_TEST_HOME = test.directory
+      const home = process.env.OPENCODE_TEST_HOME
+      process.env.OPENCODE_TEST_HOME = test.directory
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
-          process.env.DEVECO_TEST_HOME = home
+          process.env.OPENCODE_TEST_HOME = home
         }),
       )
 
