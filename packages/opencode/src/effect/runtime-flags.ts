@@ -1,4 +1,4 @@
-import { Config, ConfigProvider, Context, Effect, Layer } from "effect"
+import { Config, ConfigProvider, Context, Effect, Layer, Option } from "effect"
 import { ConfigService } from "@/effect/config-service"
 
 const bool = (name: string) => Config.boolean(name).pipe(Config.withDefault(false))
@@ -10,7 +10,9 @@ const positiveInteger = (name: string) =>
   )
 const experimental = bool("DEVECO_EXPERIMENTAL")
 const enabledByExperimental = (name: string) =>
-  Config.all({ experimental, enabled: bool(name) }).pipe(Config.map((flags) => flags.experimental || flags.enabled))
+  Config.all({ experimental, enabled: Config.boolean(name).pipe(Config.option) }).pipe(
+    Config.map((flags) => Option.getOrElse(flags.enabled, () => flags.experimental)),
+  )
 
 export class Service extends ConfigService.Service<Service>()("@opencode/RuntimeFlags", {
   autoShare: bool("DEVECO_AUTO_SHARE"),
@@ -53,10 +55,11 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   experimentalEventSystem: enabledByExperimental("DEVECO_EXPERIMENTAL_EVENT_SYSTEM"),
   experimentalWorkspaces: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
   experimentalIconDiscovery: enabledByExperimental("DEVECO_EXPERIMENTAL_ICON_DISCOVERY"),
+  acpNext: bool("DEVECO_ACP_NEXT"),
   exploreTaskRoute: boolTrue("DEVECO_ENABLE_EXPLORE_TASK_ROUTE"),
   outputTokenMax: positiveInteger("DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
   bashDefaultTimeoutMs: positiveInteger("DEVECO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
-  experimentalNativeLlm: enabledByExperimental("DEVECO_EXPERIMENTAL_NATIVE_LLM"),
+  experimentalNativeLlm: bool("DEVECO_EXPERIMENTAL_NATIVE_LLM"),
   client: Config.string("DEVECO_CLIENT").pipe(Config.withDefault("cli")),
 }) {}
 

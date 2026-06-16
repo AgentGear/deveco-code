@@ -969,7 +969,11 @@ export function Session() {
 
           if (options.openWithoutSaving) {
             // Just open in editor without saving
-            await Editor.open({ value: transcript, renderer })
+            await Editor.open({
+              value: transcript,
+              renderer,
+              cwd: project.instance.path().worktree || project.instance.directory() || process.cwd(),
+            })
           } else {
             const exportDir = process.cwd()
             const filename = options.filename.trim()
@@ -978,7 +982,11 @@ export function Session() {
             await Filesystem.write(filepath, transcript)
 
             // Open with EDITOR if available
-            const result = await Editor.open({ value: transcript, renderer })
+            const result = await Editor.open({
+              value: transcript,
+              renderer,
+              cwd: project.instance.path().worktree || project.instance.directory() || process.cwd(),
+            })
             if (result !== undefined) {
               await Filesystem.write(filepath, result)
             }
@@ -1569,6 +1577,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
     return end === undefined ? 0 : Math.max(0, end - props.part.time.start)
   })
   const summary = createMemo(() => reasoningSummary(content()))
+  const syntax = createMemo(() => generateSubtleSyntax(theme))
 
   const toggle = () => {
     if (!inMinimal()) return
@@ -1577,7 +1586,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
 
   return (
     <Show when={content()}>
-      <box paddingLeft={3} marginTop={1} flexDirection="column" flexShrink={0}>
+      <box id={"text-" + props.part.id} paddingLeft={3} marginTop={1} flexDirection="column" flexShrink={0}>
         <box onMouseUp={toggle}>
           <ReasoningHeader
             toggleable={inMinimal()}
@@ -1589,7 +1598,6 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
         </box>
         <Show when={(!inMinimal() || expanded()) && summary().body}>
           <box
-            id={"text-" + props.part.id}
             paddingLeft={inMinimal() ? 2 : 0}
             marginTop={1}
             flexDirection="column"
@@ -1602,7 +1610,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
               filetype="markdown"
               drawUnstyledText={false}
               streaming={true}
-              syntaxStyle={subtleSyntax()}
+              syntaxStyle={syntax()}
               content={summary().body}
               conceal={ctx.conceal()}
               fg={theme.textMuted}

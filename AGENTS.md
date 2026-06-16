@@ -1,5 +1,9 @@
 # AGENTS.md
 
+- To regenerate the JavaScript SDK, run `./packages/sdk/js/script/build.ts`.
+- The default branch in this repo is `dev`.
+- Local `main` ref may not exist; use `dev` or `origin/dev` for diffs.
+
 ## Commits and PR Titles
 
 Use conventional commit-style messages and PR titles: `type(scope): summary`.

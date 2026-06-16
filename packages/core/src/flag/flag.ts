@@ -8,6 +8,10 @@ function truthy(key: string) {
 const DEVECO_EXPERIMENTAL = truthy("DEVECO_EXPERIMENTAL")
 const copy = process.env["DEVECO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT"]
 
+function enabledByExperimental(key: string) {
+  return process.env[key] === undefined ? DEVECO_EXPERIMENTAL : truthy(key)
+}
+
 export const Flag = {
   OTEL_EXPORTER_OTLP_ENDPOINT: process.env["OTEL_EXPORTER_OTLP_ENDPOINT"],
   OTEL_EXPORTER_OTLP_HEADERS: process.env["OTEL_EXPORTER_OTLP_HEADERS"],
@@ -43,7 +47,7 @@ export const Flag = {
   DEVECO_DB: process.env["DEVECO_DB"],
 
   DEVECO_WORKSPACE_ID: process.env["DEVECO_WORKSPACE_ID"],
-  DEVECO_EXPERIMENTAL_WORKSPACES: DEVECO_EXPERIMENTAL || truthy("DEVECO_EXPERIMENTAL_WORKSPACES"),
+  DEVECO_EXPERIMENTAL_WORKSPACES: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
 
   // Evaluated at access time (not module load) because tests, the CLI, and
   // external tooling set these env vars at runtime.

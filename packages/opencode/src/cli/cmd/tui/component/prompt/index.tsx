@@ -531,7 +531,11 @@ export function Prompt(props: PromptProps) {
           const nonTextParts = store.prompt.parts.filter((p) => p.type !== "text")
 
           const value = text
-          const content = await Editor.open({ value, renderer })
+          const content = await Editor.open({
+            value,
+            renderer,
+            cwd: project.instance.path().worktree || project.instance.directory() || process.cwd(),
+          })
           if (!content) return
 
           input.setText(content)
@@ -1491,6 +1495,7 @@ export function Prompt(props: PromptProps) {
       }),
     }
   })
+  const maxHeight = createMemo(() => tuiConfig.prompt?.max_height ?? Math.max(6, Math.floor(dimensions().height / 3)))
 
   function IdleKeybindHintRow() {
     return (
@@ -1527,8 +1532,9 @@ export function Prompt(props: PromptProps) {
 
   return (
     <>
-      <box ref={(r: BoxRenderable) => (anchor = r)} visible={props.visible !== false}>
+      <box ref={(r: BoxRenderable) => (anchor = r)} visible={props.visible !== false} width="100%">
         <box
+          width="100%"
           border={isHomeRoute() ? ["top", "right", "bottom", "left"] : ["left"]}
           borderColor={borderHighlight()}
           customBorderChars={
@@ -1555,14 +1561,16 @@ export function Prompt(props: PromptProps) {
             flexShrink={0}
             backgroundColor={isHomeRoute() ? undefined : theme.backgroundElement}
             flexGrow={1}
+            width="100%"
           >
             <textarea
+              width="100%"
               placeholder={placeholderText()}
               placeholderColor={theme.textMuted}
               textColor={leader() ? theme.textMuted : theme.text}
               focusedTextColor={leader() ? theme.textMuted : theme.text}
               minHeight={isHomeRoute() ? homePromptRows() : 1}
-              maxHeight={isHomeRoute() ? homePromptRows() : 6}
+              maxHeight={isHomeRoute() ? homePromptRows() : maxHeight()}
               onContentChange={() => {
                 const value = input.plainText
                 setStore("prompt", "input", value)

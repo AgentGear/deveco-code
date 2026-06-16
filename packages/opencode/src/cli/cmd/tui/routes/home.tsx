@@ -315,6 +315,7 @@ export function Home() {
             </box>
           </box>
         </box>
+
         <Toast />
       </box>
       <box width="100%" flexShrink={0}>
