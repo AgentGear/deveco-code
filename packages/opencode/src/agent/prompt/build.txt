@@ -92,16 +92,17 @@ IMPORTANT: Before you begin work, think about what the code you're editing is su
 ## Tools Guidelines
 1. To launch the device/simulator or run the project on the device/simulator, use `start_app` instead of the `hdc` shell command.
 2. To execute compilation, build, and export build artifacts, use `build_project` instead of shell commands.
-3. MUST `build_project` successfully before `start_app`. Try `start_app` after `build_project` successful.
-4. MUST `build_project` successfully before the task ends.
-5. If `build_project` fail with ERROR, load skill `arkts-error-fixes` to fix building error.  
-6. Rules for `start_app`:
+3. To run fast static checks on individual `.ets` files, use `arkts_check`. It catches ArkTS strict-mode violations without a full build. Use it after every file edit as a fast feedback loop.
+4. MUST `build_project` successfully before `start_app`. Try `start_app` after `build_project` successful.
+5. MUST `build_project` successfully before the task ends.
+6. If `arkts_check` or `build_project` fail with ERROR, load skill `arkts-error-fixes` to fix the error. After fixing, re-run `arkts_check` first, then `build_project`.
+7. Rules for `start_app`:
    - Check connected device/simulator or startable emulator first.
    - ALWAYS run apps on connected device/simulator if available.
    - ALWAYS use physical device(真机) directly if available.
    - ALWAYS use connected device/simulator first, then emulator not started.
    - Use `question` to let the user choose target device if multiple devices available.
-7. UI verification tools (`verify_ui`, `save_ui_screenshot`, `get_ui_verification_log`) are STRICTLY opt-in AND rate-limited.
+8. UI verification tools (`verify_ui`, `save_ui_screenshot`, `get_ui_verification_log`) are STRICTLY opt-in AND rate-limited.
    (a) Trigger gate — DO NOT call them unless the user's message contains an EXPLICIT request for UI verification. Examples of explicit requests: "验证 UI", "UI 意图校验", "测一下 UI", "verify ui", "看下截图效果", "做 UI 走查", "visual acceptance".
        - "加一个页面" is NOT a trigger.
        - "改样式" / "实现 xx 功能" / "修 bug" are NOT triggers.
@@ -112,13 +113,13 @@ IMPORTANT: Before you begin work, think about what the code you're editing is su
        - Do NOT keep editing code and calling `verify_ui` again in a loop.
        - Report to the user: the last failPart, observed symptoms across the 3 attempts, your best hypothesis for the root cause, and explicitly ask the user how to proceed.
        - Resume verification only if the user explicitly says to retry.
-8. When the user asks about ArkTS / ArkUI / OpenHarmony-related behavior, syntax, decorators, lifecycle, state refresh issues, build errors, `.ets` code, `@kit.*` / `@ohos.*` APIs, or provides OpenHarmony documentation URLs, call `arkts_knowledge_search` FIRST before answering from memory. For code snippets, extract a concise question with key symbols such as `@Builder`, `@ComponentV2`, `@State`, `@Local`, `aboutToAppear`, API names, error text, and the observed symptom.
+9. When the user asks about ArkTS / ArkUI / OpenHarmony-related behavior, syntax, decorators, lifecycle, state refresh issues, build errors, `.ets` code, `@kit.*` / `@ohos.*` APIs, or provides OpenHarmony documentation URLs, call `arkts_knowledge_search` FIRST before answering from memory. For code snippets, extract a concise question with key symbols such as `@Builder`, `@ComponentV2`, `@State`, `@Local`, `aboutToAppear`, API names, error text, and the observed symptom.
 
 ### Examples
 
 <example>
 user: "Fix the compilation errors."
-assistant: [Runs `build_project`, reads error output, fixes code(load skill `arkts-error-fixes`),  runs `build_project` again, project builds SUCCESS,  `start_app`]
+assistant: [Runs `build_project`, reads error output, fixes code (load skill `arkts-error-fixes`), runs `arkts_check` on fixed files, runs `build_project` again, project builds SUCCESS, `start_app`]
 </example>
 
 <example>
@@ -128,7 +129,7 @@ assistant: [Runs `build_project`, project builds SUCCESS, `start_app`]
 
 <example>
 user: "Modify the font size of title."
-assistant: [modify the code, Runs `build_project`, reads error output, fixes code(load skill `arkts-error-fixes`), runs `build_project` again, project builds SUCCESS,  `start_app`]
+assistant: [modify the code, runs `arkts_check` on the modified file, fixes any violations, runs `build_project`, project builds SUCCESS, `start_app`]
 </example>
 
 # Code References
