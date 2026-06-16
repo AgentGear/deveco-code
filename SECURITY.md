@@ -1,47 +1,45 @@
-# Security
+# 安全（Security）
 
-## IMPORTANT
+## 重要提示
 
-We do not accept AI generated security reports. We receive a large number of
-these and we absolutely do not have the resources to review them all. If you
-submit one that will be an automatic ban from the project.
+我们不接受 AI 生成的安全报告。这类报告数量庞大，我们没有精力逐一审阅。若提交此类报告，可能导致你的账号被项目封禁。
 
-## Threat Model
+## 威胁模型
 
-### Overview
+### 概述
 
-OpenCode is an AI-powered coding assistant that runs locally on your machine. It provides an agent system with access to powerful tools including shell execution, file operations, and web access.
+DevEco Code 是一款面向 HarmonyOS 开发场景、在本地运行的 AI Agent 工具。它提供一套 Agent 系统，可访问包括 Shell 执行、文件操作、网络访问在内的强大工具。
 
-### No Sandbox
+### 无沙箱（No Sandbox）
 
-OpenCode does **not** sandbox the agent. The permission system exists as a UX feature to help users stay aware of what actions the agent is taking - it prompts for confirmation before executing commands, writing files, etc. However, it is not designed to provide security isolation.
+DevEco Code **不**对 Agent 进行沙箱隔离。权限系统作为一项 UX 特性存在，用于帮助用户了解 Agent 正在执行的操作——它会在执行命令、写入文件等操作前提示用户确认，但并非为安全隔离而设计。
 
-If you need true isolation, run OpenCode inside a Docker container or VM.
+如需真正的隔离，请在 Docker 容器或虚拟机中运行 DevEco Code。
 
-### Server Mode
+### 服务端模式（Server Mode）
 
-Server mode is opt-in only. When enabled, set `OPENCODE_SERVER_PASSWORD` to require HTTP Basic Auth. Without this, the server runs unauthenticated (with a warning). It is the end user's responsibility to secure the server - any functionality it provides is not a vulnerability.
+服务端模式默认关闭，需显式启用。启用时，请设置 `OPENCODE_SERVER_PASSWORD` 以要求 HTTP Basic Auth 认证；若不设置，服务端将以无认证方式运行（并给出警告）。保护服务端是终端用户的责任——其提供的任何功能本身不构成漏洞。
 
-### Out of Scope
+### 不在范围内（Out of Scope）
 
-| Category                        | Rationale                                                               |
-| ------------------------------- | ----------------------------------------------------------------------- |
-| **Server access when opted-in** | If you enable server mode, API access is expected behavior              |
-| **Sandbox escapes**             | The permission system is not a sandbox (see above)                      |
-| **LLM provider data handling**  | Data sent to your configured LLM provider is governed by their policies |
-| **MCP server behavior**         | External MCP servers you configure are outside our trust boundary       |
-| **Malicious config files**      | Users control their own config; modifying it is not an attack vector    |
+| 类别 | 原因 |
+| --- | --- |
+| **启用服务端模式后的访问** | 若你启用了服务端模式，对其 API 的访问属于预期行为 |
+| **沙箱逃逸** | 权限系统并非沙箱（见上文） |
+| **LLM Provider 的数据处理** | 发送至你所配置 LLM Provider 的数据，受其隐私策略约束 |
+| **MCP Server 行为** | 你配置的外部 MCP Server 不在我们的信任边界内 |
+| **恶意配置文件** | 用户掌控自己的配置；修改配置不构成攻击路径 |
 
 ---
 
-# Reporting Security Issues
+# 上报安全问题（Reporting Security Issues）
 
-We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
+我们感谢你负责任地披露所发现的问题，并将尽最大努力致谢你的贡献。
 
-To report a security issue, please use the GitHub Security Advisory ["Report a Vulnerability"](https://github.com/anomalyco/opencode/security/advisories/new) tab.
+如需上报安全问题，请发送邮件至 **ouwen7@huawei.com**，并尽量详细描述漏洞信息。**请勿在公开 Issue 中提交漏洞细节。**
 
-The team will send a response indicating the next steps in handling your report. After the initial reply to your report, the security team will keep you informed of the progress towards a fix and full announcement, and may ask for additional information or guidance.
+团队将在收到报告后回复，说明后续处理步骤。初次回复后，安全团队会持续同步修复与公告的进展，并可能在过程中向你索取更多信息。
 
-## Escalation
+## 升级（Escalation）
 
-If you do not receive an acknowledgement of your report within 6 business days, you may send an email to security@anoma.ly
+如果你在 7 个工作日内未收到报告确认，可再次向 ouwen7@huawei.com 发送邮件催办。
