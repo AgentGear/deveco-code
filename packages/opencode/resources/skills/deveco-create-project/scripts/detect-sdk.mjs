@@ -86,7 +86,7 @@ function apiConfigForLevel(apiLevel, metadata) {
   });
 }
 
-export async function loadSdkMetadata() {
+async function validateDevEcoHome() {
   const env = envPath();
   if (!env) {
     throw new SkillError({
@@ -95,7 +95,6 @@ export async function loadSdkMetadata() {
       hint: '请将 DEVECO_HOME 配置为 DevEco Studio 安装目录，然后重新运行；例如包含 tools/node 和 sdk/default 的目录。',
     });
   }
-
   if (!(await isDir(env))) {
     throw new SkillError({
       code: 'DEVECO_HOME_INVALID',
@@ -104,7 +103,6 @@ export async function loadSdkMetadata() {
       details: { devecoHome: env },
     });
   }
-
   const builtInNode = nodePath(env);
   if (!(await exists(builtInNode))) {
     throw new SkillError({
@@ -114,17 +112,18 @@ export async function loadSdkMetadata() {
       details: { devecoHome: env, nodePath: builtInNode },
     });
   }
+  return env;
+}
 
-  const sdkPkgPath = path.join(env, 'sdk', 'default', 'sdk-pkg.json');
+async function readSdkPackage(sdkPkgPath) {
   if (!(await exists(sdkPkgPath))) {
     throw new SkillError({
       code: 'SDK_PKG_MISSING',
       message: `SDK metadata file not found: ${sdkPkgPath}`,
       hint: '请在 DevEco Studio 中安装或切换 default SDK，确认该文件存在后重试。',
-      details: { sdkPkgPath, devecoHome: env },
+      details: { sdkPkgPath },
     });
   }
-
   let pkg;
   try {
     pkg = JSON.parse(await fs.readFile(sdkPkgPath, 'utf8'));
@@ -136,7 +135,6 @@ export async function loadSdkMetadata() {
       details: { sdkPkgPath },
     });
   }
-
   if (!pkg?.data) {
     throw new SkillError({
       code: 'SDK_PKG_INVALID',
@@ -145,7 +143,10 @@ export async function loadSdkMetadata() {
       details: { sdkPkgPath },
     });
   }
+  return pkg;
+}
 
+function parseSdkFields(pkg, sdkPkgPath) {
   const apiVersion = parseApiVersion(pkg.data.apiVersion);
   if (apiVersion === undefined) {
     throw new SkillError({
@@ -155,7 +156,6 @@ export async function loadSdkMetadata() {
       details: { sdkPkgPath, apiVersion: pkg.data.apiVersion },
     });
   }
-
   const platformVersion = parsePlatformVersion(pkg.data.platformVersion);
   if (!platformVersion) {
     throw new SkillError({
@@ -165,13 +165,15 @@ export async function loadSdkMetadata() {
       details: { sdkPkgPath, platformVersion: pkg.data.platformVersion },
     });
   }
+  return { apiVersion, platformVersion };
+}
 
-  return {
-    devecoHome: env,
-    sdkPkgPath,
-    apiVersion,
-    platformVersion,
-  };
+export async function loadSdkMetadata() {
+  const env = await validateDevEcoHome();
+  const sdkPkgPath = path.join(env, 'sdk', 'default', 'sdk-pkg.json');
+  const pkg = await readSdkPackage(sdkPkgPath);
+  const { apiVersion, platformVersion } = parseSdkFields(pkg, sdkPkgPath);
+  return { devecoHome: env, sdkPkgPath, apiVersion, platformVersion };
 }
 
 export function resolveApiLevel(metadata, userApiLevel) {

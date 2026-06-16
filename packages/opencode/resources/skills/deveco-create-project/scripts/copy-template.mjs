@@ -134,20 +134,18 @@ function verifyFiles(targetRoot) {
   return REQUIRED_FILES.filter((relativePath) => !fs.existsSync(path.join(targetRoot, relativePath)));
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-
-  if (!APP_NAME_PATTERN.test(args.appName)) {
+function validateAppName(appName) {
+  if (!APP_NAME_PATTERN.test(appName)) {
     emitError({
       code: 'APP_NAME_INVALID',
-      message: `appName "${args.appName}" is invalid. It must start with an English letter and contain only [A-Za-z0-9_], length 1-128.`,
+      message: `appName "${appName}" is invalid. It must start with an English letter and contain only [A-Za-z0-9_], length 1-128.`,
       hint: '请通过 AskUserQuestion 给出 2-3 个符合规范的 UpperCamelCase 英文候选名（中文按语义翻译，如 "购物车" → ShoppingCart / ShopCart / Cart），让用户选择，然后用新的 --app-name 重新运行脚本。不要自己替用户决定。',
-      details: { rawAppName: args.appName },
+      details: { rawAppName: appName },
     }, 4);
   }
+}
 
-  const resolved = await resolve(args);
-
+function setupProject(args) {
   if (!fs.existsSync(args.templateDir)) {
     emitError({
       code: 'TEMPLATE_DIR_MISSING',
@@ -156,10 +154,8 @@ async function main() {
       details: { templateDir: args.templateDir },
     });
   }
-
   fs.mkdirSync(args.projectPath, { recursive: true });
   const targetRoot = path.join(args.projectPath, args.appName);
-
   if (fs.existsSync(targetRoot) && fs.readdirSync(targetRoot).length > 0) {
     emitError({
       code: 'PROJECT_EXISTS',
@@ -168,9 +164,11 @@ async function main() {
       details: { targetRoot },
     }, 2);
   }
-
   copyDirectoryContents(args.templateDir, targetRoot);
+  return targetRoot;
+}
 
+function applyReplacements(targetRoot, args, resolved) {
   replaceInFile(path.join(targetRoot, 'AppScope/resources/base/element/string.json'), [
     ['MyApplication', args.appName],
   ]);
@@ -178,7 +176,9 @@ async function main() {
     ['com.example.myapplication', args.bundleName],
   ]);
   updateApiLevel(targetRoot, resolved.sdkVersion, resolved.modelVersion);
+}
 
+function verifyTemplate(targetRoot) {
   const missingFiles = verifyFiles(targetRoot);
   if (missingFiles.length > 0) {
     emitError({
@@ -188,7 +188,9 @@ async function main() {
       details: { missingFiles, targetRoot },
     });
   }
+}
 
+function outputResult(targetRoot, args, resolved) {
   console.log(JSON.stringify({
     projectRoot: targetRoot,
     appName: args.appName,
@@ -201,6 +203,16 @@ async function main() {
     devecoHome: resolved.devecoHome,
     verified: true,
   }, null, 2));
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  validateAppName(args.appName);
+  const resolved = await resolve(args);
+  const targetRoot = setupProject(args);
+  applyReplacements(targetRoot, args, resolved);
+  verifyTemplate(targetRoot);
+  outputResult(targetRoot, args, resolved);
 }
 
 try {

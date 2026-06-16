@@ -115,7 +115,7 @@ function apiConfigForLevel(apiLevel: number, metadata: SdkMetadata) {
   });
 }
 
-export async function loadSdkMetadata(): Promise<SdkMetadata> {
+async function validateDevEcoHome(): Promise<string> {
   const env = envPath();
   if (!env) {
     throw new SkillError({
@@ -124,7 +124,6 @@ export async function loadSdkMetadata(): Promise<SdkMetadata> {
       hint: '请将 DEVECO_HOME 配置为 DevEco Studio 安装目录，然后重新运行；例如包含 tools/node 和 sdk/default 的目录。',
     });
   }
-
   if (!(await isDir(env))) {
     throw new SkillError({
       code: 'DEVECO_HOME_INVALID',
@@ -133,7 +132,6 @@ export async function loadSdkMetadata(): Promise<SdkMetadata> {
       details: { devecoHome: env },
     });
   }
-
   const builtInNode = nodePath(env);
   if (!(await Bun.file(builtInNode).exists())) {
     throw new SkillError({
@@ -143,18 +141,19 @@ export async function loadSdkMetadata(): Promise<SdkMetadata> {
       details: { devecoHome: env, nodePath: builtInNode },
     });
   }
+  return env;
+}
 
-  const sdkPkgPath = path.join(env, 'sdk', 'default', 'sdk-pkg.json');
+async function readSdkPackage(sdkPkgPath: string): Promise<Pkg> {
   const pkgFile = Bun.file(sdkPkgPath);
   if (!(await pkgFile.exists())) {
     throw new SkillError({
       code: 'SDK_PKG_MISSING',
       message: `SDK metadata file not found: ${sdkPkgPath}`,
       hint: '请在 DevEco Studio 中安装或切换 default SDK，确认该文件存在后重试。',
-      details: { sdkPkgPath, devecoHome: env },
+      details: { sdkPkgPath },
     });
   }
-
   let pkg: Pkg;
   try {
     pkg = await pkgFile.json() as Pkg;
@@ -166,7 +165,6 @@ export async function loadSdkMetadata(): Promise<SdkMetadata> {
       details: { sdkPkgPath },
     });
   }
-
   if (!pkg?.data) {
     throw new SkillError({
       code: 'SDK_PKG_INVALID',
@@ -175,33 +173,37 @@ export async function loadSdkMetadata(): Promise<SdkMetadata> {
       details: { sdkPkgPath },
     });
   }
+  return pkg;
+}
 
-  const apiVersion = parseApiVersion(pkg.data.apiVersion);
+function parseSdkFields(pkg: Pkg, sdkPkgPath: string): { apiVersion: number; platformVersion: string } {
+  const apiVersion = parseApiVersion(pkg.data!.apiVersion);
   if (apiVersion === undefined) {
     throw new SkillError({
       code: 'SDK_API_INVALID',
-      message: `SDK metadata has an invalid data.apiVersion: ${String(pkg.data.apiVersion)}`,
+      message: `SDK metadata has an invalid data.apiVersion: ${String(pkg.data!.apiVersion)}`,
       hint: '请确认 default SDK 元数据中的 data.apiVersion 是有效 API level；修复 SDK 安装后重试。',
-      details: { sdkPkgPath, apiVersion: pkg.data.apiVersion },
+      details: { sdkPkgPath, apiVersion: pkg.data!.apiVersion },
     });
   }
-
-  const platformVersion = parsePlatformVersion(pkg.data.platformVersion);
+  const platformVersion = parsePlatformVersion(pkg.data!.platformVersion);
   if (!platformVersion) {
     throw new SkillError({
       code: 'SDK_PLATFORM_VERSION_MISSING',
       message: `SDK metadata is missing data.platformVersion: ${sdkPkgPath}`,
       hint: '请确认 default SDK 元数据包含 data.platformVersion；否则无法生成 targetSdkVersion。',
-      details: { sdkPkgPath, platformVersion: pkg.data.platformVersion },
+      details: { sdkPkgPath, platformVersion: pkg.data!.platformVersion },
     });
   }
+  return { apiVersion, platformVersion };
+}
 
-  return {
-    devecoHome: env,
-    sdkPkgPath,
-    apiVersion,
-    platformVersion,
-  };
+export async function loadSdkMetadata(): Promise<SdkMetadata> {
+  const env = await validateDevEcoHome();
+  const sdkPkgPath = path.join(env, 'sdk', 'default', 'sdk-pkg.json');
+  const pkg = await readSdkPackage(sdkPkgPath);
+  const { apiVersion, platformVersion } = parseSdkFields(pkg, sdkPkgPath);
+  return { devecoHome: env, sdkPkgPath, apiVersion, platformVersion };
 }
 
 export function resolveApiLevel(metadata: SdkMetadata, userApiLevel?: number): ResolvedApiLevel {
