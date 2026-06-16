@@ -105,7 +105,7 @@ describe("agreement session timeout retry", () => {
     agreementService.configure({ tms_url: serverUrl })
 
     const kvStore = { get: () => false }
-    const result = await agreementService.checkAllAgreements("old-expired-token", kvStore)
+    const result = await agreementService.checkAllAgreements("old-expired-token", "test-user", kvStore)
 
     expect(requestLog.length).toBe(2)
 
@@ -142,10 +142,142 @@ describe("agreement session timeout retry", () => {
       ACCESS_TOKEN_EXPIRES_MS: 30 * 60 * 1000,
     }))
 
-    const result = await agreementService.checkAllAgreements("expired-token", { get: () => false })
+    const result = await agreementService.checkAllAgreements("expired-token", "test-user", { get: () => false })
 
     expect(saveAuthCalls.length).toBe(0)
     expect(result.canEnter).toBe(false)
     expect(result.overallStatus).toBe(AgreementStatus.SESSION_EXPIRED)
+  })
+})
+
+describe("agreement offline degradation", () => {
+  const testUserId = "test-user-123"
+
+  test("NETWORK_ERROR with local cache allows entry", async () => {
+    // Use an unreachable URL to simulate network error
+    agreementService.configure({ tms_url: "http://127.0.0.1:1/agreementservice/user" })
+
+    const kvStore = { get: (key: string, defaultValue: unknown) => {
+      if (key === `deveco_code_privacy_accepted_${testUserId}`) return true
+      return defaultValue
+    }}
+    const result = await agreementService.checkAllAgreements("test-token", testUserId, kvStore)
+
+    expect(result.overallStatus).toBe(AgreementStatus.NETWORK_ERROR)
+    expect(result.canEnter).toBe(true)
+    expect(result.hasLocalCache).toBe(true)
+  })
+
+  test("NETWORK_ERROR without local cache blocks entry", async () => {
+    agreementService.configure({ tms_url: "http://127.0.0.1:1/agreementservice/user" })
+
+    const kvStore = { get: () => false }
+    const result = await agreementService.checkAllAgreements("test-token", testUserId, kvStore)
+
+    expect(result.overallStatus).toBe(AgreementStatus.NETWORK_ERROR)
+    expect(result.canEnter).toBe(false)
+    expect(result.hasLocalCache).toBe(false)
+  })
+
+  test("NETWORK_ERROR with other user's cache does not allow entry", async () => {
+    agreementService.configure({ tms_url: "http://127.0.0.1:1/agreementservice/user" })
+
+    // User A has cache, but we're checking for User B
+    const kvStore = { get: (key: string, defaultValue: unknown) => {
+      if (key === "deveco_code_privacy_accepted_user-A") return true
+      return defaultValue
+    }}
+    const result = await agreementService.checkAllAgreements("test-token", "user-B", kvStore)
+
+    expect(result.overallStatus).toBe(AgreementStatus.NETWORK_ERROR)
+    expect(result.canEnter).toBe(false)
+    expect(result.hasLocalCache).toBe(false)
+  })
+
+  test("retryPendingSign succeeds and clears pending flag", async () => {
+    let signServer: http.Server
+    let signServerUrl = ""
+
+    signServer = http.createServer((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ errorCode: 0 }))
+    })
+
+    await new Promise<void>((resolve) => {
+      signServer.listen(0, "127.0.0.1", () => {
+        const addr = signServer.address()
+        if (addr && typeof addr === "object") {
+          signServerUrl = `http://127.0.0.1:${addr.port}/agreementservice/user`
+        }
+        resolve()
+      })
+    })
+
+    agreementService.configure({ tms_url: signServerUrl })
+
+    const pendingKey = `deveco_code_sign_pending_${testUserId}`
+    const kvData: Record<string, unknown> = { [pendingKey]: true }
+    const kvStore = {
+      get: (key: string, defaultValue: unknown) => kvData[key] ?? defaultValue,
+      set: (key: string, value: unknown) => { kvData[key] = value },
+    }
+
+    await agreementService.retryPendingSign("test-token", testUserId, kvStore)
+
+    expect(kvData[pendingKey]).toBe(false)
+
+    signServer.close()
+  })
+
+  test("retryPendingSign skips when no pending flag", async () => {
+    let signCalled = false
+    let signServer: http.Server
+
+    signServer = http.createServer((_req, res) => {
+      signCalled = true
+      res.writeHead(200, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ errorCode: 0 }))
+    })
+
+    let signServerUrl = ""
+    await new Promise<void>((resolve) => {
+      signServer.listen(0, "127.0.0.1", () => {
+        const addr = signServer.address()
+        if (addr && typeof addr === "object") {
+          signServerUrl = `http://127.0.0.1:${addr.port}/agreementservice/user`
+        }
+        resolve()
+      })
+    })
+
+    agreementService.configure({ tms_url: signServerUrl })
+
+    const pendingKey = `deveco_code_sign_pending_${testUserId}`
+    const kvData: Record<string, unknown> = { [pendingKey]: false }
+    const kvStore = {
+      get: (key: string, defaultValue: unknown) => kvData[key] ?? defaultValue,
+      set: (key: string, value: unknown) => { kvData[key] = value },
+    }
+
+    await agreementService.retryPendingSign("test-token", testUserId, kvStore)
+
+    expect(signCalled).toBe(false)
+
+    signServer.close()
+  })
+
+  test("retryPendingSign keeps pending flag on failure", async () => {
+    agreementService.configure({ tms_url: "http://127.0.0.1:1/agreementservice/user" })
+
+    const pendingKey = `deveco_code_sign_pending_${testUserId}`
+    const kvData: Record<string, unknown> = { [pendingKey]: true }
+    const kvStore = {
+      get: (key: string, defaultValue: unknown) => kvData[key] ?? defaultValue,
+      set: (key: string, value: unknown) => { kvData[key] = value },
+    }
+
+    await agreementService.retryPendingSign("test-token", testUserId, kvStore)
+
+    expect(kvData[pendingKey]).toBe(true)
   })
 })

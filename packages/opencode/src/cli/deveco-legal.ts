@@ -51,7 +51,25 @@ export function resolveAgreementConfig(config?: AgreementConfig): {
 }
 
 /**
- * Persisted when remote agreement signing succeeds (used as fallback when API unreachable).
- * This is a local cache key name, not a per-project configurable value.
+ * Base key for privacy acceptance cache. Actual key includes userId for isolation.
  */
-export const KV_DEVECO_CODE_PRIVACY_ACCEPTED = "deveco_code_privacy_accepted"
+const KV_DEVECO_CODE_PRIVACY_ACCEPTED_BASE = "deveco_code_privacy_accepted"
+
+/**
+ * Base key for pending sign flag. Actual key includes userId for isolation.
+ */
+const KV_DEVECO_CODE_SIGN_PENDING_BASE = "deveco_code_sign_pending"
+
+/**
+ * Get the user-specific KV key for privacy acceptance cache.
+ */
+export function getPrivacyAcceptedKey(userId: string): string {
+  return `${KV_DEVECO_CODE_PRIVACY_ACCEPTED_BASE}_${userId}`
+}
+
+/**
+ * Get the user-specific KV key for pending sign flag.
+ */
+export function getSignPendingKey(userId: string): string {
+  return `${KV_DEVECO_CODE_SIGN_PENDING_BASE}_${userId}`
+}

@@ -11,7 +11,8 @@ import { DialogPrompt } from '@tui/ui/dialog-prompt';
 import { Link } from '../ui/link';
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from '@/plugin/deveco';
 import { useKV } from '@tui/context/kv';
-import { resolveAgreementConfig, KV_DEVECO_CODE_PRIVACY_ACCEPTED, type AgreementConfig } from '@/cli/deveco-legal';
+import { resolveAgreementConfig, getPrivacyAcceptedKey, getSignPendingKey, type AgreementConfig } from '@/cli/deveco-legal';
+import * as Log from '@opencode-ai/core/util/log';
 import { agreementService, AgreementStatus } from '@/cli/deveco-agreement';
 import type { AgreementCheckResult } from '@/cli/deveco-agreement';
 import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH, homeContentPadX } from './banner';
@@ -20,6 +21,8 @@ declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';
 
 type OnboardingStep = 'privacy' | 'entry' | 'auth' | 'providers' | 'key';
+
+const log = Log.create({ service: "deveco-onboarding" })
 
 const LIST_HELP = 'Use Enter to Select';
 
@@ -294,6 +297,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
 
     const session = await devecoAuth.getSession()
     const accessToken = session?.accessToken || ''
+    const userId = session?.userId || await devecoAuth.getUserId() || ''
 
     if (!accessToken) {
       // Not logged in → should not be here, go back to entry
@@ -302,7 +306,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       return
     }
 
-    const checkResult = await agreementService.checkAllAgreements(accessToken, kv)
+    const checkResult = await agreementService.checkAllAgreements(accessToken, userId, kv)
     setAgreementCheckResult(checkResult)
 
     if (checkResult.overallStatus === AgreementStatus.COMPLIANT) {
@@ -312,11 +316,11 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       return
     }
 
-    // NETWORK_ERROR (regardless of local cache) → show network error page
-    // User sees the error and can choose to cancel (exit) or retry
+    // NETWORK_ERROR → show agreement form so user can sign offline (degraded mode).
+    // The sign will be saved locally as pending and retried on next startup.
     if (checkResult.overallStatus === AgreementStatus.NETWORK_ERROR) {
-      setNetworkErrorNoCache(true)
       setCheckingStatus(false)
+      setPrivacyIndex(0)
       return
     }
 
@@ -346,6 +350,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
 
     const session = await devecoAuth.getSession()
     const accessToken = session?.accessToken || ''
+    const userId = session?.userId || await devecoAuth.getUserId() || ''
 
     if (!accessToken) {
       setSignError('Please login first')
@@ -358,7 +363,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     if (signResult.isUpload) {
       // Update KV cache (failure only logs, doesn't block)
       try {
-        kv.set(KV_DEVECO_CODE_PRIVACY_ACCEPTED, true)
+        kv.set(getPrivacyAcceptedKey(userId), true)
       } catch (err) {
         console.error('Failed to update local KV cache after signing', err)
       }
@@ -367,8 +372,16 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       return
     }
 
-    setSignError(signResult.error ?? 'Failed to sign agreement. Please try again.')
-    setSignBusy(false)
+    // Sign API failed — save pending for background retry on next startup,
+    // allow user to enter conversation page immediately (offline degradation)
+    try {
+      kv.set(getPrivacyAcceptedKey(userId), true)
+      kv.set(getSignPendingKey(userId), true)
+    } catch (err) {
+      console.error('Failed to save pending agreement sign', err)
+    }
+    log.info(`agreement sign failed offline (${signResult.error ?? "unknown"}), saved pending for retry`)
+    props.onComplete()
   }
 
   const providerList = createMemo(() => {
