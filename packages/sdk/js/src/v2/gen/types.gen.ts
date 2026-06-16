@@ -78,6 +78,10 @@ export type Event =
   | EventSessionNextCompactionDelta
   | EventSessionNextCompactionEnded
   | EventCatalogModelUpdated
+  | EventModelsDevRefreshed
+  | EventAccountAdded
+  | EventAccountRemoved
+  | EventAccountSwitched
 
 export type OAuth = {
   type: "oauth"
@@ -205,6 +209,7 @@ export type UnknownError = {
   name: "UnknownError"
   data: {
     message: string
+    ref?: string
   }
 }
 
@@ -884,6 +889,10 @@ export type GlobalEvent = {
     | EventSessionNextCompactionDelta
     | EventSessionNextCompactionEnded
     | EventCatalogModelUpdated
+    | EventModelsDevRefreshed
+    | EventAccountAdded
+    | EventAccountRemoved
+    | EventAccountSwitched
     | SyncEventMessageUpdated
     | SyncEventMessageRemoved
     | SyncEventMessagePartUpdated
@@ -1832,18 +1841,30 @@ export type UnauthorizedError = {
   message: string
 }
 
-export type V2SessionMessagesResponse = {
-  items: Array<SessionMessage>
-  cursor: {
-    previous?: string
-    next?: string
-  }
+export type SessionNotFoundError = {
+  _tag: "SessionNotFoundError"
+  sessionID: string
+  message: string
 }
 
 export type ServiceUnavailableError = {
   _tag: "ServiceUnavailableError"
   message: string
   service?: string
+}
+
+export type UnknownError1 = {
+  _tag: "UnknownError"
+  message: string
+  ref?: string
+}
+
+export type V2SessionMessagesResponse = {
+  items: Array<SessionMessage>
+  cursor: {
+    previous?: string
+    next?: string
+  }
 }
 
 export type ProviderNotFoundError = {
@@ -3401,6 +3422,64 @@ export type EventCatalogModelUpdated = {
   }
 }
 
+export type EventModelsDevRefreshed = {
+  id: string
+  type: "models-dev.refreshed"
+  properties: {
+    [key: string]: unknown
+  }
+}
+
+export type AccountV2oAuthCredential = {
+  type: "oauth"
+  refresh: string
+  access: string
+  expires: number
+}
+
+export type AccountV2ApiKeyCredential = {
+  type: "api"
+  key: string
+  metadata?: {
+    [key: string]: string
+  }
+}
+
+export type AccountV2Credential = AccountV2oAuthCredential | AccountV2ApiKeyCredential
+
+export type AccountV2Info = {
+  id: string
+  serviceID: string
+  description: string
+  credential: AccountV2Credential
+}
+
+export type EventAccountAdded = {
+  id: string
+  type: "account.added"
+  properties: {
+    account: AccountV2Info
+  }
+}
+
+export type EventAccountRemoved = {
+  id: string
+  type: "account.removed"
+  properties: {
+    account: AccountV2Info
+  }
+}
+
+export type EventAccountSwitched = {
+  id: string
+  type: "account.switched"
+  properties: {
+    serviceID: string
+    from?: string
+    to?: string
+  }
+}
+
 export type SessionInfo = {
   id: string
   parentID?: string
@@ -3646,7 +3725,7 @@ export type ProviderV2Info = {
         name: string
       }
     | {
-        via: "auth"
+        via: "account"
         service: string
       }
     | {
@@ -7225,6 +7304,14 @@ export type V2SessionPromptErrors = {
    * UnauthorizedError
    */
   401: UnauthorizedError
+  /**
+   * SessionNotFoundError
+   */
+  404: SessionNotFoundError
+  /**
+   * ServiceUnavailableError
+   */
+  503: ServiceUnavailableError
 }
 
 export type V2SessionPromptError = V2SessionPromptErrors[keyof V2SessionPromptErrors]
@@ -7259,6 +7346,14 @@ export type V2SessionCompactErrors = {
    * UnauthorizedError
    */
   401: UnauthorizedError
+  /**
+   * SessionNotFoundError
+   */
+  404: SessionNotFoundError
+  /**
+   * ServiceUnavailableError
+   */
+  503: ServiceUnavailableError
 }
 
 export type V2SessionCompactError = V2SessionCompactErrors[keyof V2SessionCompactErrors]
@@ -7293,6 +7388,14 @@ export type V2SessionWaitErrors = {
    * UnauthorizedError
    */
   401: UnauthorizedError
+  /**
+   * SessionNotFoundError
+   */
+  404: SessionNotFoundError
+  /**
+   * ServiceUnavailableError
+   */
+  503: ServiceUnavailableError
 }
 
 export type V2SessionWaitError = V2SessionWaitErrors[keyof V2SessionWaitErrors]
@@ -7327,6 +7430,14 @@ export type V2SessionContextErrors = {
    * UnauthorizedError
    */
   401: UnauthorizedError
+  /**
+   * SessionNotFoundError
+   */
+  404: SessionNotFoundError
+  /**
+   * UnknownError
+   */
+  500: UnknownError1
 }
 
 export type V2SessionContextError = V2SessionContextErrors[keyof V2SessionContextErrors]
@@ -7367,6 +7478,14 @@ export type V2SessionMessagesErrors = {
    * UnauthorizedError
    */
   401: UnauthorizedError
+  /**
+   * SessionNotFoundError
+   */
+  404: SessionNotFoundError
+  /**
+   * UnknownError
+   */
+  500: UnknownError1
 }
 
 export type V2SessionMessagesError = V2SessionMessagesErrors[keyof V2SessionMessagesErrors]

@@ -123,7 +123,7 @@ describe("installation", () => {
       return jsonResponse({ version: "1.2.3" })
     })).effect("reads the latest version from the deveco npm registry", () =>
       Effect.gen(function* () {
-        const result = yield* Installation.Service.use((svc) => svc.latest("npm"))
+        const result = yield* Installation.use.latest("npm")
         expect(result).toBe("1.2.3")
         expect(latestUrl).toContain("@deveco%2fdeveco-code")
         expect(latestUrl).toContain(`/${InstallationChannel}`)
@@ -136,7 +136,7 @@ describe("installation", () => {
       "detects npm when the global npm list contains the deveco package",
       () =>
         Effect.gen(function* () {
-          expect(yield* Installation.Service.use((svc) => svc.method())).toBe("npm")
+          expect(yield* Installation.use.method()).toBe("npm")
         }),
     )
 
@@ -144,13 +144,13 @@ describe("installation", () => {
       "detects bun when the global bun list contains the deveco package",
       () =>
         Effect.gen(function* () {
-          expect(yield* Installation.Service.use((svc) => svc.method())).toBe("bun")
+          expect(yield* Installation.use.method()).toBe("bun")
         }),
     )
 
     testEffect(testLayer(() => jsonResponse({}), () => "")).effect("falls back to unknown when no manager reports the package", () =>
       Effect.gen(function* () {
-        expect(yield* Installation.Service.use((svc) => svc.method())).toBe("unknown")
+        expect(yield* Installation.use.method()).toBe("unknown")
       }),
     )
   })
@@ -164,7 +164,7 @@ describe("installation", () => {
       }),
     ).effect("runs `npm install -g @deveco/deveco-code@<target>` to upgrade", () =>
       Effect.gen(function* () {
-        yield* Installation.Service.use((svc) => svc.upgrade("npm", "1.2.3"))
+        yield* Installation.use.upgrade("npm", "1.2.3")
         expect(npmCalls.some((c) => c.cmd === "npm" && c.args.includes("install") && c.args.includes("@deveco/deveco-code@1.2.3"))).toBe(true)
       }),
     )
@@ -177,7 +177,7 @@ describe("installation", () => {
       }),
     ).effect("uses the bun package manager for the bun method", () =>
       Effect.gen(function* () {
-        yield* Installation.Service.use((svc) => svc.upgrade("bun", "0.9.0"))
+        yield* Installation.use.upgrade("bun", "0.9.0")
         expect(bunCalls.some((c) => c.cmd === "bun" && c.args.includes("@deveco/deveco-code@0.9.0"))).toBe(true)
       }),
     )
@@ -186,7 +186,7 @@ describe("installation", () => {
       "fails with UpgradeFailedError when the installer exits non-zero",
       () =>
         Effect.gen(function* () {
-          const result = yield* Installation.Service.use((svc) => svc.upgrade("npm", "1.2.3")).pipe(Effect.flip)
+          const result = yield* Installation.use.upgrade("npm", "1.2.3").pipe(Effect.flip)
           expect(result).toBeInstanceOf(UpgradeFailedError)
           expect(result.stderr).toBe("EACCES")
         }),
@@ -194,7 +194,7 @@ describe("installation", () => {
 
     testEffect(testLayer(() => jsonResponse({}), () => "")).effect("fails with UpgradeFailedError for an unknown method", () =>
       Effect.gen(function* () {
-        const result = yield* Installation.Service.use((svc) => svc.upgrade("unknown", "1.2.3")).pipe(Effect.flip)
+        const result = yield* Installation.use.upgrade("unknown", "1.2.3").pipe(Effect.flip)
         expect(result).toBeInstanceOf(UpgradeFailedError)
         expect(result.stderr).toContain("Unknown method")
       }),

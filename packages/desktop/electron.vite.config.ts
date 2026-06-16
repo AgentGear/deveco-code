@@ -3,13 +3,15 @@ import { defineConfig } from "electron-vite"
 import appPlugin from "@opencode-ai/app/vite"
 import * as fs from "node:fs/promises"
 
+const DEVECO_SERVER_DIST = "../opencode/dist/node"
+
 const channel = (() => {
   const raw = process.env.DEVECO_CHANNEL
   if (raw === "dev" || raw === "beta" || raw === "prod") return raw
+  if (process.env.DEVECO_CHANNEL === "latest") return "prod"
   return "dev"
 })()
 
-const DEVECO_SERVER_DIST = "../opencode/dist/node"
 
 const nodePtyPkg = `@lydell/node-pty-${process.platform}-${process.arch}`
 

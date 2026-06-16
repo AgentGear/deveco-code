@@ -22,6 +22,7 @@ import { DigitalOceanAuthPlugin } from "./digitalocean"
 import { DevEcoAuthPlugin } from "./deveco"
 import AnalyticsPlugin from "./analytics/analytics-plugin"
 import HarmonyNapiDynamicToolsPlugin from "./harmony-napi-dynamic-tools"
+import { XaiAuthPlugin } from "./xai"
 import { Effect, Layer, Context, Stream } from "effect"
 import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
@@ -72,6 +73,7 @@ const INTERNAL_PLUGINS: PluginInstance[] = [
   DevEcoAuthPlugin,
   AnalyticsPlugin,
   HarmonyNapiDynamicToolsPlugin,
+  XaiAuthPlugin,
 ]
 
 function isServerPlugin(value: unknown): value is PluginInstance {
