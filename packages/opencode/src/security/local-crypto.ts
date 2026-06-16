@@ -143,9 +143,11 @@ export function isEncryptedBlob(value: unknown): value is EncryptedBlob {
   const candidate = value as Partial<EncryptedBlob>
   return (
     candidate.algorithm === "aes-256-gcm" &&
+    typeof candidate.version === "number" &&
     typeof candidate.ciphertext === "string" &&
     typeof candidate.iv === "string" &&
-    typeof candidate.authTag === "string"
+    typeof candidate.authTag === "string" &&
+    typeof candidate.timeStamp === "number"
   )
 }
 

@@ -1,48 +1,51 @@
-name: 文档资料|Document
-description: 如果您对社区有疑问，欢迎反馈咨询。
-title: "[Document]: 简短描述文档改进内容"
+name: "文档资料 | Document"
+description: 反馈文档资料或 Sample 的改进建议
+title: "[Document] "
 labels: ["documentation", "triage"]
-type: "文档"
 body:
   - type: markdown
     attributes:
       value: |
-        感谢提出文档资料改进建议，我们将安排人进行改进！
+        > [!IMPORTANT]
+        > 感谢提出文档改进建议！提交前请先 [搜索现有 Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)，避免重复提交。
+        > 请描述清楚改进点，我们将安排改进。
+
   - type: textarea
     id: document-description
     attributes:
       label: 改进建议描述
-      description: 请描述下您觉得文档资料或者Sample需要改进的地方
+      description: 请描述文档资料或 Sample 需要改进的地方
       placeholder: |
-        1、您觉得文档资料或者Sample在哪些方面存在问题或者不足？是内容不够详细、示例不够清晰、结构不够合理还是其他问题？
+        文档资料或 Sample 在哪些方面存在问题或不足？例如内容不够详细、示例不够清晰、结构不够合理等。
     validations:
       required: true
+
   - type: input
     id: version
     attributes:
-      label: 使用的分支信息。
-      description: 请提供您使用的文档资料或者Sample的分支信息。
+      label: 使用的分支信息
+      description: 请提供你使用的文档资料或 Sample 的分支信息
       placeholder: "master"
     validations:
-      required: true      
+      required: true
+
   - type: textarea
     id: suggestion
     attributes:
       label: 改进建议
-      description: 如果您有具体的改进建议或者想法，可以在这里描述。
+      description: 如果你有具体的改进建议或想法，可以在这里描述（可选）
     validations:
-      required: false   
+      required: false
+
   - type: checkboxes
     id: checklist
     attributes:
       label: 提交前检查清单
       description: 请在提交 Issue 前确认以下事项
       options:
-        - label: 搜索现有 Issue，避免重复提交
+        - label: 我使用了正确的 Issue 模板
           required: true
-        - label: 使用正确的 Issue 模板
+        - label: 我提供了清晰的描述和必要的细节
           required: true
-        - label: 提供清晰的描述和必要的细节
+        - label: 标题清晰且包含类型前缀
           required: true
-        - label: 检查标题是否清晰且包含类型前缀
-          required: true         
