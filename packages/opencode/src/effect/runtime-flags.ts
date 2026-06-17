@@ -42,7 +42,10 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   enableExperimentalModels: bool("DEVECO_ENABLE_EXPERIMENTAL_MODELS"),
   enableQuestionTool: bool("DEVECO_ENABLE_QUESTION_TOOL"),
   experimentalScout: enabledByExperimental("DEVECO_EXPERIMENTAL_SCOUT"),
-  experimentalBackgroundSubagents: enabledByExperimental("DEVECO_EXPERIMENTAL_BACKGROUND_SUBAGENTS"),
+  experimentalBackgroundSubagents: Config.all({
+    experimental,
+    enabled: boolTrue("DEVECO_EXPERIMENTAL_BACKGROUND_SUBAGENTS"),
+  }).pipe(Config.map((flags) => flags.experimental || flags.enabled)),
   experimentalLspTy: bool("DEVECO_EXPERIMENTAL_LSP_TY"),
   experimentalLspTool: enabledByExperimental("DEVECO_EXPERIMENTAL_LSP_TOOL"),
   experimentalOxfmt: enabledByExperimental("DEVECO_EXPERIMENTAL_OXFMT"),
