@@ -202,7 +202,7 @@ function main() {
   }
 
   throw new Error(
-    `It seems your package manager failed to install the right opencode CLI package. Try manually installing ${packageNames()
+    `It seems your package manager failed to install the right deveco-code package. Try manually installing ${packageNames()
       .map((name) => JSON.stringify(name))
       .join(" or ")}.`,
   )
