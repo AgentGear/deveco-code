@@ -391,13 +391,6 @@ export const layer = Layer.effect(
           )
         }
 
-        if (flags.exploreTaskRoute && agents.explore && !cfg.agent?.explore?.prompt) {
-          const routeContext = TaskRoute.buildExploreContext(ctx.directory)
-          if (routeContext) {
-            agents.explore.prompt = `${agents.explore.prompt ?? PROMPT_EXPLORE}\n\n${routeContext}`
-          }
-        }
-
         const get = Effect.fnUntraced(function* (agent: string) {
           return agents[agent]
         })
