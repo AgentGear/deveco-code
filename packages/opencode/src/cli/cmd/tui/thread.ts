@@ -20,12 +20,18 @@ import {
   sanitizedProcessEnv,
 } from "@opencode-ai/core/util/opencode-process"
 import { validateSession } from "./validate-session"
+import * as prompts from "@clack/prompts"
+import { requireLogin } from "@/plugin/deveco"
+import { findDevEcoHomes, isDevEcoHome, loadSavedDevEcoHome, resolveDevEcoHome, saveDevEcoHome } from "@/tool/lib/env"
 
 declare global {
   const OPENCODE_WORKER_PATH: string
 }
 
 type RpcClient = ReturnType<typeof Rpc.client<typeof rpc>>
+
+const customDevEcoHomeOption = "__custom_deveco_home__"
+const skipDevEcoHomeOption = "__skip_deveco_home__"
 
 function createWorkerFetch(client: RpcClient): typeof fetch {
   const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -75,14 +81,87 @@ export function resolveThreadDirectory(project?: string, envPWD = process.env.PW
   return Filesystem.resolve(cwd)
 }
 
+async function inputDevEcoHome(): Promise<string> {
+  const home = await prompts.text({
+    message: "Enter DEVECO_HOME path",
+  })
+  if (prompts.isCancel(home)) process.exit(1)
+  const resolved = await resolveDevEcoHome(home)
+  if (resolved) return resolved
+  UI.println(
+    UI.Style.TEXT_DANGER_BOLD +
+      "Invalid DevEco Studio path. Please enter a directory that contains DevEco Studio(v6.1 or later) tools." +
+      UI.Style.TEXT_NORMAL,
+  )
+  return inputDevEcoHome()
+}
+
+async function selectDevEcoHome(candidates: string[]): Promise<string | undefined> {
+  const selected = await prompts.select({
+    message: candidates.length
+      ? "Please select DevEco Studio path (Requires version 6.1 or later.)"
+      : "Please configure your DevEco Studio path (Requires version 6.1 or later.)",
+    options: [
+      ...candidates.map((candidate) => ({
+        label: candidate,
+        value: candidate,
+      })),
+      {
+        label: "Enter a custom path",
+        value: customDevEcoHomeOption,
+      },
+      {
+        label: "Skip (DevEco Studio Tools will be unavailable.)",
+        value: skipDevEcoHomeOption,
+      },
+    ],
+    initialValue: candidates[0] ?? customDevEcoHomeOption,
+  })
+  if (prompts.isCancel(selected)) process.exit(1)
+  if (selected === customDevEcoHomeOption) return inputDevEcoHome()
+  if (selected === skipDevEcoHomeOption) return undefined
+  return selected
+}
+
+async function applyDevEcoHome(home: string) {
+  const resolved = await saveDevEcoHome(home)
+  if (resolved) process.env.DEVECO_HOME = resolved
+}
+
+async function ensureDevEcoHomeForTuiStartup() {
+  const configured = process.env.DEVECO_HOME?.trim()
+  if (configured) {
+    if (await isDevEcoHome(configured)) return
+  }
+
+  const saved = await loadSavedDevEcoHome()
+  if (saved) {
+    process.env.DEVECO_HOME = saved
+    return
+  }
+
+  const candidates = await findDevEcoHomes()
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    if (candidates[0]) await applyDevEcoHome(candidates[0])
+    return
+  }
+  UI.println(
+    UI.Style.TEXT_DANGER_BOLD +
+      "DEVECO_HOME environment variable is not configured, features may be unusable." +
+      UI.Style.TEXT_NORMAL,
+  )
+  const selected = await selectDevEcoHome(candidates)
+  if (selected) await applyDevEcoHome(selected)
+}
+
 export const TuiThreadCommand = cmd({
   command: "$0 [project]",
-  describe: "start opencode tui",
+  describe: "start deveco tui",
   builder: (yargs) =>
     withNetworkOptions(yargs)
       .positional("project", {
         type: "string",
-        describe: "path to start opencode in",
+        describe: "path to start deveco in",
       })
       .option("model", {
         type: "string",
@@ -112,6 +191,13 @@ export const TuiThreadCommand = cmd({
         describe: "agent to use",
       }),
   handler: async (args) => {
+    const loggedIn = await requireLogin()
+    if (!loggedIn) {
+      process.exit(1)
+    }
+
+    await ensureDevEcoHomeForTuiStartup()
+
     const { TuiConfig } = await import("./config/tui")
     // Keep ENABLE_PROCESSED_INPUT cleared even if other code flips it.
     // (Important when running under `bun run` wrappers on Windows.)
