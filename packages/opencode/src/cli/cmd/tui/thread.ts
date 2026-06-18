@@ -1,4 +1,5 @@
 import { cmd } from "@/cli/cmd/cmd"
+import { requireLogin } from "@/plugin/deveco"
 import { Rpc } from "@/util/rpc"
 import { type rpc } from "./worker"
 import path from "path"
