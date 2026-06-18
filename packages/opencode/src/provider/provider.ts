@@ -1549,7 +1549,7 @@ export const layer = Layer.effect(
               delete provider.models[modelID]
 
             // Filter opencode free models (cost.input === 0)
-            if (providerID === ProviderID.opencode && model.cost?.input === 0) {
+            if (providerID === ProviderV2.ID.make("opencode") && model.cost?.input === 0) {
               delete provider.models[modelID]
             }
 
@@ -1835,7 +1835,7 @@ export const layer = Layer.effect(
       if (providerID === "deveco") {
         const { getTaskDefaultModelMap } = yield* Effect.promise(() => import("@/plugin/deveco-models"))
         const smallModel = getTaskDefaultModelMap().small_model
-        return yield* getModel(ProviderID.make("deveco"), ModelID.make(smallModel)).pipe(
+        return yield* getModel(ProviderV2.ID.make("deveco"), ModelV2.ID.make(smallModel)).pipe(
           Effect.catchTag("ProviderModelNotFoundError", () => Effect.succeed(undefined)),
         )
       }
