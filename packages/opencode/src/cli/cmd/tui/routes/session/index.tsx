@@ -1612,7 +1612,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
 
   return (
     <Show when={content()}>
-      <box id={"text-" + props.part.id} paddingLeft={3} marginTop={1} flexDirection="column" flexShrink={0}>
+      <box paddingLeft={3} marginTop={1} flexDirection="column" flexShrink={0}>
         <box onMouseUp={toggle}>
           <ReasoningHeader
             toggleable={inMinimal()}
@@ -1624,6 +1624,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
         </box>
         <Show when={(!inMinimal() || expanded()) && summary().body}>
           <box
+            id={"text-" + props.part.id}
             paddingLeft={inMinimal() ? 2 : 0}
             marginTop={1}
             flexDirection="column"
@@ -1636,7 +1637,7 @@ function ReasoningPart(props: { last: boolean; part: ReasoningPart; message: Ass
               filetype="markdown"
               drawUnstyledText={false}
               streaming={true}
-              syntaxStyle={syntax()}
+              syntaxStyle={subtleSyntax()}
               content={summary().body}
               conceal={ctx.conceal()}
               fg={theme.textMuted}
