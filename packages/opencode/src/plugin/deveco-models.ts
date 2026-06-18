@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { Model as ModelSchema, type Info as ProviderInfo } from "../config/provider"
+import { Model as ModelSchema, type Info as ProviderInfo } from "../provider/provider"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import * as Log from "@opencode-ai/core/util/log"
 
