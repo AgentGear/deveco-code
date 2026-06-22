@@ -24,6 +24,7 @@ a.out
 target
 .scripts
 .direnv/
+.sisyphus/
 
 # Local dev files
 opencode-dev
