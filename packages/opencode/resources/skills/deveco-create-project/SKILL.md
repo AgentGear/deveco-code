@@ -85,20 +85,15 @@ At minimum, verify that the following file exists:
 
 If the file is missing, treat the creation as failed and do not proceed to later compile or page-generation steps.
 
-### Step 3: Switch Session Project Context (Required)
+### Step 3: Session Context (Automatic)
 
-After project creation succeeds, call `switch_cwd` and set the target path to the generated project root (`{projectPath}/{appName}`).
+After `bash(copy-template.mjs)` succeeds (exit code 0), the session working directory is **automatically** set to the generated project root (`{projectPath}/{appName}`). You do **not** need to call `switch_cwd` — proceed directly to reading template files and writing business code.
 
-Reason:
-
-- `build_project` and `start_app` only work correctly when the current session context directory is the actual project root.
-- This skill creates a full project under the current path; without switching context to that generated path, subsequent build/run actions may fail or target the wrong directory.
-
-If `switch_cwd` fails, report the context switch failure and stop. Do not continue to feature implementation, `build_project`, or `start_app`.
+If the auto-switch confirmation does not appear in the bash output, or if you change to a different project manually later, use `switch_cwd` as a fallback.
 
 ### Step 4: Continue Feature Work in the Generated Project
 
-If the user's request includes app behavior, UI, pages, or business requirements in addition to project creation, continue only after `switch_cwd` succeeds.
+If the user's request includes app behavior, UI, pages, or business requirements in addition to project creation, continue only after the project directory is created and the session context is set (Step 3).
 
 Before implementing the feature:
 
@@ -130,5 +125,5 @@ Output:
 - App name / bundle name / API Level
 - `source` of the selected API level: `user_input` / `sdk_pkg`
 - Whether the template integrity check passed
-- Whether `switch_cwd` succeeded
+- Whether session context was set (auto-switched or manual)
 - Build/run/verification status when feature work was requested

@@ -22,6 +22,7 @@ import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import { ShellPrompt, type Parameters } from "./shell/prompt"
 import { BashArity } from "@/permission/arity"
+import { setSessionCwd } from "./lib/session-cwd"
 
 export { Parameters } from "./shell/prompt"
 
@@ -255,6 +256,16 @@ function tail(text: string, maxLines: number, maxBytes: number) {
     text: out.join("\n"),
     cut: true,
   }
+}
+
+function extractProjectPath(command: string, cwd: string): string | undefined {
+  const match = command.match(
+    /copy-template\.mjs.*--project-path\s+["']([^"']+)["'].*--app-name\s+["']([^"']+)["']/
+  );
+  if (!match) {
+    return undefined;
+  }
+  return path.resolve(cwd, match[1], match[2]);
 }
 
 const parse = Effect.fn("ShellTool.parse")(function* (command: string, ps: boolean) {
@@ -582,6 +593,16 @@ export const ShellTool = Tool.define(
       if (meta.length > 0) {
         output += "\n\n<shell_metadata>\n" + meta.join("\n") + "\n</shell_metadata>"
       }
+
+      // Auto-switch session cwd after successful project scaffold
+      if (code === 0) {
+        const projectDir = extractProjectPath(input.command, input.cwd);
+        if (projectDir) {
+          setSessionCwd(ctx.sessionID, projectDir);
+          output += `\n\n[Session directory auto-switched to ${projectDir}]`;
+        }
+      }
+
       return {
         title: input.description,
         metadata: {
