@@ -840,45 +840,21 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       }),
     deveco: Effect.fnUntraced(function* () {
       const auth = yield* dep.auth("deveco")
-      if (!auth) return { autoload: false }
+      if (!auth || auth.type !== "oauth") return { autoload: false }
 
-      if (auth.type === "oauth") {
-        if (auth.expires && Date.now() >= auth.expires) {
-          log.info("deveco token expired, attempting refresh")
-          const { devecoAuth, ACCESS_TOKEN_EXPIRES_MS } = yield* Effect.promise(() => import("@/plugin/deveco"))
-          const newTokens = yield* Effect.promise(() => devecoAuth.refreshToken())
-          if (newTokens) {
-            log.info("deveco token refresh successful")
-            yield* Effect.promise(() =>
-              import("@/plugin/deveco").then((m) =>
-                m.saveAuthToDisk("deveco", {
-                  type: "oauth",
-                  access: newTokens.accessToken,
-                  refresh: newTokens.refreshToken,
-                  expires: Date.now() + m.ACCESS_TOKEN_EXPIRES_MS,
-                }),
-              ),
-            )
-            return {
-              autoload: true,
-              options: {
-                apiKey: newTokens.accessToken,
-              },
-            }
-          }
-          log.warn("deveco token refresh failed, user needs to re-login")
-          return { autoload: false }
-        }
-
-        return {
-          autoload: true,
-          options: {
-            apiKey: auth.access,
-          },
-        }
+      const { ensureValidToken } = yield* Effect.promise(() => import("@/plugin/deveco"))
+      const accessToken = yield* Effect.promise(() => ensureValidToken())
+      if (!accessToken) {
+        log.warn("deveco token unavailable, user needs to re-login")
+        return { autoload: false }
       }
 
-      return { autoload: false }
+      return {
+        autoload: true,
+        options: {
+          apiKey: accessToken,
+        },
+      }
     }),
   }
 }
@@ -1265,9 +1241,13 @@ export const layer = Layer.effect(
         // === DevEco Code: inject provider config if authenticated ===
         const devecoAuth = yield* auth.get("deveco").pipe(Effect.orElseSucceed(() => undefined))
         if (devecoAuth && devecoAuth.type === "oauth") {
-          const { getDevecoProviderConfig } = yield* Effect.promise(() => import("@/plugin/deveco-models"))
-          const config = yield* Effect.promise(() => getDevecoProviderConfig(devecoAuth.access))
-          configProviders.push(["deveco", config])
+          const { ensureValidToken } = yield* Effect.promise(() => import("@/plugin/deveco"))
+          const accessToken = yield* Effect.promise(() => ensureValidToken())
+          if (accessToken) {
+            const { getDevecoProviderConfig } = yield* Effect.promise(() => import("@/plugin/deveco-models"))
+            const config = yield* Effect.promise(() => getDevecoProviderConfig(accessToken))
+            configProviders.push(["deveco", config])
+          }
         }
 
         const disabled = new Set(cfg.disabled_providers ?? [])

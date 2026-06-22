@@ -191,3 +191,4 @@ const STATIC_PROVIDER_FIELDS = {
 export function getTaskDefaultModelMap(): Record<string, string> {
   return cachedTaskDefaultModelMap ?? DEVECO_DEFAULTS.taskDefaultModelMap
 }
+

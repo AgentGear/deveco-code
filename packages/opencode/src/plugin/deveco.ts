@@ -19,19 +19,28 @@ const log = Log.create({ service: "deveco" })
 const PROVIDER_ID = "deveco"
 export const sessionChatIdMap = new Map<string, string>()
 
-const authFilePath = path.join(Global.Path.data, "auth.json")
+function authFilePath() {
+  return path.join(Global.Path.data, "auth.json")
+}
 
-export async function saveAuthToDisk(key: string, info: Record<string, unknown>) {
+export async function saveAuthToDisk(key: string, info: Record<string, unknown> | null) {
   try {
     let data: Record<string, unknown> = {}
-    if (fs.existsSync(authFilePath)) {
-      data = LocalCrypto.decryptAuthData(JSON.parse(fs.readFileSync(authFilePath, "utf8")) as Record<string, unknown>)
+    if (fs.existsSync(authFilePath())) {
+      data = LocalCrypto.decryptAuthData(JSON.parse(fs.readFileSync(authFilePath(), "utf8")) as Record<string, unknown>)
     }
-    data[key] = info
-    const dir = path.dirname(authFilePath)
+    if (info === null) {
+      delete data[key]
+    } else {
+      data[key] = info
+    }
+    const dir = path.dirname(authFilePath())
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     const encrypted = LocalCrypto.encryptAuthData(data)
-    fs.writeFileSync(authFilePath, JSON.stringify(encrypted, null, 2), { mode: 0o600 })
+    // Write to .tmp then rename for atomic persistence; prevents corrupt auth.json on crash
+    const tmpPath = `${authFilePath()}.tmp`
+    fs.writeFileSync(tmpPath, JSON.stringify(encrypted, null, 2), { mode: 0o600 })
+    fs.renameSync(tmpPath, authFilePath())
   } catch (err) {
     log.error("failed to save auth to disk", { key, error: err instanceof Error ? err.message : String(err) })
   }
@@ -39,8 +48,8 @@ export async function saveAuthToDisk(key: string, info: Record<string, unknown>)
 
 function loadAccessTokenFromDisk(): string {
   try {
-    if (!fs.existsSync(authFilePath)) return ""
-    const raw = JSON.parse(fs.readFileSync(authFilePath, "utf-8")) as Record<string, unknown>
+    if (!fs.existsSync(authFilePath())) return ""
+    const raw = JSON.parse(fs.readFileSync(authFilePath(), "utf-8")) as Record<string, unknown>
     const data = LocalCrypto.decryptAuthData(raw) as Record<string, unknown>
     const deveco = data.deveco as Record<string, unknown> | undefined
     if (deveco?.type === "oauth" && typeof deveco.access === "string") {
@@ -59,8 +68,8 @@ function loadAccessTokenFromDisk(): string {
  */
 export function hasDevecoOAuthEntry(): boolean {
   try {
-    if (!fs.existsSync(authFilePath)) return false
-    const raw = JSON.parse(fs.readFileSync(authFilePath, "utf-8")) as Record<string, unknown>
+    if (!fs.existsSync(authFilePath())) return false
+    const raw = JSON.parse(fs.readFileSync(authFilePath(), "utf-8")) as Record<string, unknown>
     const data = LocalCrypto.decryptAuthData(raw) as Record<string, unknown>
     const deveco = data.deveco as Record<string, unknown> | undefined
     return deveco?.type === "oauth"
@@ -595,19 +604,8 @@ class LoginService {
   public async logout(): Promise<void> {
     await tokenStorage.clearToken()
     this.userInfo = null
-    // Also clear deveco oauth entry from auth.json so loadAccessTokenFromDisk() returns ""
     try {
-      await saveAuthToDisk("deveco", {})
-      // Remove the empty deveco key entirely
-      if (fs.existsSync(authFilePath)) {
-        const raw = JSON.parse(fs.readFileSync(authFilePath, "utf8")) as Record<string, unknown>
-        const data = LocalCrypto.decryptAuthData(raw) as Record<string, unknown>
-        delete data.deveco
-        const dir = path.dirname(authFilePath)
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-        const encrypted = LocalCrypto.encryptAuthData(data)
-        fs.writeFileSync(authFilePath, JSON.stringify(encrypted, null, 2), { mode: 0o600 })
-      }
+      await saveAuthToDisk("deveco", null)
     } catch (err) {
       log.warn("failed to clear auth.json deveco entry during logout", { error: err })
     }
@@ -893,6 +891,76 @@ export const devecoAuth = new DevEcoAuth()
 
 export { ACCESS_TOKEN_EXPIRES_MS }
 
+/** Module-level dedup: concurrent callers share a single in-flight refresh. */
+let refreshPromise: Promise<string | null> | null = null
+/** Timestamp of last refresh failure; cooldown prevents rapid retries when refresh token is invalid. */
+let lastRefreshFailedAt = 0
+const REFRESH_COOLDOWN_MS = 30_000
+
+async function doRefreshToken(): Promise<string | null> {
+  log.info("ensureValidToken: token expired, refreshing")
+  const newTokens = await devecoAuth.refreshToken()
+  if (!newTokens) {
+    lastRefreshFailedAt = Date.now()
+    log.warn("ensureValidToken: token refresh failed")
+    return null
+  }
+  lastRefreshFailedAt = 0
+
+  await saveAuthToDisk("deveco", {
+    type: "oauth",
+    access: newTokens.accessToken,
+    refresh: newTokens.refreshToken,
+    expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
+  })
+
+  log.info("ensureValidToken: token refreshed successfully")
+  return newTokens.accessToken
+}
+
+/**
+ * Ensure the deveco access token is valid. If expired, refresh it and persist to disk.
+ * Returns a valid access token string, or null if no auth is available or refresh fails.
+ *
+ * Concurrent callers share a single in-flight refresh (no duplicate API calls).
+ * After a refresh failure, subsequent calls are short-circuited for REFRESH_COOLDOWN_MS.
+ */
+export async function ensureValidToken(): Promise<string | null> {
+  try {
+    if (!fs.existsSync(authFilePath())) return null
+    const raw = JSON.parse(fs.readFileSync(authFilePath(), "utf-8")) as Record<string, unknown>
+    const data = LocalCrypto.decryptAuthData(raw) as Record<string, unknown>
+    const deveco = data.deveco as Record<string, unknown> | undefined
+    if (!deveco || deveco.type !== "oauth" || typeof deveco.access !== "string") return null
+
+    const expires = typeof deveco.expires === "number" ? deveco.expires : 0
+    if (expires && Date.now() < expires) {
+      return deveco.access
+    }
+
+    if (lastRefreshFailedAt && Date.now() - lastRefreshFailedAt < REFRESH_COOLDOWN_MS) {
+      log.warn("ensureValidToken: refresh skipped, in cooldown after recent failure")
+      return null
+    }
+
+    if (!refreshPromise) {
+      refreshPromise = doRefreshToken().finally(() => {
+        refreshPromise = null
+      })
+    }
+    return refreshPromise
+  } catch (err) {
+    log.warn("ensureValidToken: unexpected error", { error: err instanceof Error ? err.message : String(err) })
+    return null
+  }
+}
+
+/** Test-only: reset module-level refresh state so unit tests can isolate cooldown behavior. */
+export function __resetTokenRefreshState() {
+  refreshPromise = null
+  lastRefreshFailedAt = 0
+}
+
 export async function requireLogin(): Promise<boolean> {
   if (await devecoAuth.isLoggedIn()) return true
 
@@ -996,15 +1064,9 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
             const currentAuth = await getAuth()
             if (currentAuth?.type === "oauth") {
               if (!currentAuth.access || currentAuth.expires < Date.now()) {
-                const newTokens = await devecoAuth.refreshToken()
-                if (newTokens?.accessToken) {
-                  await saveAuthToDisk("deveco", {
-                    type: "oauth",
-                    access: newTokens.accessToken,
-                    refresh: newTokens.refreshToken,
-                    expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
-                  })
-                  currentAuth.access = newTokens.accessToken
+                const newToken = await ensureValidToken()
+                if (newToken) {
+                  currentAuth.access = newToken
                 } else {
                   log.error("DevEco Code token refresh failed, user needs to re-login")
                   GlobalBus.emit("event", {
