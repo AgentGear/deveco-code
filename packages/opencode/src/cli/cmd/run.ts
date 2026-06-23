@@ -1,4 +1,3 @@
-import type { PermissionV1 } from "@opencode-ai/core/v1/permission"
 // CLI entry point for `opencode run`.
 //
 // Handles three modes:
@@ -18,12 +17,18 @@ import { pathToFileURL } from "url"
 import { Effect } from "effect"
 import { UI } from "../ui"
 import { effectCmd } from "../effect-cmd"
+import { ServerAuth } from "@/server/auth"
 import { EOL } from "os"
 import { Filesystem } from "@/util/filesystem"
 import { createOpencodeClient, type OpencodeClient, type ToolPart } from "@opencode-ai/sdk/v2"
+import { Agent } from "@/agent/agent"
+import { Permission } from "@/permission"
+import { RuntimeFlags } from "@/effect/runtime-flags"
+import { InstanceRef } from "@/effect/instance-ref"
 import { FormatError, FormatUnknownError } from "../error"
 import { INTERACTIVE_INPUT_ERROR, resolveInteractiveStdin } from "./run/runtime.stdin"
 
+const runtimeTask = import("./run/runtime")
 type ModelInput = Parameters<OpencodeClient["session"]["prompt"]>[0]["model"]
 
 function pick(value: string | undefined): ModelInput | undefined {
@@ -121,7 +126,7 @@ async function toolError(part: ToolPart) {
 
 export const RunCommand = effectCmd({
   command: "run [message..]",
-  describe: "run opencode with a message",
+  describe: "run deveco with a message",
   // --attach connects to a remote server (no local instance needed); the
   // default path runs an in-process server and needs the project instance.
   instance: (args) => !args.attach,
@@ -185,7 +190,7 @@ export const RunCommand = effectCmd({
       })
       .option("attach", {
         type: "string",
-        describe: "attach to a running opencode server (e.g., http://localhost:4096)",
+        describe: "attach to a running deveco server (e.g., http://localhost:4096)",
       })
       .option("password", {
         alias: ["p"],
@@ -195,7 +200,7 @@ export const RunCommand = effectCmd({
       .option("username", {
         alias: ["u"],
         type: "string",
-        describe: "basic auth username (defaults to DEVECO_SERVER_USERNAME or 'opencode')",
+        describe: "basic auth username (defaults to DEVECO_SERVER_USERNAME or 'deveco')",
       })
       .option("dir", {
         type: "string",
@@ -215,8 +220,8 @@ export const RunCommand = effectCmd({
       })
       .option("replay", {
         type: "boolean",
-        default: true,
-        describe: "replay interactive session history on resume and after resize (use --no-replay to disable)",
+        default: false,
+        describe: "replay visible session history on interactive resume",
       })
       .option("replay-limit", {
         type: "number",
@@ -239,10 +244,6 @@ export const RunCommand = effectCmd({
         describe: "enable direct interactive demo slash commands; pass one as the message to run it immediately",
       }),
   handler: Effect.fn("Cli.run")(function* (args) {
-    const { Agent } = yield* Effect.promise(() => import("@/agent/agent"))
-    const { RuntimeFlags } = yield* Effect.promise(() => import("@/effect/runtime-flags"))
-    const { InstanceRef } = yield* Effect.promise(() => import("@/effect/instance-ref"))
-    const { ServerAuth } = yield* Effect.promise(() => import("@/server/auth"))
     const agentSvc = yield* Agent.Service
     const flags = yield* RuntimeFlags.Service
     const localInstance = yield* InstanceRef
@@ -275,6 +276,10 @@ export const RunCommand = effectCmd({
 
       if (args.interactive && args.format === "json") {
         die("--interactive cannot be used with --format json")
+      }
+
+      if (args.replay && !args.interactive) {
+        die("--replay requires --interactive")
       }
 
       if (args["replay-limit"] !== undefined && !args.interactive) {
@@ -362,7 +367,7 @@ export const RunCommand = effectCmd({
         process.exit(1)
       }
 
-      const rules: PermissionV1.Ruleset = args.interactive
+      const rules: Permission.Ruleset = args.interactive
         ? []
         : [
             {
@@ -453,7 +458,7 @@ export const RunCommand = effectCmd({
         const name = title()
         const result = await sdk.session.create({
           title: name,
-          permission: [...rules],
+          permission: rules,
         })
         const id = result.data?.id
         if (!id) {
@@ -496,7 +501,7 @@ export const RunCommand = effectCmd({
                 variant: input.variant,
               }
             : undefined,
-          permission: [...rules],
+          permission: rules,
         })
         const id = result.data?.id
         if (!id) {
@@ -799,7 +804,7 @@ export const RunCommand = effectCmd({
         }
 
         const model = pick(args.model)
-        const { runInteractiveMode } = await import("./run/runtime")
+        const { runInteractiveMode } = await runtimeTask
         try {
           await runInteractiveMode({
             sdk: client,
@@ -826,7 +831,7 @@ export const RunCommand = effectCmd({
 
       if (args.interactive && !args.attach && !args.session && !args.continue) {
         const model = pick(args.model)
-        const { runInteractiveLocalMode } = await import("./run/runtime")
+        const { runInteractiveLocalMode } = await runtimeTask
         const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
           const { Server } = await import("@/server/server")
           const request = new Request(input, init)
