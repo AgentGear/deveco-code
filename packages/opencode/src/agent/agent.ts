@@ -13,6 +13,7 @@ const log = Log.create({ service: "agent" })
 
 import PROMPT_GENERATE from "./generate.txt"
 import PROMPT_BUILD from "./prompt/build.txt"
+import PROMPT_DEBUG from "./prompt/debug.txt"
 import PROMPT_PLAN from "./prompt/plan.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
@@ -160,6 +161,28 @@ export const layer = Layer.effect(
             mode: "primary",
             native: true,
             prompt: PROMPT_BUILD,
+          },
+          debug: {
+            name: "debug",
+            description: "ArkTS debugging subagent triggered by /debug",
+            options: {},
+            permission: Permission.merge(
+              defaults,
+              Permission.fromConfig({
+                question: "allow",
+                todowrite: "allow",
+                arkts_knowledge_search: "allow",
+                check_ets_files: "allow",
+                build_project: "allow",
+                start_app: "allow",
+                hdc_log: "allow",
+              }),
+              user,
+            ),
+            mode: "subagent",
+            native: true,
+            hidden: true,
+            prompt: PROMPT_DEBUG,
           },
           goal: {
             name: "goal",

@@ -4,6 +4,9 @@ Use this tool when you need to ask the user questions during execution. This all
 3. Get decisions on implementation choices as you work
 4. Offer choices to the user about what direction to take.
 
+Important:
+- A normal text response that asks the user to do something does not wait for an answer. If execution depends on the user's reply, use this tool instead of ending your message with a request such as "please verify" or "tell me the result".
+
 Usage notes:
 - When `custom` is enabled (default), a "Type your own answer" option is added automatically; don't include "Other" or catch-all options
 - Answers are returned as arrays of labels; set `multiple: true` to allow selecting more than one
