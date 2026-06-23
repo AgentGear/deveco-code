@@ -1061,6 +1061,12 @@ export function options(input: {
     }
   }
 
+  if (input.model.providerID === "deveco" && input.model.capabilities.reasoning) {
+    result["thinking"] = {
+      type: "enabled",
+    }
+  }
+
   if (input.model.providerID === "openai" || input.providerOptions?.setCacheKey) {
     result["promptCacheKey"] = input.sessionID
   }
