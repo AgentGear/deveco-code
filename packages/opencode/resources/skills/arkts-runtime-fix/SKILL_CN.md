@@ -93,14 +93,54 @@ node "{SKILL_DIR}/scripts/parse-jscrash-log.mjs" --log-file "{hilogPathFromColle
 
 若 `status: no_crash_signature`，须向用户说明证据不足，请求复现或更完整日志后再读代码。
 
-## 常见崩溃签名
+## JSCrash 修复知识库
 
-| 签名 | 常见原因 | 优先修复方向 |
+知识来源（已同步）：[hmos-jscrash-analysis](https://gitcode.com/HarmonyOS_Skills/harmonyos-agent-skills/tree/main/03-solutions/quality/stability/hmos-jscrash-analysis)。
+
+解析崩溃证据并获取 `error_type` 后，必须按知识库匹配模式并应用对应修复建议。不得编造知识库以外的根因或修复方案。
+
+### 知识库使用方法
+
+1. 通过脚本解析崩溃证据，获取 `error_type`、`error_message` 和 `top_stack`。
+2. 先读取 [reference/fault-mode-library.md](./reference/fault-mode-library.md)，按 `Reason` / `Error name` / `Error message` 匹配 `JSError` → 二级根因 → 三级根因。
+3. 根据 `error_type`，只读对应的 patterns 文件：
+   - `ReferenceError` → [reference/referenceerror_patterns.md](./reference/referenceerror_patterns.md)
+   - `TypeError` → [reference/typeerror_patterns.md](./reference/typeerror_patterns.md)
+   - `Error` → [reference/error_patterns.md](./reference/error_patterns.md)
+   - `BusinessError` → [reference/businesserror_patterns.md](./reference/businesserror_patterns.md)
+   - `SyntaxError` → [reference/syntaxerror_patterns.md](./reference/syntaxerror_patterns.md)
+   - `RangeError` → [reference/rangeerror_patterns.md](./reference/rangeerror_patterns.md)
+   - `OutOfMemoryError` → [reference/outofmemoryerror_patterns.md](./reference/outofmemoryerror_patterns.md)
+   - `URIError` → [reference/urierror_patterns.md](./reference/urierror_patterns.md)
+4. 多个模式命中时，优先选择 `Error message` + `Error code` + 栈顶应用帧同时支持的结论（见各 reference 文件可信度规则）。
+5. 对堆栈中的疑似文件做最小定向修复，不做大范围重构。
+
+### 快速参考
+
+| 错误类型 / message 关键词 | 根因 | Reference 文件 |
 |---|---|---|
-| `TypeError` 属性访问 | 渲染 / 生命周期空状态 | 空值保护、提前初始化、调整生命周期 |
-| `ReferenceError` | 作用域 / 导入 / 闭包 | 修正符号、导入路径或回调捕获 |
-| `RangeError` | 下标 / 递归 / 长度 | 边界检查、断环、限制索引 |
-| `BusinessError` / `ParameterError` | API 前置条件 | 校验参数、权限与调用时机 |
+| ReferenceError + `@Provide` / `@Consume` | @Provide/@Consume 缺失或重复 | [referenceerror_patterns.md](./reference/referenceerror_patterns.md) |
+| ReferenceError + `is not initialized` | 变量在赋值前使用 | [referenceerror_patterns.md](./reference/referenceerror_patterns.md) |
+| ReferenceError + `<name> is not defined` | 变量作用域或 import 缺失 | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| ReferenceError + `super()` 前访问 `this` | super() 未先于 this 调用 | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| TypeError + `Cannot read property` / `null or undefined` | 访问 undefined/null 的属性 | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| TypeError + `is not callable` | 调用了非函数值 | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| TypeError + `circular structure` | JSON.stringify 遇到循环引用 | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| TypeError + `Receiver is not a JSObject` / N-API scope | N-API receiver 类型不匹配 | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| SyntaxError + `Unexpected Text in JSON` / `Invalid Token` | JSON.parse 输入格式错误 | [syntaxerror_patterns.md](./reference/syntaxerror_patterns.md) |
+| RangeError + `Invalid array length` | 数组长度为负或非整数 | [rangeerror_patterns.md](./reference/rangeerror_patterns.md) |
+| RangeError + `Stack overflow` | 无限递归 | [rangeerror_patterns.md](./reference/rangeerror_patterns.md) |
+| URIError + `DecodeURI: invalid character` | decodeURI 输入格式错误 | [urierror_patterns.md](./reference/urierror_patterns.md) |
+| Error + `UI execution context not found` / `100001` | UI 上下文未绑定到 router | [error_patterns.md](./reference/error_patterns.md) |
+| Error + `WebviewController must be associated` / `17100001` | WebviewController 未关联 Web 组件 | [error_patterns.md](./reference/error_patterns.md) |
+| Error + `ForEach id` / id 生成函数 | ForEach keyGenerator 缺失或无效 | [error_patterns.md](./reference/error_patterns.md) |
+| Error + `ArrayBuffer is null or detached` | 使用了已 detach 的 ArrayBuffer | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| Error + `Map's constructor cannot be directly invoked` | ArkTS Map 构造函数误用 | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| Error + SQLite / RDB / 资源 ID / 窗口状态 | DB 句柄、资源 ID 或窗口 API 误用 | [error_patterns.md](./reference/error_patterns.md) |
+| BusinessError + `Parameter error` / URL / JSON / XML | API 参数类型或值无效 | [businesserror_patterns.md](./reference/businesserror_patterns.md) |
+| OutOfMemoryError + 分配 / 泄漏 | 堆内存分配失败或内存泄漏 | [outofmemoryerror_patterns.md](./reference/outofmemoryerror_patterns.md) |
+| TerminationError + `Terminate execution!` | 运行时强制终止 | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| AggregateError + `Promise.any()` 全部 reject | Promise.any() 中所有 promise 均 reject | [fault-mode-library.md](./reference/fault-mode-library.md) |
 
 ## 解释规则
 

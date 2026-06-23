@@ -121,14 +121,54 @@ The leading `key: value` block from `jscrash-report.mjs` and `parse-jscrash-log.
 
 If `status: no_crash_signature`, explain that the evidence is weak and ask for a better log, clearer repro, or an additional runtime clue before broad code reading.
 
-## Common Crash Signatures
+## JSCrash Fix Knowledge Base
 
-| Signature | Typical Cause | First Fix Direction |
+Knowledge source (synced): [hmos-jscrash-analysis](https://gitcode.com/HarmonyOS_Skills/harmonyos-agent-skills/tree/main/03-solutions/quality/stability/hmos-jscrash-analysis).
+
+After parsing crash evidence and obtaining `error_type`, match patterns from the knowledge base and apply the corresponding fix. Do not invent root causes or fixes outside these references.
+
+### Using the Fix Knowledge Base
+
+1. Parse crash evidence with scripts to obtain `error_type`, `error_message`, and `top_stack`.
+2. Read [reference/fault-mode-library.md](./reference/fault-mode-library.md) first. Match `JSError` → secondary cause → tertiary cause using `Reason` / `Error name` / `Error message`.
+3. Based on `error_type`, read only the corresponding patterns file:
+   - `ReferenceError` → [reference/referenceerror_patterns.md](./reference/referenceerror_patterns.md)
+   - `TypeError` → [reference/typeerror_patterns.md](./reference/typeerror_patterns.md)
+   - `Error` → [reference/error_patterns.md](./reference/error_patterns.md)
+   - `BusinessError` → [reference/businesserror_patterns.md](./reference/businesserror_patterns.md)
+   - `SyntaxError` → [reference/syntaxerror_patterns.md](./reference/syntaxerror_patterns.md)
+   - `RangeError` → [reference/rangeerror_patterns.md](./reference/rangeerror_patterns.md)
+   - `OutOfMemoryError` → [reference/outofmemoryerror_patterns.md](./reference/outofmemoryerror_patterns.md)
+   - `URIError` → [reference/urierror_patterns.md](./reference/urierror_patterns.md)
+4. When multiple patterns match, prefer the one supported by `Error message` + `Error code` + top application stack frame simultaneously (see credibility rules in each reference file).
+5. Apply a minimal fix to the suspected file from the stack. Do not refactor broadly.
+
+### Quick Reference
+
+| Error type / message keyword | Root cause | Reference |
 |---|---|---|
-| `TypeError` on property access | Null or undefined state during render or lifecycle | Guard null state, initialize earlier, or move logic to a safer lifecycle |
-| `ReferenceError` | Wrong scope, stale import, missing symbol | Fix symbol ownership, import path, or callback capture |
-| `RangeError` | Invalid index, recursion loop, oversized access | Add bounds checks, break loops, clamp indexes |
-| `BusinessError` / `ParameterError` | Framework API preconditions not met | Validate args, permissions, or call timing |
+| ReferenceError + `@Provide` / `@Consume` | Missing or duplicate @Provide/@Consume | [referenceerror_patterns.md](./reference/referenceerror_patterns.md) |
+| ReferenceError + `is not initialized` | Variable used before assignment | [referenceerror_patterns.md](./reference/referenceerror_patterns.md) |
+| ReferenceError + `<name> is not defined` | Variable scope or import missing | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| ReferenceError + `super()` before `this` | super() not called before this | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| TypeError + `Cannot read property` / `null or undefined` | Accessing property on undefined/null | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| TypeError + `is not callable` | Calling a non-function value | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| TypeError + `circular structure` | Circular reference in JSON.stringify | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| TypeError + `Receiver is not a JSObject` / N-API scope | N-API receiver type mismatch | [typeerror_patterns.md](./reference/typeerror_patterns.md) |
+| SyntaxError + `Unexpected Text in JSON` / `Invalid Token` | Malformed JSON.parse input | [syntaxerror_patterns.md](./reference/syntaxerror_patterns.md) |
+| RangeError + `Invalid array length` | Negative or non-integer array length | [rangeerror_patterns.md](./reference/rangeerror_patterns.md) |
+| RangeError + `Stack overflow` | Unbounded recursion | [rangeerror_patterns.md](./reference/rangeerror_patterns.md) |
+| URIError + `DecodeURI: invalid character` | Malformed URI in decodeURI | [urierror_patterns.md](./reference/urierror_patterns.md) |
+| Error + `UI execution context not found` / `100001` | UI context not bound to router | [error_patterns.md](./reference/error_patterns.md) |
+| Error + `WebviewController must be associated` / `17100001` | WebviewController not linked to Web component | [error_patterns.md](./reference/error_patterns.md) |
+| Error + `ForEach id` / id generator | ForEach keyGenerator missing or invalid | [error_patterns.md](./reference/error_patterns.md) |
+| Error + `ArrayBuffer is null or detached` | Using detached ArrayBuffer | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| Error + `Map's constructor cannot be directly invoked` | ArkTS Map constructor misuse | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| Error + SQLite / RDB / resource ID / window state | DB handle, resource ID, or window API misuse | [error_patterns.md](./reference/error_patterns.md) |
+| BusinessError + `Parameter error` / URL / JSON / XML | Invalid API parameter type or value | [businesserror_patterns.md](./reference/businesserror_patterns.md) |
+| OutOfMemoryError + allocate / leak | Heap allocation failure or memory leak | [outofmemoryerror_patterns.md](./reference/outofmemoryerror_patterns.md) |
+| TerminationError + `Terminate execution!` | Forced termination by runtime | [fault-mode-library.md](./reference/fault-mode-library.md) |
+| AggregateError + `Promise.any()` all rejected | All promises in Promise.any() rejected | [fault-mode-library.md](./reference/fault-mode-library.md) |
 
 ## Interpretation Rules
 
