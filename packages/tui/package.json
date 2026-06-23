@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@opencode-ai/tui",
-  "version": "1.17.0",
+  "version": "1.17.2",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -44,8 +44,7 @@
     "./ui/dialog": "./src/ui/dialog.tsx",
     "./ui/spinner": "./src/ui/spinner.ts",
     "./ui/toast": "./src/ui/toast.tsx",
-    "./component/spinner": "./src/component/spinner.tsx",
-    "./component/banner-logo": "./src/component/banner-logo.ts"
+    "./component/spinner": "./src/component/spinner.tsx"
   },
   "dependencies": {
     "@opencode-ai/core": "workspace:*",
