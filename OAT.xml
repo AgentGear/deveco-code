@@ -74,7 +74,7 @@
         <filteritem type="filename" name="*.jpg|*.png|*.gif|*.pdf|*.xlsm|*.zip" desc="already checked"/>
 
         <!--新增跳过 OAT.1二进制文件检查-->
-        <filteritem type="filename" name="*.aac|*.wav|*.bmp|*.mdx|*.ets|*.ico|*.woff2|*.icns|*.mp3" desc="already checked"/>
+        <filteritem type="filename" name="*.aac|*.wav|*.bmp|*.mdx|*.ets|*.ico|*.woff2|*.icns|*.mp3|*.ttf" desc="already checked"/>
       </filefilter>
 
     </filefilterlist>
