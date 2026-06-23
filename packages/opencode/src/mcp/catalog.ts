@@ -61,8 +61,19 @@ export function convertTool(mcpTool: MCPToolDef, client: Client, timeout?: numbe
           resetTimeoutOnProgress: true,
           signal: options.abortSignal,
           timeout,
+          // The MCP SDK only sends a progress token when this hook is present, enabling timeout resets.
+          onprogress: () => {},
         },
       )
+      if (result.isError) {
+        const content = "content" in result && Array.isArray(result.content) ? result.content : []
+        const message =
+          content
+            .flatMap((item: { type: string; text?: string }) => (item.type === "text" ? [item.text ?? ""] : []))
+            .filter((text: string) => text.trim())
+            .join("\n\n") || "MCP tool returned an error"
+        throw new Error(message)
+      }
       if (result.structuredContent === undefined || result.structuredContent === null) return result
       return {
         ...result,
