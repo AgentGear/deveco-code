@@ -8,7 +8,8 @@ import { Auth } from "@/auth"
 import { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { ToolRegistry } from "@/tool/registry"
-import { ProviderID, ModelID } from "@/provider/schema"
+import { ProviderV2 } from "@opencode-ai/core/provider"
+import { ModelV2 } from "@opencode-ai/core/model"
 import { Plugin } from "@/plugin"
 import { Question } from "@/question"
 import { Todo } from "@/session/todo"
@@ -133,8 +134,8 @@ describe("deveco builtin tools", () => {
         if (!build) throw new Error("build agent not found")
 
         const promptIds = (yield* registry.tools({
-          providerID: ProviderID.opencode,
-          modelID: ModelID.make("gpt-5"),
+          providerID: ProviderV2.ID.opencode,
+          modelID: ModelV2.ID.make("gpt-5"),
           agent: build,
         })).map((tool) => tool.id)
 

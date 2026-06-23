@@ -51,7 +51,7 @@ function providerLabel(id: string, name: string): string {
     return 'GitHub Copilot';
   }
   if (id === 'opencode') {
-    return 'OpenCode Zen';
+    return 'DevEco Code Zen';
   }
   return name;
 }

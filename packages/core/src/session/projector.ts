@@ -11,6 +11,7 @@ import { SessionMessage } from "./message"
 import { SessionMessageUpdater } from "./message-updater"
 import { SessionInput } from "./input"
 import { WorkspaceV2 } from "../workspace"
+import { SessionContextEpoch } from "./context-epoch"
 import { MessageTable, PartTable, SessionMessageTable, SessionTable } from "./sql"
 import type { DeepMutable } from "../schema"
 
@@ -259,17 +260,20 @@ export const layer = Layer.effectDiscard(
         .pipe(Effect.orDie),
     )
     yield* events.project(SessionEvent.Moved, (event) =>
-      db
-        .update(SessionTable)
-        .set({
-          directory: event.data.location.directory,
-          path: event.data.subdirectory,
-          workspace_id: event.data.location.workspaceID ? WorkspaceV2.ID.make(event.data.location.workspaceID) : null,
-          time_updated: DateTime.toEpochMillis(event.data.timestamp),
-        })
-        .where(eq(SessionTable.id, event.data.sessionID))
-        .run()
-        .pipe(Effect.orDie),
+      Effect.gen(function* () {
+        yield* db
+          .update(SessionTable)
+          .set({
+            directory: event.data.location.directory,
+            path: event.data.subdirectory,
+            workspace_id: event.data.location.workspaceID ? WorkspaceV2.ID.make(event.data.location.workspaceID) : null,
+            time_updated: DateTime.toEpochMillis(event.data.timestamp),
+          })
+          .where(eq(SessionTable.id, event.data.sessionID))
+          .run()
+          .pipe(Effect.orDie)
+        yield* SessionContextEpoch.reset(db, event.data.sessionID)
+      }),
     )
     yield* events.project(SessionV1.Event.Deleted, (event) =>
       db.delete(SessionTable).where(eq(SessionTable.id, event.data.sessionID)).run().pipe(Effect.orDie),
@@ -343,21 +347,32 @@ export const layer = Layer.effectDiscard(
         if (next) yield* applyUsage(db, sessionID, next)
       }),
     )
-    yield* events.project(SessionEvent.AgentSwitched, (event) =>
-      db
+    yield* events.project(SessionEvent.AgentSwitched, (event) => {
+      if (event.seq === undefined) return Effect.die("Synchronized Session event is missing aggregate sequence")
+      return db
         .update(SessionTable)
         .set({ agent: event.data.agent, time_updated: DateTime.toEpochMillis(event.data.timestamp) })
         .where(eq(SessionTable.id, event.data.sessionID))
         .run()
-        .pipe(Effect.orDie, Effect.andThen(run(db, event))),
-    )
+        .pipe(
+          Effect.orDie,
+          Effect.andThen(run(db, event)),
+          Effect.andThen(SessionContextEpoch.requestReplacement(db, event.data.sessionID, event.seq)),
+        )
+    })
     yield* events.project(SessionEvent.ModelSwitched, (event) =>
-      db
-        .update(SessionTable)
-        .set({ model: event.data.model, time_updated: DateTime.toEpochMillis(event.data.timestamp) })
-        .where(eq(SessionTable.id, event.data.sessionID))
-        .run()
-        .pipe(Effect.orDie, Effect.andThen(run(db, event))),
+      Effect.gen(function* () {
+        yield* db
+          .update(SessionTable)
+          .set({ model: event.data.model, time_updated: DateTime.toEpochMillis(event.data.timestamp) })
+          .where(eq(SessionTable.id, event.data.sessionID))
+          .run()
+          .pipe(Effect.orDie)
+        yield* run(db, event)
+        if (event.seq === undefined)
+          return yield* Effect.die("Synchronized Session event is missing aggregate sequence")
+        yield* SessionContextEpoch.requestReplacement(db, event.data.sessionID, event.seq)
+      }),
     )
     yield* events.project(SessionEvent.Prompted, (event) =>
       Effect.gen(function* () {
@@ -413,6 +428,12 @@ export const layer = Layer.effectDiscard(
         )
       }),
     )
+    yield* events.project(SessionEvent.ContextUpdated, (event) => {
+      if (!event.replay || event.seq === undefined) return run(db, event)
+      return run(db, event).pipe(
+        Effect.andThen(SessionContextEpoch.requestReplacement(db, event.data.sessionID, event.seq)),
+      )
+    })
     yield* events.project(SessionEvent.Synthetic, (event) => run(db, event))
     yield* events.project(SessionEvent.Shell.Started, (event) => run(db, event))
     yield* events.project(SessionEvent.Shell.Ended, (event) => run(db, event))
@@ -432,7 +453,12 @@ export const layer = Layer.effectDiscard(
     // yield* events.project(SessionEvent.Retried, (event) => run(db, event))
     yield* events.project(SessionEvent.Compaction.Started, (event) => run(db, event))
     yield* events.project(SessionEvent.Compaction.Delta, (event) => run(db, event))
-    yield* events.project(SessionEvent.Compaction.Ended, (event) => run(db, event))
+    yield* events.project(SessionEvent.Compaction.Ended, (event) => {
+      if (event.seq === undefined) return Effect.die("Synchronized Session event is missing aggregate sequence")
+      return run(db, event).pipe(
+        Effect.andThen(SessionContextEpoch.requestReplacement(db, event.data.sessionID, event.seq)),
+      )
+    })
   }),
 )
 
