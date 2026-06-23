@@ -22,6 +22,7 @@ import { DevEcoAuthPlugin } from "./deveco"
 import AnalyticsPlugin from "./analytics/analytics-plugin"
 import HarmonyNapiDynamicToolsPlugin from "./harmony-napi-dynamic-tools"
 import { XaiAuthPlugin } from "./xai"
+import { SnowflakeCortexAuthPlugin } from "./snowflake-cortex"
 import { Effect, Layer, Context } from "effect"
 import { EffectBridge } from "@/effect/bridge"
 import { InstanceState } from "@/effect/instance-state"
@@ -81,6 +82,7 @@ function internalPlugins(flags: RuntimeFlags.Info): PluginInstance[] {
     DevEcoAuthPlugin,
     AnalyticsPlugin,
     HarmonyNapiDynamicToolsPlugin,
+    SnowflakeCortexAuthPlugin,
     XaiAuthPlugin,
   ]
 }
