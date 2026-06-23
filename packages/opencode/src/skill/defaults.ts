@@ -1,7 +1,7 @@
 import path from "path"
 import fs from "fs/promises"
 import { Effect } from "effect"
-import type { AppFileSystem } from "@opencode-ai/core/filesystem"
+import type { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
 import * as Log from "@opencode-ai/core/util/log"
 
@@ -12,7 +12,7 @@ declare const DEVECO_DEFAULT_SKILLS: Record<string, Record<string, EmbeddedSkill
 export namespace Defaults {
   const log = Log.create({ service: "skill-defaults" })
 
-  export const ensure = Effect.fn("Skill.Defaults.ensure")(function* (version: string, fsys: AppFileSystem.Interface) {
+  export const ensure = Effect.fn("Skill.Defaults.ensure")(function* (version: string, fsys: FSUtil.Interface) {
     const dir = path.join(Global.Path.data, "skills")
     const versionFile = path.join(dir, ".version")
 

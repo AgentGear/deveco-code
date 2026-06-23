@@ -1,12 +1,16 @@
 import { Config } from "effect"
 
-function truthy(key: string) {
+export function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
   return value === "true" || value === "1"
 }
 
 const DEVECO_EXPERIMENTAL = truthy("DEVECO_EXPERIMENTAL")
 const copy = process.env["DEVECO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT"]
+
+function enabledByExperimental(key: string) {
+  return process.env[key] === undefined ? DEVECO_EXPERIMENTAL : truthy(key)
+}
 
 export const Flag = {
   OTEL_EXPORTER_OTLP_ENDPOINT: process.env["OTEL_EXPORTER_OTLP_ENDPOINT"],
@@ -21,15 +25,12 @@ export const Flag = {
   DEVECO_DISABLE_PRUNE: truthy("DEVECO_DISABLE_PRUNE"),
   DEVECO_DISABLE_TERMINAL_TITLE: truthy("DEVECO_DISABLE_TERMINAL_TITLE"),
   DEVECO_SHOW_TTFD: truthy("DEVECO_SHOW_TTFD"),
-  DEVECO_PERMISSION: process.env["DEVECO_PERMISSION"],
-  DEVECO_DISABLE_DEFAULT_PLUGINS: truthy("DEVECO_DISABLE_DEFAULT_PLUGINS"),
   DEVECO_DISABLE_AUTOCOMPACT: truthy("DEVECO_DISABLE_AUTOCOMPACT"),
   DEVECO_DISABLE_MODELS_FETCH: truthy("DEVECO_DISABLE_MODELS_FETCH"),
   DEVECO_DISABLE_MOUSE: truthy("DEVECO_DISABLE_MOUSE"),
   DEVECO_FAKE_VCS: process.env["DEVECO_FAKE_VCS"],
   DEVECO_SERVER_PASSWORD: process.env["DEVECO_SERVER_PASSWORD"],
   DEVECO_SERVER_USERNAME: process.env["DEVECO_SERVER_USERNAME"],
-  DEVECO_ENABLE_QUESTION_TOOL: truthy("DEVECO_ENABLE_QUESTION_TOOL"),
 
   // Experimental
   DEVECO_EXPERIMENTAL,
@@ -46,12 +47,16 @@ export const Flag = {
   DEVECO_DB: process.env["DEVECO_DB"],
 
   DEVECO_WORKSPACE_ID: process.env["DEVECO_WORKSPACE_ID"],
-  DEVECO_EXPERIMENTAL_WORKSPACES: DEVECO_EXPERIMENTAL || truthy("DEVECO_EXPERIMENTAL_WORKSPACES"),
+  DEVECO_EXPERIMENTAL_WORKSPACES: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
+  DEVECO_EXPERIMENTAL_SESSION_SWITCHER: enabledByExperimental("DEVECO_EXPERIMENTAL_SESSION_SWITCHER"),
 
   // Evaluated at access time (not module load) because tests, the CLI, and
   // external tooling set these env vars at runtime.
   get DEVECO_DISABLE_PROJECT_CONFIG() {
     return truthy("DEVECO_DISABLE_PROJECT_CONFIG")
+  },
+  get DEVECO_EXPERIMENTAL_REFERENCES() {
+    return enabledByExperimental("DEVECO_EXPERIMENTAL_REFERENCES")
   },
   get DEVECO_TUI_CONFIG() {
     return process.env["DEVECO_TUI_CONFIG"]
@@ -61,6 +66,9 @@ export const Flag = {
   },
   get DEVECO_PURE() {
     return truthy("DEVECO_PURE")
+  },
+  get DEVECO_PERMISSION() {
+    return process.env["DEVECO_PERMISSION"]
   },
   get DEVECO_PLUGIN_META_FILE() {
     return process.env["DEVECO_PLUGIN_META_FILE"]

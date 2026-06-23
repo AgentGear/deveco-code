@@ -1,6 +1,4 @@
 import { cmd } from "@/cli/cmd/cmd"
-import * as prompts from "@clack/prompts"
-import { tui } from "./app"
 import { requireLogin } from "@/plugin/deveco"
 import { Rpc } from "@/util/rpc"
 import { type rpc } from "./worker"
@@ -16,7 +14,6 @@ import type { GlobalEvent } from "@opencode-ai/sdk/v2"
 import type { EventSource } from "./context/sdk"
 import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
 import { writeHeapSnapshot } from "v8"
-import { TuiConfig } from "./config/tui"
 import {
   DEVECO_PROCESS_ROLE,
   DEVECO_RUN_ID,
@@ -24,13 +21,16 @@ import {
   sanitizedProcessEnv,
 } from "@opencode-ai/core/util/opencode-process"
 import { validateSession } from "./validate-session"
+import * as prompts from "@clack/prompts"
+import { requireLogin } from "@/plugin/deveco"
 import { findDevEcoHomes, isDevEcoHome, loadSavedDevEcoHome, resolveDevEcoHome, saveDevEcoHome } from "@/tool/lib/env"
 
 declare global {
-  const DEVECO_WORKER_PATH: string
+  const OPENCODE_WORKER_PATH: string
 }
 
 type RpcClient = ReturnType<typeof Rpc.client<typeof rpc>>
+
 const customDevEcoHomeOption = "__custom_deveco_home__"
 const skipDevEcoHomeOption = "__skip_deveco_home__"
 
@@ -63,7 +63,7 @@ function createEventSource(client: RpcClient): EventSource {
 }
 
 async function target() {
-  if (typeof DEVECO_WORKER_PATH !== "undefined") return DEVECO_WORKER_PATH
+  if (typeof OPENCODE_WORKER_PATH !== "undefined") return OPENCODE_WORKER_PATH
   const dist = new URL("./cli/cmd/tui/worker.js", import.meta.url)
   if (await Filesystem.exists(fileURLToPath(dist))) return dist
   return new URL("./worker.ts", import.meta.url)
@@ -99,7 +99,9 @@ async function inputDevEcoHome(): Promise<string> {
 
 async function selectDevEcoHome(candidates: string[]): Promise<string | undefined> {
   const selected = await prompts.select({
-    message: candidates.length ? "Please select DevEco Studio path (Requires version 6.1 or later.)" : "Please configure your DevEco Studio path (Requires version 6.1 or later.)",
+    message: candidates.length
+      ? "Please select DevEco Studio path (Requires version 6.1 or later.)"
+      : "Please configure your DevEco Studio path (Requires version 6.1 or later.)",
     options: [
       ...candidates.map((candidate) => ({
         label: candidate,
@@ -197,6 +199,7 @@ export const TuiThreadCommand = cmd({
 
     await ensureDevEcoHomeForTuiStartup()
 
+    const { TuiConfig } = await import("./config/tui")
     // Keep ENABLE_PROCESSED_INPUT cleared even if other code flips it.
     // (Important when running under `bun run` wrappers on Windows.)
     const unguard = win32InstallCtrlCGuard()
@@ -289,7 +292,7 @@ export const TuiThreadCommand = cmd({
             events: undefined,
           }
         : {
-            url: "http://deveco.internal",
+            url: "http://opencode.internal",
             fetch: createWorkerFetch(client),
             events: createEventSource(client),
           }
@@ -312,9 +315,11 @@ export const TuiThreadCommand = cmd({
       }, 1000).unref?.()
 
       try {
-        const { tui } = await import("./app")
-        await tui({
+        const { createTuiRenderer, tui } = await import("./app")
+        const renderer = await createTuiRenderer(config)
+        const handle = tui({
           url: transport.url,
+          renderer,
           async onSnapshot() {
             const tui = writeHeapSnapshot("tui.heapsnapshot")
             const server = await client.call("snapshot", undefined)
@@ -333,6 +338,7 @@ export const TuiThreadCommand = cmd({
             fork: args.fork,
           },
         })
+        await handle.done
       } finally {
         await stop()
       }

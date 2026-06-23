@@ -13,12 +13,13 @@ import { useSDK } from "@/context/sdk"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { useTerminal } from "@/context/terminal"
-import { showToast } from "@opencode-ai/ui/toast"
+import { showToast } from "@/utils/toast"
 import { findLast } from "@opencode-ai/core/util/array"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { UserMessage } from "@opencode-ai/sdk/v2"
 import { useSessionLayout } from "@/pages/session/session-layout"
+
 
 export type SessionCommandContext = {
   navigateMessageByOffset: (offset: number) => void
@@ -70,10 +71,8 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   })
   const activeFileTab = tabState.activeFileTab
   const closableTab = tabState.closableTab
-  const shown = () =>
-    platform.platform !== "desktop" ||
-    import.meta.env.VITE_DEVECO_CHANNEL !== "beta" ||
-    settings.general.showFileTree()
+  const desktopV2 = () => platform.platform === "desktop" && settings.general.newLayoutDesigns()
+  const shown = () => (desktopV2() ? settings.general.showFileTree() : true)
 
   const messages = () => {
     const id = params.id

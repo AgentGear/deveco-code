@@ -1,20 +1,22 @@
 import { createStore } from "solid-js/store"
-import { createMemo, createSignal, For, Show } from "solid-js"
+import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { useRenderer } from "@opentui/solid"
 import type { TextareaRenderable } from "@opentui/core"
 import { selectedForeground, tint, useTheme } from "../../context/theme"
 import type { QuestionAnswer, QuestionRequest } from "@opencode-ai/sdk/v2"
 import { useSDK } from "../../context/sdk"
 import { SplitBorder } from "../../component/border"
-import { useDialog } from "../../ui/dialog"
 import { useTuiConfig } from "../../context/tui-config"
-import { useBindings } from "../../keymap"
+import { useBindings, useOpencodeModeStack } from "../../keymap"
 
-export function QuestionPrompt(props: { request: QuestionRequest }) {
+const QUESTION_MODE = "question"
+
+export function QuestionPrompt(props: { request: QuestionRequest; directory?: string }) {
   const sdk = useSDK()
   const { theme } = useTheme()
   const renderer = useRenderer()
   const tuiConfig = useTuiConfig()
+  const modeStack = useOpencodeModeStack()
 
   const questions = createMemo(() => props.request.questions)
   const single = createMemo(() => questions().length === 1 && questions()[0]?.multiple !== true)
@@ -47,6 +49,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
     const answers = questions().map((_, i) => store.answers[i] ?? [])
     void sdk.client.question.reply({
       requestID: props.request.id,
+      directory: props.directory,
       answers,
     })
   }
@@ -54,6 +57,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
   function reject() {
     void sdk.client.question.reject({
       requestID: props.request.id,
+      directory: props.directory,
     })
   }
 
@@ -69,6 +73,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
     if (single()) {
       void sdk.client.question.reply({
         requestID: props.request.id,
+        directory: props.directory,
         answers: [[answer]],
       })
       return
@@ -120,9 +125,13 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
     pick(opt.label)
   }
 
-  const dialog = useDialog()
+  onMount(() => {
+    const popMode = modeStack.push(QUESTION_MODE)
+    onCleanup(popMode)
+  })
 
   useBindings(() => ({
+    mode: QUESTION_MODE,
     enabled: store.editing && !confirm(),
     commands: [
       {
@@ -203,7 +212,8 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
     const max = Math.min(total, 9)
 
     return {
-      enabled: dialog.stack.length === 0 && !store.editing,
+      mode: QUESTION_MODE,
+      enabled: !store.editing,
       commands: [
         {
           name: "app.exit",
@@ -376,7 +386,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
                           </text>
                         </box>
                         <Show when={!multi()}>
-                          <text fg={theme.success}>{picked() ? "✓" : ""}</text>
+                          <text fg={theme.success}>{picked() ? " ✓" : ""}</text>
                         </Show>
                       </box>
 
@@ -409,7 +419,7 @@ export function QuestionPrompt(props: { request: QuestionRequest }) {
                     </box>
 
                     <Show when={!multi()}>
-                      <text fg={theme.success}>{customPicked() ? "✓" : ""}</text>
+                      <text fg={theme.success}>{customPicked() ? " ✓" : ""}</text>
                     </Show>
                   </box>
                   <Show when={store.editing}>

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
   AGREEMENT_DEFAULTS,
-  KV_DEVECO_CODE_PRIVACY_ACCEPTED,
+  getPrivacyAcceptedKey,
   resolveAgreementConfig,
   type AgreementConfig,
 } from "../../src/cli/deveco-legal"
@@ -65,8 +65,8 @@ describe("deveco-legal", () => {
     })
   })
 
-  test("KV_DEVECO_CODE_PRIVACY_ACCEPTED is a stable local cache key", () => {
-    expect(KV_DEVECO_CODE_PRIVACY_ACCEPTED).toBe("deveco_code_privacy_accepted")
-    expect(typeof KV_DEVECO_CODE_PRIVACY_ACCEPTED).toBe("string")
+  test("getPrivacyAcceptedKey returns a stable user-scoped cache key", () => {
+    expect(getPrivacyAcceptedKey("user123")).toBe("deveco_code_privacy_accepted_user123")
+    expect(typeof getPrivacyAcceptedKey("test")).toBe("string")
   })
 })

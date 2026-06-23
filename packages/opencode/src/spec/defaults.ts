@@ -1,7 +1,7 @@
 import path from "path"
 import fs from "fs/promises"
 import { Effect } from "effect"
-import type { AppFileSystem } from "@opencode-ai/core/filesystem"
+import type { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
 import * as Log from "@opencode-ai/core/util/log"
 
@@ -59,7 +59,7 @@ async function loadSpecResourcesFromDisk(): Promise<Record<string, EmbeddedSpecF
 export namespace Defaults {
   const log = Log.create({ service: "spec-defaults" })
 
-  export const ensure = Effect.fn("Spec.Defaults.ensure")(function* (version: string, fsys: AppFileSystem.Interface) {
+  export const ensure = Effect.fn("Spec.Defaults.ensure")(function* (version: string, fsys: FSUtil.Interface) {
     const specDir = path.join(Global.Path.data, "specs")
     const versionFile = path.join(specDir, ".version")
 

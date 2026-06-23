@@ -24,7 +24,6 @@ import type {
   SessionMessageCompaction,
   SessionMessageModelSwitched,
   SessionMessageShell,
-  SessionMessageSynthetic,
   SessionMessageUser,
   ToolFileContent,
   ToolTextContent,
@@ -1086,7 +1085,9 @@ function toolOutput(content?: Array<ToolTextContent | ToolFileContent>) {
   return (content ?? [])
     .map((item) => {
       if (item.type === "text") return item.text.trim()
-      return `[file ${item.name ?? item.uri}]`
+      const source =
+        item.source.type === "data" ? "inline data" : item.source.type === "url" ? item.source.url : item.source.uri
+      return `[file ${item.name ?? source}]`
     })
     .filter(Boolean)
     .join("\n")

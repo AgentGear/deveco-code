@@ -26,10 +26,11 @@ import { useSync } from "@tui/context/sync"
 import { useEvent } from "@tui/context/event"
 import { editorSelectionKey, useEditorContext, type EditorSelection } from "@tui/context/editor"
 import { MessageID, PartID } from "@/session/schema"
+import { promptOffsetWidth } from "@/cli/cmd/prompt-display"
 import { createStore, produce, unwrap } from "solid-js/store"
 import { usePromptHistory, type PromptInfo } from "./history"
 import { computePromptTraits } from "./traits"
-import { assign, expandPastedTextPlaceholders } from "./part"
+import { assign, expandPastedTextPlaceholders, expandTrackedPastedText } from "./part"
 import { usePromptStash } from "./stash"
 import { DialogStash } from "../dialog-stash"
 import { type AutocompleteRef, Autocomplete } from "./autocomplete"
@@ -41,6 +42,7 @@ import type { AssistantMessage, FilePart, UserMessage } from "@opencode-ai/sdk/v
 import { TuiEvent } from "../../event"
 import { iife } from "@/util/iife"
 import { Locale } from "@/util/locale"
+import { errorMessage } from "@/util/error"
 import { formatDuration } from "@/util/format"
 import { createColors, createFrames } from "../../ui/spinner.ts"
 import { useDialog } from "@tui/ui/dialog"
@@ -50,23 +52,16 @@ import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
 import { createFadeIn } from "../../util/signal"
 import { DialogSkill } from "../dialog-skill"
-import {
-  confirmWorkspaceFileChanges,
-  openWorkspaceSelect,
-  warpWorkspaceSession,
-  type WorkspaceSelection,
-} from "../dialog-workspace-create"
 import { DialogWorkspaceUnavailable } from "../dialog-workspace-unavailable"
 import { useArgs } from "@tui/context/args"
 import { Flag } from "@opencode-ai/core/flag/flag"
-import { type WorkspaceStatus } from "../workspace-label"
-import { useCommandPalette } from "../../context/command-palette"
-import { useBindings, useCommandShortcut, useLeaderActive, useOpencodeKeymap } from "../../keymap"
+import { OPENCODE_BASE_MODE, useBindings, useCommandShortcut, useLeaderActive, useOpencodeKeymap } from "../../keymap"
 import { useTuiConfig } from "../../context/tui-config"
+import { usePromptWorkspace } from "./workspace"
+import { usePromptMove } from "./move"
 
 export type PromptProps = {
   sessionID?: string
-  workspaceID?: string
   visible?: boolean
   disabled?: boolean
   onSubmit?: () => void
@@ -159,7 +154,6 @@ export function Prompt(props: PromptProps) {
   const status = createMemo(() => sync.data.session_status?.[props.sessionID ?? ""] ?? { type: "idle" })
   const history = usePromptHistory()
   const stash = usePromptStash()
-  const command = useCommandPalette()
   const keymap = useOpencodeKeymap()
   const agentShortcut = useCommandShortcut("agent.cycle")
   const paletteShortcut = useCommandShortcut("command.palette.show")
@@ -203,10 +197,8 @@ export function Prompt(props: PromptProps) {
   })
   const editorContextLabelState = createMemo(() => editor.labelState())
   const [auto, setAuto] = createSignal<AutocompleteRef>()
-  const [workspaceSelection, setWorkspaceSelection] = createSignal<WorkspaceSelection>()
-  const [workspaceCreating, setWorkspaceCreating] = createSignal(false)
-  const [workspaceCreatingDots, setWorkspaceCreatingDots] = createSignal(3)
-  const [warpNotice, setWarpNotice] = createSignal<string>()
+  const workspace = usePromptWorkspace(props.sessionID)
+  const move = usePromptMove({ projectID: project.project, sessionID: () => props.sessionID })
   const [cursorVersion, setCursorVersion] = createSignal(0)
   const currentProviderLabel = createMemo(() => local.model.parsed().provider)
   const hasRightContent = createMemo(() => Boolean(props.right))
@@ -225,90 +217,6 @@ export function Prompt(props: PromptProps) {
     return homePromptTextareaRows(slot, tips)
   })
   const defaultWorkspaceID = createMemo(() => props.workspaceID ?? project.workspace.current())
-
-  function selectWorkspace(selection: WorkspaceSelection | undefined) {
-    setWorkspaceSelection(selection)
-  }
-
-  function setCreatingWorkspace(creating: boolean) {
-    setWorkspaceCreating(creating)
-  }
-
-  function showWarpNotice(name: string) {
-    setWarpNotice(`Warped to ${name}`)
-    setTimeout(() => setWarpNotice(undefined), 4000)
-  }
-
-  async function createWorkspace(selection: Extract<WorkspaceSelection, { type: "new" }>) {
-    setCreatingWorkspace(true)
-    const result = await sdk.client.experimental.workspace
-      .create({ type: selection.workspaceType, branch: null })
-      .catch(() => undefined)
-    if (result == undefined || result.error || !result.data) {
-      selectWorkspace(undefined)
-      setCreatingWorkspace(false)
-      toast.show({
-        message: "Creating workspace failed",
-        variant: "error",
-      })
-      return
-    }
-
-    await project.workspace.sync()
-    const workspace = result.data
-    selectWorkspace({
-      type: "existing",
-      workspaceID: workspace.id,
-      workspaceType: workspace.type,
-      workspaceName: workspace.name,
-    })
-    setCreatingWorkspace(false)
-    return workspace
-  }
-
-  async function warpSession(selection: WorkspaceSelection) {
-    if (!props.sessionID) {
-      selectWorkspace(selection)
-      dialog.clear()
-      if (selection.type === "new") void createWorkspace(selection)
-      return
-    }
-    const sourceWorkspaceID = project.workspace.current()
-    const copyChanges = await confirmWorkspaceFileChanges({ dialog, sdk, sourceWorkspaceID })
-    if (copyChanges === undefined) return
-    selectWorkspace(selection)
-    dialog.clear()
-
-    const workspace =
-      selection.type === "none"
-        ? { id: null, name: "local project" }
-        : selection.type === "existing"
-          ? { id: selection.workspaceID, name: selection.workspaceName }
-          : await createWorkspace(selection)
-    if (!workspace) return
-
-    const warped = await warpWorkspaceSession({
-      dialog,
-      sdk,
-      sync,
-      project,
-      toast,
-      sourceWorkspaceID,
-      workspaceID: workspace.id,
-      sessionID: props.sessionID,
-      copyChanges,
-    })
-    if (warped) showWarpNotice(workspace.name)
-  }
-
-  createEffect(() => {
-    if (!workspaceCreating()) {
-      setWorkspaceCreatingDots(3)
-      return
-    }
-    const timer = setInterval(() => setWorkspaceCreatingDots((dots) => (dots % 3) + 1), 1000)
-    onCleanup(() => clearInterval(timer))
-  })
 
   function promptModelWarning() {
     toast.show({
@@ -331,7 +239,8 @@ export function Prompt(props: PromptProps) {
   let promptPartTypeId = 0
   const event = useEvent()
 
-  event.on(TuiEvent.PromptAppend.type, (evt) => {
+  event.on(TuiEvent.PromptAppend.type, (evt, { workspace }) => {
+    if (workspace !== project.workspace.current()) return
     if (!input || input.isDestroyed) return
     input.insertText(evt.properties.text)
     setTimeout(() => {
@@ -534,7 +443,14 @@ export function Prompt(props: PromptProps) {
           const nonTextParts = store.prompt.parts.filter((p) => p.type !== "text")
 
           const value = text
-          const content = await Editor.open({ value, renderer })
+          const content = await Editor.open({
+            value,
+            renderer,
+            cwd:
+              (project.instance.path().worktree === "/" ? undefined : project.instance.path().worktree) ||
+              project.instance.directory() ||
+              process.cwd(),
+          })
           if (!content) return
 
           input.setText(content)
@@ -627,16 +543,17 @@ export function Prompt(props: PromptProps) {
         enabled: Flag.DEVECO_EXPERIMENTAL_WORKSPACES,
         slashName: "warp",
         run: () => {
-          void openWorkspaceSelect({
-            dialog,
-            sdk,
-            sync,
-            project,
-            toast,
-            onSelect: (selection) => {
-              void warpSession(selection)
-            },
-          })
+          workspace.open()
+        },
+      },
+      {
+        title: "Move session",
+        desc: "Move the session to another project directory",
+        name: "session.move",
+        category: "Session",
+        slashName: "move",
+        run: () => {
+          move.open()
         },
       },
     ].map((entry) => ({
@@ -650,7 +567,7 @@ export function Prompt(props: PromptProps) {
   }))
 
   useBindings(() => ({
-    enabled: command.matcher,
+    mode: OPENCODE_BASE_MODE,
     bindings: tuiConfig.keybinds.gather("prompt.palette", [
       "prompt.submit",
       "prompt.editor",
@@ -660,6 +577,7 @@ export function Prompt(props: PromptProps) {
       "prompt.stash.list",
       "session.interrupt",
       "workspace.set",
+      "session.move",
     ]),
   }))
 
@@ -1029,7 +947,7 @@ export function Prompt(props: PromptProps) {
   }
 
   async function submitInner() {
-    setWarpNotice(undefined)
+    workspace.clearNotice()
 
     // IME: double-defer may fire before onContentChange flushes the last
     // composed character (e.g. Korean hangul) to the store, so read
@@ -1039,7 +957,7 @@ export function Prompt(props: PromptProps) {
       syncExtmarksWithPromptParts()
     }
     if (props.disabled) return false
-    if (workspaceCreating()) return false
+    if (workspace.creating() || move.creating()) return false
     if (auto()?.visible) return false
     if (!store.prompt.input) return false
     const agent = local.agent.current()
@@ -1062,16 +980,7 @@ export function Prompt(props: PromptProps) {
       dialog.replace(() => (
         <DialogWorkspaceUnavailable
           onRestore={() => {
-            void openWorkspaceSelect({
-              dialog,
-              sdk,
-              sync,
-              project,
-              toast,
-              onSelect: (selection) => {
-                void warpSession(selection)
-              },
-            })
+            workspace.open()
             return false
           }}
         />
@@ -1081,16 +990,22 @@ export function Prompt(props: PromptProps) {
 
     const variant = local.model.variant.current()
     let sessionID = props.sessionID
+    let finishMoveProgress = false
     if (sessionID == null) {
-      const workspace = workspaceSelection()
+      const selectedWorkspace = workspace.selection()
       const workspaceID = iife(() => {
-        if (!workspace) return defaultWorkspaceID()
-        if (workspace.type === "none") return undefined
-        if (workspace.type === "existing") return workspace.workspaceID
+        if (!selectedWorkspace) return undefined
+        if (selectedWorkspace.type === "none") return undefined
+        if (selectedWorkspace.type === "existing") return selectedWorkspace.workspaceID
         return undefined
       })
 
+      const directory = await move.getDirectory(store.prompt.input)
+      if (move.pending() && !directory) return false
+      finishMoveProgress = Boolean(move.progress())
+
       const res = await sdk.client.session.create({
+        directory,
         workspace: workspaceID,
         agent: agent.name,
         model: {
@@ -1101,6 +1016,7 @@ export function Prompt(props: PromptProps) {
       })
 
       if (res.error) {
+        if (finishMoveProgress) move.finishSubmit()
         console.log("Creating a session failed:", res.error)
 
         toast.show({
@@ -1115,23 +1031,15 @@ export function Prompt(props: PromptProps) {
     }
 
     const messageID = MessageID.ascending()
-    let inputText = store.prompt.input
-
-    // Expand pasted text inline before submitting
-    const allExtmarks = input.extmarks.getAllForTypeId(promptPartTypeId)
-    const sortedExtmarks = allExtmarks.sort((a: { start: number }, b: { start: number }) => b.start - a.start)
-
-    for (const extmark of sortedExtmarks) {
-      const partIndex = store.extmarkToPartIndex.get(extmark.id)
-      if (partIndex !== undefined) {
-        const part = store.prompt.parts[partIndex]
-        if (part?.type === "text" && part.text) {
-          const before = inputText.slice(0, extmark.start)
-          const after = inputText.slice(extmark.end)
-          inputText = before + part.text + after
-        }
-      }
-    }
+    const inputText = expandTrackedPastedText(
+      store.prompt.input,
+      input.extmarks.getAllForTypeId(promptPartTypeId).flatMap((extmark) => {
+        const partIndex = store.extmarkToPartIndex.get(extmark.id)
+        const part = partIndex === undefined ? undefined : store.prompt.parts[partIndex]
+        if (part?.type !== "text") return []
+        return [{ start: extmark.start, end: extmark.end, text: part.text }]
+      }),
+    )
 
     // Filter out text parts (pasted content) since they're now expanded inline
     const nonTextParts = store.prompt.parts.filter((part) => part.type !== "text")
@@ -1158,6 +1066,7 @@ export function Prompt(props: PromptProps) {
         : []
 
     if (store.mode === "shell") {
+      move.startSubmit()
       void sdk.client.session.shell({
         sessionID,
         agent: agent.name,
@@ -1176,6 +1085,7 @@ export function Prompt(props: PromptProps) {
         return sync.data.command.some((x) => x.name === command)
       })
     ) {
+      move.startSubmit()
       // Parse command from first line, preserve multi-line content in arguments
       const firstLineEnd = inputText.indexOf("\n")
       const firstLine = firstLineEnd === -1 ? inputText : inputText.slice(0, firstLineEnd)
@@ -1199,6 +1109,7 @@ export function Prompt(props: PromptProps) {
           })),
       })
     } else {
+      move.startSubmit()
       sdk.client.session
         .prompt({
           sessionID,
@@ -1243,14 +1154,15 @@ export function Prompt(props: PromptProps) {
       }, 50)
     }
     input.clear()
+    if (finishMoveProgress) move.finishSubmit()
     return true
   }
   const exit = useExit()
 
   function pasteText(text: string, virtualText: string) {
-    const currentOffset = input.visualCursor.offset
+    const currentOffset = input.cursorOffset
     const extmarkStart = currentOffset
-    const extmarkEnd = extmarkStart + virtualText.length
+    const extmarkEnd = extmarkStart + promptOffsetWidth(virtualText)
 
     input.insertText(virtualText + " ")
 
@@ -1342,7 +1254,7 @@ export function Prompt(props: PromptProps) {
   }
 
   async function pasteAttachment(file: { filename?: string; filepath?: string; content: string; mime: string }) {
-    const currentOffset = input.visualCursor.offset
+    const currentOffset = input.cursorOffset
     const extmarkStart = currentOffset
     const pdf = file.mime === "application/pdf"
     const count = store.prompt.parts.filter((x) => {
@@ -1448,41 +1360,11 @@ export function Prompt(props: PromptProps) {
     return `Ask anything... "${list()[store.placeholder % list().length]}"`
   })
 
-  const workspaceLabel = createMemo<
-    | { type: "new"; workspaceType: string }
-    | { type: "existing"; workspaceType: string; workspaceName: string; status?: WorkspaceStatus }
-    | undefined
-  >(() => {
-    const selected = workspaceSelection()
-    if (!selected) {
-      const workspaceID = defaultWorkspaceID()
-      if (props.sessionID || !workspaceID) return
-      const workspace = project.workspace.get(workspaceID)
-      return {
-        type: "existing",
-        workspaceType: workspace?.type ?? "unknown",
-        workspaceName: workspace?.name ?? workspaceID,
-        status: project.workspace.status(workspaceID) ?? "error",
-      }
-    }
-    if (selected.type === "none") return
-    if (props.sessionID && !workspaceCreating()) return
-    if (selected.type === "new") {
-      return {
-        type: "new",
-        workspaceType: selected.workspaceType,
-      }
-    }
-    return {
-      type: "existing",
-      workspaceType: selected.workspaceType,
-      workspaceName: selected.workspaceName,
-      status: selected.type === "existing" ? "connected" : undefined,
-    }
-  })
-
   const spinnerDef = createMemo(() => {
-    const agent = local.agent.current()
+    const agent =
+      status().type !== "idle"
+        ? (local.agent.list().find((a) => a.name === lastUserMessage()?.agent) ?? local.agent.current())
+        : local.agent.current()
     const color = agent ? local.agent.color(agent.name) : theme.border
     return {
       frames: createFrames({
@@ -1501,6 +1383,8 @@ export function Prompt(props: PromptProps) {
       }),
     }
   })
+  const maxHeight = createMemo(() => tuiConfig.prompt?.max_height ?? Math.max(6, Math.floor(dimensions().height / 3)))
+  const moveLabelWidth = createMemo(() => Math.max(12, Math.min(44, dimensions().width - 48)))
 
   function IdleKeybindHintRow() {
     return (
@@ -1537,8 +1421,9 @@ export function Prompt(props: PromptProps) {
 
   return (
     <>
-      <box ref={(r: BoxRenderable) => (anchor = r)} visible={props.visible !== false}>
+      <box ref={(r: BoxRenderable) => (anchor = r)} visible={props.visible !== false} width="100%">
         <box
+          width="100%"
           border={isHomeRoute() ? ["top", "right", "bottom", "left"] : ["left"]}
           borderColor={borderHighlight()}
           customBorderChars={
@@ -1565,14 +1450,16 @@ export function Prompt(props: PromptProps) {
             flexShrink={0}
             backgroundColor={isHomeRoute() ? undefined : theme.backgroundElement}
             flexGrow={1}
+            width="100%"
           >
             <textarea
+              width="100%"
               placeholder={placeholderText()}
               placeholderColor={theme.textMuted}
               textColor={leader() ? theme.textMuted : theme.text}
               focusedTextColor={leader() ? theme.textMuted : theme.text}
               minHeight={isHomeRoute() ? homePromptRows() : 1}
-              maxHeight={isHomeRoute() ? homePromptRows() : 6}
+              maxHeight={isHomeRoute() ? homePromptRows() : maxHeight()}
               onContentChange={() => {
                 const value = input.plainText
                 setStore("prompt", "input", value)
@@ -1807,25 +1694,25 @@ export function Prompt(props: PromptProps) {
                 </text>
               </box>
             </Match>
-            <Match when={warpNotice()}>
+            <Match when={workspace.notice()}>
               {(notice) => (
                 <box paddingLeft={3}>
                   <text fg={theme.accent}>{notice()}</text>
                 </box>
               )}
             </Match>
-            <Match when={workspaceLabel()}>
-              {(workspace) => (
+            <Match when={workspace.label()}>
+              {(label) => (
                 <box paddingLeft={3} flexDirection="row" gap={1}>
-                  <Show when={workspaceCreating()}>
+                  <Show when={workspace.creating()}>
                     <Spinner color={theme.accent} />
                   </Show>
-                  <text fg={workspaceCreating() ? theme.accent : theme.text}>
+                  <text fg={workspace.creating() ? theme.accent : theme.text}>
                     {(() => {
-                      const item = workspace()
+                      const item = label()
                       if (item.type === "new") {
-                        if (workspaceCreating())
-                          return `Creating ${item.workspaceType}${".".repeat(workspaceCreatingDots())}`
+                        if (workspace.creating())
+                          return `Creating ${item.workspaceType}${".".repeat(workspace.creatingDots())}`
                         return (
                           <>
                             Workspace <span style={{ fg: theme.textMuted }}>(new {item.workspaceType})</span>
@@ -1871,6 +1758,21 @@ export function Prompt(props: PromptProps) {
                     </box>
                   </Show>
                 </box>
+              </box>
+            </Match>
+            <Match when={move.progress()}>
+              {(progress) => (
+                <box paddingLeft={3}>
+                  <Spinner color={theme.accent}>
+                    {progress()}
+                    <span style={{ fg: theme.textMuted }}>{".".repeat(move.creatingDots())}</span>
+                  </Spinner>
+                </box>
+              )}
+            </Match>
+            <Match when={move.pendingNew()}>
+              <box paddingLeft={3}>
+                <text fg={theme.accent}>(new working copy)</text>
               </box>
             </Match>
             <Match when={true}>

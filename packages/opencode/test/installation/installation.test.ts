@@ -20,31 +20,28 @@ import { testEffect } from "../lib/effect"
 const encoder = new TextEncoder()
 const sink = { [Symbol.for("effect/Sink/TypeId")]: Symbol.for("effect/Sink/TypeId") } as any
 
-type SpawnResult = string | { stdout?: string; stderr?: string; code?: number }
-
 function mockHttpClient(handler: (request: HttpClientRequest.HttpClientRequest) => Response) {
   const client = HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, handler(request))))
   return Layer.succeed(HttpClient.HttpClient, client)
 }
 
-// spawn handler may return a plain string (stdout, exit 0) or an object controlling stdout/stderr/exit code.
-function mockSpawner(handler: (cmd: string, args: readonly string[]) => SpawnResult = () => "") {
+function mockSpawner(
+  handler: (cmd: string, args: readonly string[]) => string | { code: number; stdout?: string; stderr?: string } = () =>
+    "",
+) {
   const spawner = ChildProcessSpawner.make((command) => {
     const std = ChildProcess.isStandardCommand(command) ? command : undefined
-    const raw = handler(std?.command ?? "", std?.args ?? [])
-    const result =
-      typeof raw === "string"
-        ? { stdout: raw, stderr: "", code: 0 }
-        : { stdout: raw.stdout ?? "", stderr: raw.stderr ?? "", code: raw.code ?? 0 }
+    const result = handler(std?.command ?? "", std?.args ?? [])
+    const output = typeof result === "string" ? { code: 0, stdout: result, stderr: "" } : result
     return Effect.succeed(
       ChildProcessSpawner.makeHandle({
         pid: ChildProcessSpawner.ProcessId(0),
-        exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(result.code)),
+        exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(output.code)),
         isRunning: Effect.succeed(false),
         kill: () => Effect.void,
-        stdin: sink,
-        stdout: result.stdout ? Stream.make(encoder.encode(result.stdout)) : Stream.empty,
-        stderr: result.stderr ? Stream.make(encoder.encode(result.stderr)) : Stream.empty,
+        stdin: { [Symbol.for("effect/Sink/TypeId")]: Symbol.for("effect/Sink/TypeId") } as any,
+        stdout: output.stdout ? Stream.make(encoder.encode(output.stdout)) : Stream.empty,
+        stderr: output.stderr ? Stream.make(encoder.encode(output.stderr)) : Stream.empty,
         all: Stream.empty,
         getInputFd: () => sink,
         getOutputFd: () => Stream.empty,
@@ -64,7 +61,7 @@ function jsonResponse(body: unknown) {
 
 function testLayer(
   httpHandler: (request: HttpClientRequest.HttpClientRequest) => Response,
-  spawnHandler?: (cmd: string, args: readonly string[]) => SpawnResult,
+  spawnHandler?: (cmd: string, args: readonly string[]) => string | { code: number; stdout?: string; stderr?: string },
 ) {
   const appProcess = AppProcess.layer.pipe(Layer.provide(mockSpawner(spawnHandler)))
   return Installation.layer.pipe(Layer.provide(mockHttpClient(httpHandler)), Layer.provide(appProcess))
@@ -123,7 +120,7 @@ describe("installation", () => {
       return jsonResponse({ version: "1.2.3" })
     })).effect("reads the latest version from the deveco npm registry", () =>
       Effect.gen(function* () {
-        const result = yield* Installation.Service.use((svc) => svc.latest("npm"))
+        const result = yield* Installation.use.latest("npm")
         expect(result).toBe("1.2.3")
         expect(latestUrl).toContain("@deveco%2fdeveco-code")
         expect(latestUrl).toContain(`/${InstallationChannel}`)
@@ -136,7 +133,7 @@ describe("installation", () => {
       "detects npm when the global npm list contains the deveco package",
       () =>
         Effect.gen(function* () {
-          expect(yield* Installation.Service.use((svc) => svc.method())).toBe("npm")
+          expect(yield* Installation.use.method()).toBe("npm")
         }),
     )
 
@@ -144,13 +141,13 @@ describe("installation", () => {
       "detects bun when the global bun list contains the deveco package",
       () =>
         Effect.gen(function* () {
-          expect(yield* Installation.Service.use((svc) => svc.method())).toBe("bun")
+          expect(yield* Installation.use.method()).toBe("bun")
         }),
     )
 
     testEffect(testLayer(() => jsonResponse({}), () => "")).effect("falls back to unknown when no manager reports the package", () =>
       Effect.gen(function* () {
-        expect(yield* Installation.Service.use((svc) => svc.method())).toBe("unknown")
+        expect(yield* Installation.use.method()).toBe("unknown")
       }),
     )
   })
@@ -164,7 +161,7 @@ describe("installation", () => {
       }),
     ).effect("runs `npm install -g @deveco/deveco-code@<target>` to upgrade", () =>
       Effect.gen(function* () {
-        yield* Installation.Service.use((svc) => svc.upgrade("npm", "1.2.3"))
+        yield* Installation.use.upgrade("npm", "1.2.3")
         expect(npmCalls.some((c) => c.cmd === "npm" && c.args.includes("install") && c.args.includes("@deveco/deveco-code@1.2.3"))).toBe(true)
       }),
     )
@@ -177,7 +174,7 @@ describe("installation", () => {
       }),
     ).effect("uses the bun package manager for the bun method", () =>
       Effect.gen(function* () {
-        yield* Installation.Service.use((svc) => svc.upgrade("bun", "0.9.0"))
+        yield* Installation.use.upgrade("bun", "0.9.0")
         expect(bunCalls.some((c) => c.cmd === "bun" && c.args.includes("@deveco/deveco-code@0.9.0"))).toBe(true)
       }),
     )
@@ -186,7 +183,7 @@ describe("installation", () => {
       "fails with UpgradeFailedError when the installer exits non-zero",
       () =>
         Effect.gen(function* () {
-          const result = yield* Installation.Service.use((svc) => svc.upgrade("npm", "1.2.3")).pipe(Effect.flip)
+          const result = yield* Installation.use.upgrade("npm", "1.2.3").pipe(Effect.flip)
           expect(result).toBeInstanceOf(UpgradeFailedError)
           expect(result.stderr).toBe("EACCES")
         }),
@@ -194,9 +191,66 @@ describe("installation", () => {
 
     testEffect(testLayer(() => jsonResponse({}), () => "")).effect("fails with UpgradeFailedError for an unknown method", () =>
       Effect.gen(function* () {
-        const result = yield* Installation.Service.use((svc) => svc.upgrade("unknown", "1.2.3")).pipe(Effect.flip)
+        const result = yield* Installation.use.upgrade("unknown", "1.2.3").pipe(Effect.flip)
         expect(result).toBeInstanceOf(UpgradeFailedError)
         expect(result.stderr).toContain("Unknown method")
+      }),
+    )
+  })
+
+  describe("upgrade", () => {
+    testEffect(
+      testLayer(
+        () => jsonResponse({}),
+        (cmd) => {
+          if (cmd === "npm") return { code: 1, stderr: "token=secret command output" }
+          return ""
+        },
+      ),
+    ).effect("returns sanitized typed errors for failed package upgrades", () =>
+      Effect.gen(function* () {
+        const error = yield* Effect.flip(Installation.use.upgrade("npm", "9.9.9"))
+        expect(error).toBeInstanceOf(Installation.UpgradeFailedError)
+        expect(error.stderr).toBe("Upgrade failed for npm (exit code 1).")
+        expect(error.message).toBe(error.stderr)
+        expect(error.stderr).not.toContain("secret")
+        expect(error.stderr).not.toContain("command output")
+      }),
+    )
+
+    testEffect(
+      testLayer(
+        () => new Response("install script with token=secret", { status: 200 }),
+        (cmd, args) => {
+          if (cmd === "bash" && args[0] === "--version") return "GNU bash"
+          if (cmd === "bash" || cmd === "sh") return { code: 1, stderr: "script output with token=secret" }
+          return ""
+        },
+      ),
+    ).effect("returns sanitized typed errors when the curl install script fails", () =>
+      Effect.gen(function* () {
+        const error = yield* Effect.flip(Installation.use.upgrade("curl", "9.9.9"))
+        expect(error).toBeInstanceOf(Installation.UpgradeFailedError)
+        expect(error.stderr).toBe("Upgrade failed for curl (exit code 1).")
+        expect(error.message).toBe(error.stderr)
+        expect(error.stderr).not.toContain("secret")
+        expect(error.stderr).not.toContain("script output")
+      }),
+    )
+
+    testEffect(
+      testLayer(
+        () => new Response("install script", { status: 200 }),
+        (cmd, args) => {
+          if (cmd === "bash" && args[0] === "--version") return { code: 1, stderr: "missing" }
+          if (cmd === "bash") return { code: 1, stderr: "should not execute installer with bash" }
+          if (cmd === "sh") return "ok"
+          return ""
+        },
+      ),
+    ).effect("falls back to sh when bash is unavailable during curl upgrade", () =>
+      Effect.gen(function* () {
+        yield* Installation.use.upgrade("curl", "9.9.9")
       }),
     )
   })

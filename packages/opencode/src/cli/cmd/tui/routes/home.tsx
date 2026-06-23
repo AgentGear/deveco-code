@@ -23,6 +23,9 @@ import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
 import { agreementService, AgreementStatus } from "@/cli/deveco-agreement"
 import { devecoAuth, hasDevecoOAuthEntry } from "@/plugin/deveco"
 import type { AgreementConfig } from "@/cli/deveco-legal"
+import { useEditorContext } from "@tui/context/editor"
+import { useTuiConfig } from "../context/tui-config"
+import { HomeSessionDestinationProvider } from "./home/session-destination"
 
 declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
 
@@ -236,7 +239,7 @@ export function Home() {
   )
 
   return (
-    <>
+    <HomeSessionDestinationProvider>
       <box flexGrow={1} flexDirection="column" minHeight={0}>
         <box
           flexGrow={1}
@@ -315,11 +318,12 @@ export function Home() {
             </box>
           </box>
         </box>
+
         <Toast />
       </box>
       <box width="100%" flexShrink={0}>
         <TuiPluginRuntime.Slot name="home_footer" mode="single_winner" />
       </box>
-    </>
+    </HomeSessionDestinationProvider>
   )
 }

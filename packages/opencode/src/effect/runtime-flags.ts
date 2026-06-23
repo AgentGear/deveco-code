@@ -1,4 +1,4 @@
-import { Config, ConfigProvider, Context, Effect, Layer } from "effect"
+import { Config, ConfigProvider, Context, Effect, Layer, Option } from "effect"
 import { ConfigService } from "@/effect/config-service"
 
 const bool = (name: string) => Config.boolean(name).pipe(Config.withDefault(false))
@@ -10,18 +10,17 @@ const positiveInteger = (name: string) =>
   )
 const experimental = bool("DEVECO_EXPERIMENTAL")
 const enabledByExperimental = (name: string) =>
-  Config.all({ experimental, enabled: bool(name) }).pipe(Config.map((flags) => flags.experimental || flags.enabled))
+  Config.all({ experimental, enabled: Config.boolean(name).pipe(Config.option) }).pipe(
+    Config.map((flags) => Option.getOrElse(flags.enabled, () => flags.experimental)),
+  )
 
 export class Service extends ConfigService.Service<Service>()("@opencode/RuntimeFlags", {
   autoShare: bool("DEVECO_AUTO_SHARE"),
   pure: bool("DEVECO_PURE"),
-  disableDefaultSkills: bool("DEVECO_DISABLE_DEFAULT_SKILLS"),
   disableDefaultPlugins: bool("DEVECO_DISABLE_DEFAULT_PLUGINS"),
-  disableChannelDb: bool("DEVECO_DISABLE_CHANNEL_DB"),
   disableEmbeddedWebUi: bool("DEVECO_DISABLE_EMBEDDED_WEB_UI"),
   disableExternalSkills: bool("DEVECO_DISABLE_EXTERNAL_SKILLS"),
   disableLspDownload: bool("DEVECO_DISABLE_LSP_DOWNLOAD"),
-  skipMigrations: bool("DEVECO_SKIP_MIGRATIONS"),
   disableClaudeCodePrompt: Config.all({
     broad: boolTrue("DEVECO_DISABLE_CLAUDE_CODE"),
     direct: boolTrue("DEVECO_DISABLE_CLAUDE_CODE_PROMPT"),
@@ -42,6 +41,7 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   enableExperimentalModels: bool("DEVECO_ENABLE_EXPERIMENTAL_MODELS"),
   enableQuestionTool: bool("DEVECO_ENABLE_QUESTION_TOOL"),
   experimentalScout: enabledByExperimental("DEVECO_EXPERIMENTAL_SCOUT"),
+  experimentalReferences: enabledByExperimental("DEVECO_EXPERIMENTAL_REFERENCES"),
   experimentalBackgroundSubagents: Config.all({
     experimental,
     enabled: boolTrue("DEVECO_EXPERIMENTAL_BACKGROUND_SUBAGENTS"),
@@ -53,10 +53,10 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   experimentalEventSystem: enabledByExperimental("DEVECO_EXPERIMENTAL_EVENT_SYSTEM"),
   experimentalWorkspaces: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
   experimentalIconDiscovery: enabledByExperimental("DEVECO_EXPERIMENTAL_ICON_DISCOVERY"),
-  exploreTaskRoute: boolTrue("DEVECO_ENABLE_EXPLORE_TASK_ROUTE"),
   outputTokenMax: positiveInteger("DEVECO_EXPERIMENTAL_OUTPUT_TOKEN_MAX"),
   bashDefaultTimeoutMs: positiveInteger("DEVECO_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS"),
-  experimentalNativeLlm: enabledByExperimental("DEVECO_EXPERIMENTAL_NATIVE_LLM"),
+  experimentalNativeLlm: bool("DEVECO_EXPERIMENTAL_NATIVE_LLM"),
+  experimentalWebSockets: bool("DEVECO_EXPERIMENTAL_WEBSOCKETS"),
   client: Config.string("DEVECO_CLIENT").pipe(Config.withDefault("cli")),
 }) {}
 

@@ -1,7 +1,7 @@
 import path from "path"
 import { Effect, Layer, Context, Schema } from "effect"
 import { withStatics } from "@opencode-ai/core/schema"
-import { AppFileSystem } from "@opencode-ai/core/filesystem"
+import { FSUtil } from "@opencode-ai/core/fs-util"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import * as Log from "@opencode-ai/core/util/log"
 import { Defaults } from "./defaults"
@@ -23,7 +23,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Sp
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
-    const fsys = yield* AppFileSystem.Service
+    const fsys = yield* FSUtil.Service
 
     const { specDir } = yield* Defaults.ensure(InstallationVersion, fsys).pipe(Effect.orDie)
 
@@ -43,6 +43,6 @@ export const layer = Layer.effect(
   }),
 )
 
-export const defaultLayer = layer.pipe(Layer.provide(AppFileSystem.defaultLayer))
+export const defaultLayer = layer.pipe(Layer.provide(FSUtil.defaultLayer))
 
 export * as Spec from "."
