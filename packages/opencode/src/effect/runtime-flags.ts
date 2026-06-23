@@ -18,6 +18,7 @@ export class Service extends ConfigService.Service<Service>()("@opencode/Runtime
   autoShare: bool("DEVECO_AUTO_SHARE"),
   pure: bool("DEVECO_PURE"),
   disableDefaultPlugins: bool("DEVECO_DISABLE_DEFAULT_PLUGINS"),
+  disableDefaultSkills: bool("DEVECO_DISABLE_DEFAULT_SKILLS"),
   disableEmbeddedWebUi: bool("DEVECO_DISABLE_EMBEDDED_WEB_UI"),
   disableExternalSkills: bool("DEVECO_DISABLE_EXTERNAL_SKILLS"),
   disableLspDownload: bool("DEVECO_DISABLE_LSP_DOWNLOAD"),
@@ -78,4 +79,7 @@ export const layer = (overrides: Partial<Info> = {}) =>
 
 export const defaultLayer = Service.defaultLayer.pipe(Layer.orDie)
 
+export const node = LayerNode.make(defaultLayer, [])
+
 export * as RuntimeFlags from "./runtime-flags"
+import { LayerNode } from "@opencode-ai/core/effect/layer-node"

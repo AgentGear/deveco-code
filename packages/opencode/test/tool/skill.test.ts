@@ -1,5 +1,6 @@
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
+import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { Cause, Effect, Exit, Layer } from "effect"
 import { afterEach, describe, expect } from "bun:test"
 import path from "path"
@@ -28,7 +29,7 @@ afterEach(async () => {
 
 const node = CrossSpawnSpawner.defaultLayer
 
-const it = testEffect(Layer.mergeAll(ToolRegistry.defaultLayer, node))
+const it = testEffect(Layer.mergeAll(ToolRegistry.defaultLayer, node).pipe(Layer.provide(Ripgrep.defaultLayer)))
 
 describe("tool.skill", () => {
   it.instance("execute returns skill content block with files", () =>
@@ -51,11 +52,11 @@ Use this skill.
       )
       yield* Effect.promise(() => Bun.write(path.join(skill, "scripts", "demo.txt"), "demo"))
 
-      const home = process.env.OPENCODE_TEST_HOME
-      process.env.OPENCODE_TEST_HOME = dir
+      const home = process.env.DEVECO_TEST_HOME
+      process.env.DEVECO_TEST_HOME = dir
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
-          process.env.OPENCODE_TEST_HOME = home
+          process.env.DEVECO_TEST_HOME = home
         }),
       )
 
@@ -67,6 +68,9 @@ Use this skill.
         agent,
       })).find((tool) => tool.id === SkillTool.id)
       if (!tool) throw new Error("Skill tool not found")
+
+      expect(tool.description).not.toContain("tool-skill")
+      expect(tool.description).not.toContain("Skill for tool tests.")
 
       const requests: Array<Omit<PermissionV1.Request, "id" | "sessionID" | "tool">> = []
       const ctx: Tool.Context = {
@@ -94,11 +98,11 @@ Use this skill.
   it.instance("execute preserves not found message", () =>
     Effect.gen(function* () {
       const dir = (yield* TestInstance).directory
-      const home = process.env.OPENCODE_TEST_HOME
-      process.env.OPENCODE_TEST_HOME = dir
+      const home = process.env.DEVECO_TEST_HOME
+      process.env.DEVECO_TEST_HOME = dir
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
-          process.env.OPENCODE_TEST_HOME = home
+          process.env.DEVECO_TEST_HOME = home
         }),
       )
 

@@ -19,7 +19,7 @@ const ptyTest = process.platform === "win32" ? it.live.skip : it.live
 const createPty = Effect.fn("PtyOutputIsolationTest.createPty")(function* (command: string) {
   const pty = yield* Pty.Service
   return yield* Effect.acquireRelease(
-    pty.create({ command, args: [], cwd: "/tmp", env: { TERM: "xterm-256color", OPENCODE_TERMINAL: "1" } }),
+    pty.create({ command, args: [], cwd: "/tmp", env: { TERM: "xterm-256color", DEVECO_TERMINAL: "1" } }),
     (info) => pty.remove(info.id).pipe(Effect.ignore),
   )
 })

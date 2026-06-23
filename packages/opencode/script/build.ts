@@ -23,12 +23,89 @@ const skipInstall = process.argv.includes("--skip-install")
 const sourcemapsFlag = process.argv.includes("--sourcemaps")
 const plugin = createSolidTransformPlugin()
 const skipEmbedWebUi = process.argv.includes("--skip-embed-web-ui")
+const skipAgreementFlag = process.argv.includes("--skip-agreement")
+
+// Load migrations from migration directories
+const migrationDirs = (
+  await fs.promises.readdir(path.join(dir, "migration"), {
+    withFileTypes: true,
+  })
+)
+  .filter((entry) => entry.isDirectory() && /^\d{4}\d{2}\d{2}\d{2}\d{2}\d{2}/.test(entry.name))
+  .map((entry) => entry.name)
+  .sort()
+
+const migrations = await Promise.all(
+  migrationDirs.map(async (name) => {
+    const file = path.join(dir, "migration", name, "migration.sql")
+    const sql = await Bun.file(file).text()
+    const match = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(name)
+    const timestamp = match
+      ? Date.UTC(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+          Number(match[4]),
+          Number(match[5]),
+          Number(match[6]),
+        )
+      : 0
+    return { sql, timestamp, name }
+  }),
+)
+console.log(`Loaded ${migrations.length} migrations`)
+
+// Load default skills from resources/skills/
+async function walkSkills(directory: string): Promise<string[]> {
+  const result: string[] = []
+  async function recurse(d: string) {
+    for (const entry of await fs.promises.readdir(d, { withFileTypes: true })) {
+      const full = path.join(d, entry.name)
+      if (entry.isSymbolicLink()) continue
+      if (entry.isDirectory()) {
+        await recurse(full)
+      } else if (entry.name !== ".DS_Store") {
+        result.push(full)
+      }
+    }
+  }
+  await recurse(directory)
+  return result
+}
+
+const defaultSkillsDir = path.join(dir, "resources/skills")
+const defaultSkillsFiles = fs.existsSync(defaultSkillsDir) ? await walkSkills(defaultSkillsDir) : []
+const defaultSkillsData = Object.fromEntries(
+  await Promise.all(
+    defaultSkillsFiles.map(async (file) => {
+      const rel = path.relative(defaultSkillsDir, file)
+      const content = await Bun.file(file).text()
+      return [rel, content] as const
+    }),
+  ),
+)
+console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
+
+// Load default spec resources
+const defaultSpecDir = path.join(dir, "resources/spec")
+const defaultSpecFiles = fs.existsSync(defaultSpecDir)
+  ? (await fs.promises.readdir(defaultSpecDir)).filter((f) => f !== ".DS_Store")
+  : []
+const defaultSpecData = Object.fromEntries(
+  await Promise.all(
+    defaultSpecFiles.map(async (file) => {
+      const content = await Bun.file(path.join(defaultSpecDir, file)).text()
+      return [file, content] as const
+    }),
+  ),
+)
+console.log(`Loaded ${Object.keys(defaultSpecData).length} default spec resources`)
 
 const createEmbeddedWebUIBundle = async () => {
   console.log(`Building Web UI to embed in the binary`)
   const appDir = path.join(import.meta.dirname, "../../app")
   const dist = path.join(appDir, "dist")
-  await $`OPENCODE_CHANNEL=${Script.channel} bun run --cwd ${appDir} build`
+  await $`DEVECO_CHANNEL=${Script.channel} bun run --cwd ${appDir} build`
   const files = (await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: dist })))
     .map((file) => file.replaceAll("\\", "/"))
     .filter((file) => !file.endsWith(".map"))
@@ -140,6 +217,7 @@ const binaries: Record<string, string> = {}
 if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
+  await $`bun install --os="*" --cpu="*" @ff-labs/fff-bun@${pkg.dependencies["@ff-labs/fff-bun"]}`
 }
 for (const item of targets) {
   const name = [
@@ -158,14 +236,14 @@ for (const item of targets) {
   const localPath = path.resolve(dir, "node_modules/@opentui/core/parser.worker.js")
   const rootPath = path.resolve(dir, "../../node_modules/@opentui/core/parser.worker.js")
   const parserWorker = fs.realpathSync(fs.existsSync(localPath) ? localPath : rootPath)
-  const workerPath = "./src/cli/cmd/tui/worker.ts"
+  const workerPath = "./src/cli/tui/worker.ts"
 
   // Use platform-specific bunfs root path based on target OS
   const bunfsRoot = item.os === "win32" ? "B:/~BUN/root/" : "/$bunfs/root/"
   const workerRelativePath = path.relative(dir, parserWorker).replaceAll("\\", "/")
 
   await Bun.build({
-    conditions: ["node"],
+    conditions: ["bun", "node"],
     tsconfig: "./tsconfig.json",
     plugins: [plugin],
     external: ["node-gyp"],
@@ -179,26 +257,31 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
-      outfile: `dist/${name}/bin/opencode`,
-      execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
+      outfile: `dist/${name}/bin/deveco`,
+      execArgv: [`--user-agent=deveco/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : [])],
     define: {
-      OPENCODE_VERSION: `'${Script.version}'`,
-      OPENCODE_MODELS_DEV: generated.modelsData,
+      FFF_LIBC: JSON.stringify(item.abi === "musl" ? "musl" : "gnu"),
+      DEVECO_VERSION: `'${Script.version}'`,
+      DEVECO_MIGRATIONS: JSON.stringify(migrations),
+      DEVECO_MODELS_DEV: generated.modelsData,
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
-      OPENCODE_WORKER_PATH: workerPath,
-      OPENCODE_CHANNEL: `'${Script.channel}'`,
-      OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
+      DEVECO_WORKER_PATH: workerPath,
+      DEVECO_CHANNEL: `'${Script.channel}'`,
+      DEVECO_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
+      DEVECO_DEFAULT_SKILLS: JSON.stringify(defaultSkillsData),
+      DEVECO_DEFAULT_SPEC_RESOURCES: JSON.stringify(defaultSpecData),
+      DEVECO_SKIP_AGREEMENT: skipAgreementFlag ? "true" : "false",
       ...(item.os === "linux" ? { "process.env.OPENTUI_LIBC": JSON.stringify(item.abi ?? "glibc") } : {}),
     },
   })
 
   // Smoke test: only run if binary is for current platform
   if (item.os === process.platform && item.arch === process.arch && !item.abi) {
-    const binaryPath = `dist/${name}/bin/opencode`
+    const binaryPath = `dist/${name}/bin/deveco`
     console.log(`Running smoke test: ${binaryPath} --version`)
     try {
       const versionOutput = await $`${binaryPath} --version`.text()

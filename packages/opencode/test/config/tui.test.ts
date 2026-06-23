@@ -6,8 +6,8 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
 import { Config } from "@/config/config"
 import { ConfigPlugin } from "@/config/plugin"
-import { CurrentWorkingDirectory } from "@/cli/cmd/tui/config/cwd"
-import { TuiConfig } from "../../src/cli/cmd/tui/config/tui"
+import { CurrentWorkingDirectory } from "@/config/tui-cwd"
+import { TuiConfig } from "../../src/config/tui"
 import { TestInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 
@@ -20,8 +20,8 @@ const globalConfigFiles = ["opencode.json", "opencode.jsonc", "tui.json", "tui.j
 
 const cleanState = Effect.gen(function* () {
   const fs = yield* FSUtil.Service
-  delete process.env.OPENCODE_CONFIG
-  delete process.env.OPENCODE_TUI_CONFIG
+  delete process.env.DEVECO_CONFIG
+  delete process.env.DEVECO_TUI_CONFIG
   yield* Effect.forEach(globalConfigFiles, (file) => fs.remove(file, { force: true }).pipe(Effect.ignore), {
     discard: true,
   })
@@ -72,6 +72,11 @@ const getTuiConfig = (directory: string) =>
     Effect.provide(TuiConfig.defaultLayer.pipe(Layer.provide(Layer.succeed(CurrentWorkingDirectory, directory)))),
   )
 
+const getTuiPluginOrigins = (directory: string) =>
+  TuiConfig.Service.use((svc) => svc.pluginOrigins()).pipe(
+    Effect.provide(TuiConfig.defaultLayer.pipe(Layer.provide(Layer.succeed(CurrentWorkingDirectory, directory)))),
+  )
+
 it.instance("keeps server and tui plugin merge semantics aligned", () =>
   withCleanState(
     Effect.gen(function* () {
@@ -95,6 +100,7 @@ it.instance("keeps server and tui plugin merge semantics aligned", () =>
 
       const server = yield* Config.use.get()
       const tui = yield* getTuiConfig(test.directory)
+      const tuiOrigins = yield* getTuiPluginOrigins(test.directory)
       const serverPlugins = (server.plugin ?? []).map((item) => ConfigPlugin.pluginSpecifier(item))
       const tuiPlugins = (tui.plugin ?? []).map((item) => ConfigPlugin.pluginSpecifier(item))
 
@@ -103,7 +109,6 @@ it.instance("keeps server and tui plugin merge semantics aligned", () =>
       expect(serverPlugins).not.toContain("shared-plugin@1.0.0")
 
       const serverOrigins = server.plugin_origins ?? []
-      const tuiOrigins = tui.plugin_origins ?? []
       expect(serverOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(serverPlugins)
       expect(tuiOrigins.map((item) => ConfigPlugin.pluginSpecifier(item.spec))).toEqual(tuiPlugins)
       expect(serverOrigins.map((item) => item.scope)).toEqual(tuiOrigins.map((item) => item.scope))
@@ -402,7 +407,7 @@ it.instance("top-level keys in tui.json take precedence over nested tui key", ()
   ),
 )
 
-it.instance("project config takes precedence over OPENCODE_TUI_CONFIG (matches OPENCODE_CONFIG)", () =>
+it.instance("project config takes precedence over DEVECO_TUI_CONFIG (matches DEVECO_CONFIG)", () =>
   withCleanState(
     Effect.gen(function* () {
       const fs = yield* FSUtil.Service
@@ -412,7 +417,7 @@ it.instance("project config takes precedence over OPENCODE_TUI_CONFIG (matches O
       yield* fs.writeJson(custom, { theme: "custom", diff_style: "stacked" })
 
       yield* withEnv(
-        "OPENCODE_TUI_CONFIG",
+        "DEVECO_TUI_CONFIG",
         custom,
         Effect.gen(function* () {
           const config = yield* getTuiConfig(test.directory)
@@ -625,7 +630,7 @@ it.instance("keeps explicit configured keybind input undo on Windows", () =>
   ),
 )
 
-it.instance("OPENCODE_TUI_CONFIG provides settings when no project config exists", () =>
+it.instance("DEVECO_TUI_CONFIG provides settings when no project config exists", () =>
   withCleanState(
     Effect.gen(function* () {
       const fs = yield* FSUtil.Service
@@ -634,7 +639,7 @@ it.instance("OPENCODE_TUI_CONFIG provides settings when no project config exists
       yield* fs.writeJson(custom, { theme: "from-env", diff_style: "stacked" })
 
       yield* withEnv(
-        "OPENCODE_TUI_CONFIG",
+        "DEVECO_TUI_CONFIG",
         custom,
         Effect.gen(function* () {
           const config = yield* getTuiConfig(test.directory)
@@ -646,7 +651,7 @@ it.instance("OPENCODE_TUI_CONFIG provides settings when no project config exists
   ),
 )
 
-it.instance("does not derive tui path from OPENCODE_CONFIG", () =>
+it.instance("does not derive tui path from DEVECO_CONFIG", () =>
   withCleanState(
     Effect.gen(function* () {
       const fs = yield* FSUtil.Service
@@ -657,7 +662,7 @@ it.instance("does not derive tui path from OPENCODE_CONFIG", () =>
       yield* fs.writeJson(path.join(customDir, "tui.json"), { theme: "should-not-load" })
 
       yield* withEnv(
-        "OPENCODE_CONFIG",
+        "DEVECO_CONFIG",
         path.join(customDir, "opencode.json"),
         Effect.gen(function* () {
           const config = yield* getTuiConfig(test.directory)
@@ -736,8 +741,9 @@ it.instance("supports tuple plugin specs with options in tui.json", () =>
       })
 
       const config = yield* getTuiConfig(test.directory)
+      const origins = yield* getTuiPluginOrigins(test.directory)
       expect(config.plugin).toEqual([["acme-plugin@1.2.3", { enabled: true, label: "demo" }]])
-      expect(config.plugin_origins).toEqual([
+      expect(origins).toEqual([
         {
           spec: ["acme-plugin@1.2.3", { enabled: true, label: "demo" }],
           scope: "local",
@@ -764,11 +770,12 @@ it.instance("deduplicates tuple plugin specs by name with higher precedence winn
       })
 
       const config = yield* getTuiConfig(test.directory)
+      const origins = yield* getTuiPluginOrigins(test.directory)
       expect(config.plugin).toEqual([
         ["acme-plugin@2.0.0", { source: "project" }],
         ["second-plugin@3.0.0", { source: "project" }],
       ])
-      expect(config.plugin_origins).toEqual([
+      expect(origins).toEqual([
         {
           spec: ["acme-plugin@2.0.0", { source: "project" }],
           scope: "local",
@@ -793,8 +800,9 @@ it.instance("tracks global and local plugin metadata in merged tui config", () =
       yield* fs.writeJson(path.join(test.directory, "tui.json"), { plugin: ["local-plugin@2.0.0"] })
 
       const config = yield* getTuiConfig(test.directory)
+      const origins = yield* getTuiPluginOrigins(test.directory)
       expect(config.plugin).toEqual(["global-plugin@1.0.0", "local-plugin@2.0.0"])
-      expect(config.plugin_origins).toEqual([
+      expect(origins).toEqual([
         {
           spec: "global-plugin@1.0.0",
           scope: "global",

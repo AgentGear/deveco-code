@@ -43,7 +43,7 @@ export const layer = Layer.effectDiscard(
       const insideProject =
         fromProject === "" || (fromProject !== ".." && !fromProject.startsWith(`..${sep}`) && !isAbsolute(fromProject))
       const discovered = new Set(
-        (Flag.OPENCODE_DISABLE_PROJECT_CONFIG || !insideProject
+        (Flag.DEVECO_DISABLE_PROJECT_CONFIG || !insideProject
           ? []
           : yield* fs.up({
               targets: ["AGENTS.md"],
@@ -70,7 +70,7 @@ export const layer = Layer.effectDiscard(
       return files.filter((file): file is File => file !== undefined)
     })
 
-    yield* registry.contribute({
+    yield* registry.register({
       key,
       load: observe().pipe(
         Effect.map((files) =>

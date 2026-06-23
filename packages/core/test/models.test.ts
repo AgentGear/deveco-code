@@ -159,7 +159,7 @@ describe("ModelsDev Service", () => {
       const state = yield* Ref.make({ ...initialState, body: JSON.stringify(fixture2) })
       const result = yield* Effect.acquireUseRelease(
         Effect.sync(() => {
-          Flag.OPENCODE_DISABLE_MODELS_FETCH = false
+          Flag.DEVECO_DISABLE_MODELS_FETCH = false
         }),
         () =>
           provided(
@@ -168,7 +168,7 @@ describe("ModelsDev Service", () => {
           ),
         () =>
           Effect.sync(() => {
-            Flag.OPENCODE_DISABLE_MODELS_FETCH = true
+            Flag.DEVECO_DISABLE_MODELS_FETCH = true
           }),
       )
       expect(result).toEqual(fixture2)

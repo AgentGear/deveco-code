@@ -1,6 +1,5 @@
 import type { Argv } from "yargs"
 import { UI } from "../ui"
-import { formatCliHelpBannerLogoBlock } from "./tui/component/banner-logo"
 import * as prompts from "@clack/prompts"
 import { Installation } from "../../installation"
 import { Global } from "@opencode-ai/core/global"
@@ -54,8 +53,7 @@ export const UninstallCommand = {
 
   handler: async (args: UninstallArgs) => {
     UI.empty()
-    const cols = process.stderr.columns ?? process.stdout.columns
-    UI.println(formatCliHelpBannerLogoBlock(cols))
+    UI.println(UI.logo("  "))
     UI.empty()
     prompts.intro("Uninstall DevEco Code")
 

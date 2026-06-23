@@ -48,7 +48,6 @@ export const Flag = {
 
   DEVECO_WORKSPACE_ID: process.env["DEVECO_WORKSPACE_ID"],
   DEVECO_EXPERIMENTAL_WORKSPACES: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
-  DEVECO_EXPERIMENTAL_SESSION_SWITCHER: enabledByExperimental("DEVECO_EXPERIMENTAL_SESSION_SWITCHER"),
 
   // Evaluated at access time (not module load) because tests, the CLI, and
   // external tooling set these env vars at runtime.

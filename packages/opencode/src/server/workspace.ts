@@ -1,7 +1,7 @@
 ﻿import type { MiddlewareHandler } from "hono"
 import type { UpgradeWebSocket } from "hono/ws"
 import { getAdapter } from "@/control-plane/adapters"
-import { WorkspaceID } from "@/control-plane/schema"
+import { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { WorkspaceContext } from "@/control-plane/workspace-context"
 import { Workspace } from "@/control-plane/workspace"
 import { Flag } from "@opencode-ai/core/flag/flag"
@@ -38,7 +38,7 @@ export function WorkspaceRouterMiddleware(upgrade: UpgradeWebSocket): Middleware
     }
 
     const workspace = await AppRuntime.runPromise(
-      Workspace.Service.use((svc) => svc.get(WorkspaceID.make(workspaceID))),
+      Workspace.Service.use((svc) => svc.get(WorkspaceV2.ID.make(workspaceID))),
     )
 
     if (!workspace) {
@@ -64,7 +64,7 @@ export function WorkspaceRouterMiddleware(upgrade: UpgradeWebSocket): Middleware
         InstanceStore.Service.use((store) => store.load({ directory: target.directory })),
       )
       return WorkspaceContext.provide({
-        workspaceID: WorkspaceID.make(workspaceID),
+        workspaceID: WorkspaceV2.ID.make(workspaceID),
         fn: () => context.provide(ctx, () => next()),
       })
     }
