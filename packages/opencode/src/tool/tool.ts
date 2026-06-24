@@ -7,7 +7,7 @@ import type { Permission } from "../permission"
 import type { SessionID, MessageID } from "../session/schema"
 import * as Truncate from "./truncate"
 import { Agent } from "@/agent/agent"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 
 const log = Log.create({ service: "tool" })
 

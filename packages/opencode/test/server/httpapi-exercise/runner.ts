@@ -126,7 +126,7 @@ function withContext<A, E>(
         const base: ScenarioContext = {
           directory: context.dir?.path,
           headers: (extra) => ({
-            ...(context.dir?.path ? { "x-opencode-directory": context.dir.path } : {}),
+            ...(context.dir?.path ? { "x-deveco-directory": context.dir.path } : {}),
             ...extra,
           }),
           file: (name, content) =>
@@ -258,8 +258,8 @@ function fakeLlmConfig(url: string): Partial<ConfigV1.Info> {
 
 const resetState = Effect.promise(async () => {
   const modules = await runtime()
-  Flag.DEVECO_SERVER_PASSWORD = original.OPENCODE_SERVER_PASSWORD
-  Flag.DEVECO_SERVER_USERNAME = original.OPENCODE_SERVER_USERNAME
+  Flag.DEVECO_SERVER_PASSWORD = original.DEVECO_SERVER_PASSWORD
+  Flag.DEVECO_SERVER_USERNAME = original.DEVECO_SERVER_USERNAME
   await disposeApps()
   await modules.disposeAllInstances()
   await modules.resetDatabase()

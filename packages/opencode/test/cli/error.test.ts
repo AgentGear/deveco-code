@@ -13,9 +13,9 @@ describe("cli.error", () => {
       },
       {
         tag: "ConfigDirectoryTypoError",
-        data: { path: "/tmp/deveco.jsonc", dir: ".opencode", suggestion: "opencode" },
+        data: { path: "/tmp/deveco.jsonc", dir: ".deveco", suggestion: "opencode" },
         expected:
-          'Directory ".opencode" in /tmp/deveco.jsonc is not valid. Rename the directory to "opencode" or remove it. This is a common typo.',
+          'Directory ".deveco" in /tmp/deveco.jsonc is not valid. Rename the directory to "opencode" or remove it. This is a common typo.',
       },
       {
         tag: "ConfigFrontmatterError",
@@ -74,7 +74,7 @@ describe("cli.error", () => {
       "Model not found: anthropic/claude-sonet-4",
       "Did you mean: claude-sonnet-4",
       "Try: `opencode models` to list available models",
-      "Or check your config (opencode.json) provider/model names",
+      "Or check your config (deveco.json) provider/model names",
     ].join("\n")
 
     expect(FormatError({ name: "ProviderModelNotFoundError", data })).toBe(expected)

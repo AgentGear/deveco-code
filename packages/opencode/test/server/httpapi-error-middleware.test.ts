@@ -53,10 +53,10 @@ describe("HttpApi error middleware", () => {
     }),
   )
 
-  it.live("does not expose config defects from generic middleware", () =>
+  it.live("returns invalid config defects as structured client errors", () =>
     Effect.gen(function* () {
       const configError = new ConfigErrorV1.InvalidError({
-        path: "/tmp/opencode.json",
+        path: "/tmp/deveco.json",
         issues: [{ message: "Expected object", path: ["provider", "anthropic", "options"] }],
       })
 
@@ -70,11 +70,16 @@ describe("HttpApi error middleware", () => {
       const body = yield* response.json
       const serialized = JSON.stringify(body)
 
-      expect(response.status).toBe(500)
-      expectUnknownErrorBody(body)
-      expect(serialized).not.toContain("/tmp/opencode.json")
-      expect(serialized).not.toContain("provider")
-      expect(serialized).not.toContain("anthropic")
+      expect(response.status).toBe(400)
+      expect(body).toMatchObject({
+        name: "ConfigInvalidError",
+        data: {
+          path: "/tmp/deveco.json",
+          issues: [{ message: "Expected object", path: ["provider", "anthropic", "options"] }],
+        },
+      })
+      expect(serialized).toContain("/tmp/deveco.json")
+      expect(serialized).toContain("anthropic")
     }),
   )
 

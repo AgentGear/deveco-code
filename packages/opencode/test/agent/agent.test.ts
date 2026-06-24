@@ -14,6 +14,7 @@ import { Plugin } from "../../src/plugin"
 import { Provider } from "../../src/provider/provider"
 import { Skill } from "../../src/skill"
 import { Truncate } from "../../src/tool/truncate"
+import { LocationServiceMap } from "@opencode-ai/core/location-layer"
 
 const agentLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
   Agent.layer.pipe(
@@ -22,6 +23,7 @@ const agentLayer = (flags: Partial<RuntimeFlags.Info> = {}) =>
     Layer.provide(Auth.defaultLayer),
     Layer.provide(Config.defaultLayer),
     Layer.provide(Skill.defaultLayer),
+    Layer.provide(LocationServiceMap.layer),
     Layer.provide(RuntimeFlags.layer(flags)),
   )
 
@@ -131,8 +133,37 @@ it.instance("plan agent denies edits except .deveco/plans/*", () =>
     // Wildcard is denied
     expect(evalPerm(plan, "edit")).toBe("deny")
     // But specific path is allowed
-    expect(Permission.evaluate("edit", ".opencode/plans/foo.md", plan!.permission).action).toBe("allow")
+    expect(Permission.evaluate("edit", ".deveco/plans/foo.md", plan!.permission).action).toBe("allow")
   }),
+)
+
+it.instance("plan agent denies the general subagent by default", () =>
+  Effect.gen(function* () {
+    const plan = yield* load((svc) => svc.get("plan"))
+    expect(plan).toBeDefined()
+    expect(Permission.evaluate("task", "general", plan!.permission).action).toBe("deny")
+    expect(Permission.evaluate("task", "explore", plan!.permission).action).toBe("allow")
+    expect(Permission.evaluate("task", "custom", plan!.permission).action).toBe("allow")
+  }),
+)
+
+it.instance(
+  "user permission can allow the general subagent from plan mode",
+  () =>
+    Effect.gen(function* () {
+      const plan = yield* load((svc) => svc.get("plan"))
+      expect(plan).toBeDefined()
+      expect(Permission.evaluate("task", "general", plan!.permission).action).toBe("allow")
+    }),
+  {
+    config: {
+      permission: {
+        task: {
+          general: "allow",
+        },
+      },
+    },
+  },
 )
 
 it.instance("explore agent denies edit and write", () =>
@@ -171,7 +202,7 @@ it.instance(
     }),
   {
     config: {
-      reference: {
+      references: {
         effect: "github.com/effect/effect-smol",
         effectFull: {
           repository: "Effect-TS/effect",
@@ -624,7 +655,7 @@ it.instance(
   () =>
     Effect.gen(function* () {
       const test = yield* TestInstance
-      const skillDir = path.join(test.directory, ".opencode", "skill", "perm-skill")
+      const skillDir = path.join(test.directory, ".deveco", "skill", "perm-skill")
       yield* Effect.promise(() =>
         Bun.write(
           path.join(skillDir, "SKILL.md"),
@@ -638,11 +669,11 @@ description: Permission skill.
         ),
       )
 
-      const home = process.env.OPENCODE_TEST_HOME
-      process.env.OPENCODE_TEST_HOME = test.directory
+      const home = process.env.DEVECO_TEST_HOME
+      process.env.DEVECO_TEST_HOME = test.directory
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
-          process.env.OPENCODE_TEST_HOME = home
+          process.env.DEVECO_TEST_HOME = home
         }),
       )
 
@@ -651,6 +682,25 @@ description: Permission skill.
       expect(Permission.evaluate("external_directory", target, build!.permission).action).toBe("allow")
     }),
   { git: true },
+)
+
+it.instance(
+  "project reference directories are allowed for external_directory",
+  () =>
+    Effect.gen(function* () {
+      const test = yield* TestInstance
+      const build = yield* load((svc) => svc.get("build"))
+      const target = path.resolve(test.directory, "../docs/reference/notes.md")
+      expect(Permission.evaluate("external_directory", target, build!.permission).action).toBe("allow")
+    }),
+  {
+    git: true,
+    config: {
+      references: {
+        docs: "../docs",
+      },
+    },
+  },
 )
 
 it.instance("defaultAgent returns build when no default_agent config", () =>

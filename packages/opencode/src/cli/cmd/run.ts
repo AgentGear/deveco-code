@@ -367,7 +367,7 @@ export const RunCommand = effectCmd({
         process.exit(1)
       }
 
-      const rules: Permission.Ruleset = args.interactive
+      const rules = args.interactive
         ? []
         : [
             {
@@ -458,7 +458,7 @@ export const RunCommand = effectCmd({
         const name = title()
         const result = await sdk.session.create({
           title: name,
-          permission: rules,
+          permission: rules as never,
         })
         const id = result.data?.id
         if (!id) {
@@ -501,7 +501,7 @@ export const RunCommand = effectCmd({
                 variant: input.variant,
               }
             : undefined,
-          permission: rules,
+          permission: rules as never,
         })
         const id = result.data?.id
         if (!id) {
@@ -767,10 +767,15 @@ export const RunCommand = effectCmd({
 
         if (!args.interactive) {
           const events = await client.event.subscribe()
-          loop(client, events).catch((e) => {
+          const completed = loop(client, events).catch((e) => {
             console.error(e)
-            process.exit(1)
+            process.exitCode = 1
           })
+          async function finish() {
+            if (args.attach) return
+            const error = await completed
+            if (error) process.exitCode = 1
+          }
 
           if (args.command) {
             const result = await client.session.command({
@@ -784,7 +789,9 @@ export const RunCommand = effectCmd({
             if (result.error) {
               if (!emit("error", { error: result.error })) UI.error(formatRunError(result.error))
               process.exitCode = 1
+              return
             }
+            await finish()
             return
           }
 
@@ -799,7 +806,9 @@ export const RunCommand = effectCmd({
           if (result.error) {
             if (!emit("error", { error: result.error })) UI.error(formatRunError(result.error))
             process.exitCode = 1
+            return
           }
+          await finish()
           return
         }
 
@@ -821,6 +830,7 @@ export const RunCommand = effectCmd({
             initialInput,
             createSession: createFreshSession,
             thinking,
+            backgroundSubagents: flags.experimentalBackgroundSubagents,
             demo: args.demo,
           })
         } catch (error) {
@@ -835,7 +845,10 @@ export const RunCommand = effectCmd({
         const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
           const { Server } = await import("@/server/server")
           const request = new Request(input, init)
-          return Server.Default().app.fetch(request)
+          const headers = new Headers(request.headers)
+          const auth = ServerAuth.header()
+          if (auth) headers.set("Authorization", auth)
+          return Server.Default().app.fetch(new Request(request, { headers }))
         }) as typeof globalThis.fetch
 
         try {
@@ -854,6 +867,7 @@ export const RunCommand = effectCmd({
             files,
             initialInput,
             thinking,
+            backgroundSubagents: flags.experimentalBackgroundSubagents,
             demo: args.demo,
           })
         } catch (error) {
@@ -869,7 +883,10 @@ export const RunCommand = effectCmd({
       const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
         const { Server } = await import("@/server/server")
         const request = new Request(input, init)
-        return Server.Default().app.fetch(request)
+        const headers = new Headers(request.headers)
+        const auth = ServerAuth.header()
+        if (auth) headers.set("Authorization", auth)
+        return Server.Default().app.fetch(new Request(request, { headers }))
       }) as typeof globalThis.fetch
       const sdk = createOpencodeClient({
         baseUrl: "http://opencode.internal",

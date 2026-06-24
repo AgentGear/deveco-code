@@ -161,9 +161,9 @@ export const Terminal = (props: TerminalProps) => {
   const theme = useTheme()
   const language = useLanguage()
   const server = useServer()
-  const directory = sdk.directory
-  const client = sdk.client
-  const url = sdk.url
+  const directory = sdk().directory
+  const client = sdk().client
+  const url = sdk().url
   const auth = server.current?.http
   const username = auth?.username ?? "opencode"
   const password = auth?.password ?? ""
@@ -485,7 +485,7 @@ export const Terminal = (props: TerminalProps) => {
             { ptyID: id, directory },
             {
               throwOnError: false,
-              headers: { "x-opencode-ticket": "1" },
+              headers: { "x-deveco-ticket": "1" },
             },
           )
           .catch((err: unknown) => {

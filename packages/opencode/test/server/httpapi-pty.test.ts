@@ -3,7 +3,6 @@ import { NodeHttpServer, NodeServices } from "@effect/platform-node"
 import { PtyID } from "@opencode-ai/core/pty/schema"
 import { Server } from "../../src/server/server"
 import { PtyPaths } from "../../src/server/routes/instance/httpapi/groups/pty"
-import * as Log from "@opencode-ai/core/util/log"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, tmpdir, tmpdirScoped } from "../fixture/fixture"
 import { Config, Effect, Layer, Queue, Schema } from "effect"
@@ -12,8 +11,6 @@ import * as Socket from "effect/unstable/socket/Socket"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
 import { Pty } from "@opencode-ai/core/pty"
 import { testEffect } from "../lib/effect"
-
-void Log.init({ print: false })
 
 const testPty = process.platform === "win32" ? test.skip : test
 
@@ -53,7 +50,7 @@ function serverUrl() {
   return HttpServer.HttpServer.use((server) => Effect.succeed(HttpServer.formatAddress(server.address)))
 }
 
-const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-opencode-directory", dir)
+const directoryHeader = (dir: string) => HttpClientRequest.setHeader("x-deveco-directory", dir)
 
 afterEach(async () => {
   await disposeAllInstances()
@@ -63,7 +60,7 @@ afterEach(async () => {
 describe("pty HttpApi bridge", () => {
   test("serves available shell list through experimental Effect routes", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
-    const response = await app().request(PtyPaths.shells, { headers: { "x-opencode-directory": tmp.path } })
+    const response = await app().request(PtyPaths.shells, { headers: { "x-deveco-directory": tmp.path } })
 
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual(
@@ -79,7 +76,7 @@ describe("pty HttpApi bridge", () => {
 
   testPty("serves PTY JSON routes through experimental Effect routes", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
-    const headers = { "x-opencode-directory": tmp.path }
+    const headers = { "x-deveco-directory": tmp.path }
     const list = await app().request(PtyPaths.list, { headers })
     expect(list.status).toBe(200)
     expect(await list.json()).toEqual([])
@@ -139,9 +136,36 @@ describe("pty HttpApi bridge", () => {
     })
   })
 
+  testPty("hides exited sessions on the legacy surface", async () => {
+    await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
+    const headers = { "x-deveco-directory": tmp.path }
+    const created = await app().request(PtyPaths.create, {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ command: "/usr/bin/env", args: ["sh", "-c", "exit 0"] }),
+    })
+    expect(created.status).toBe(200)
+    const info = await created.json()
+
+    // Exited sessions are retained by core for the canonical surface, but the legacy
+    // routes preserve pre-retention behavior: exited sessions are invisible here.
+    const deadline = Date.now() + 5_000
+    while (Date.now() < deadline) {
+      const found = await app().request(PtyPaths.get.replace(":ptyID", info.id), { headers })
+      if (found.status === 404) break
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    const found = await app().request(PtyPaths.get.replace(":ptyID", info.id), { headers })
+    expect(found.status).toBe(404)
+
+    const list = await app().request(PtyPaths.list, { headers })
+    expect(list.status).toBe(200)
+    expect(await list.json()).toEqual([])
+  })
+
   testPty("disposes PTY sessions with their legacy instance", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
-    const headers = { "x-opencode-directory": tmp.path }
+    const headers = { "x-deveco-directory": tmp.path }
     const created = await app().request(PtyPaths.create, {
       method: "POST",
       headers: { ...headers, "content-type": "application/json" },
@@ -159,7 +183,7 @@ describe("pty HttpApi bridge", () => {
   test("returns 404 for missing PTY websocket before upgrade", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
     const response = await app().request(PtyPaths.connect.replace(":ptyID", PtyID.ascending()), {
-      headers: { "x-opencode-directory": tmp.path },
+      headers: { "x-deveco-directory": tmp.path },
     })
     expect(response.status).toBe(404)
   })
@@ -167,14 +191,14 @@ describe("pty HttpApi bridge", () => {
   test("returns 404 for missing PTY websocket before decoding cursor query", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
     const response = await app().request(`${PtyPaths.connect.replace(":ptyID", PtyID.ascending())}?cursor=a&cursor=b`, {
-      headers: { "x-opencode-directory": tmp.path },
+      headers: { "x-deveco-directory": tmp.path },
     })
     expect(response.status).toBe(404)
   })
 
   test("returns typed not found errors for missing PTY HTTP resources", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
-    const headers = { "x-opencode-directory": tmp.path }
+    const headers = { "x-deveco-directory": tmp.path }
     const missingID = String(PtyID.ascending())
     const expected = {
       _tag: "PtyNotFoundError",
@@ -201,7 +225,7 @@ describe("pty HttpApi bridge", () => {
 
   test("returns typed errors for PTY connect token failures", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
-    const headers = { "x-opencode-directory": tmp.path }
+    const headers = { "x-deveco-directory": tmp.path }
     const missingID = String(PtyID.ascending())
 
     const forbidden = await app().request(PtyPaths.connectToken.replace(":ptyID", missingID), {
@@ -218,7 +242,7 @@ describe("pty HttpApi bridge", () => {
       method: "POST",
       headers: {
         ...headers,
-        "x-opencode-ticket": "1",
+        "x-deveco-ticket": "1",
       },
     })
     expect(missing.status).toBe(404)

@@ -1,10 +1,10 @@
 import { Session } from "@/session/session"
 import { SessionID, MessageID, PartID } from "./schema"
 import { Effect } from "effect"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 import { KNOWLEDGE_TOOL_ID } from "@/tool/oh_knowledge.ts"
 
-const log = Log.create({service: "knowledge"})
+const log = Log.create({ service: "knowledge" })
 
 type OhKnowledgeResult = {
   title: string
@@ -57,7 +57,7 @@ export namespace OhKnowledgeAsync {
     return Effect.gen(function* () {
       if (!state.result || !state.callID || state.result.output === "No answer found for question") return
 
-      log.info("knowledge inject start success")
+      yield* Effect.logInfo("knowledge inject start success")
 
       yield* sessions.updatePart({
         id: PartID.ascending(),

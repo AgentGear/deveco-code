@@ -1,8 +1,8 @@
 import { Hono } from "hono"
 import type { UpgradeWebSocket } from "hono/ws"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 import * as Fence from "./shared/fence"
-import type { WorkspaceID } from "@/control-plane/schema"
+import type { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { Workspace } from "@/control-plane/workspace"
 import { AppRuntime } from "@/effect/app-runtime"
 import { ProxyUtil } from "./proxy-util"
@@ -69,7 +69,7 @@ function statusText(response: unknown) {
   return (response as { source?: Response }).source?.statusText
 }
 
-export function httpEffect(url: string | URL, extra: HeadersInit | undefined, req: Request, workspaceID: WorkspaceID) {
+export function httpEffect(url: string | URL, extra: HeadersInit | undefined, req: Request, workspaceID: WorkspaceV2.ID) {
   return Effect.gen(function* () {
     const syncing = yield* Workspace.Service.use((workspace) => workspace.isSyncing(workspaceID))
     if (!syncing) {
@@ -100,7 +100,7 @@ export function httpEffect(url: string | URL, extra: HeadersInit | undefined, re
     next.delete("content-encoding")
     next.delete("content-length")
 
-    if (sync) yield* Fence.waitEffect(workspaceID, sync, req.signal)
+    if (sync) yield* Fence.wait(workspaceID, sync, req.signal)
     const body = yield* Stream.toReadableStreamEffect(response.stream.pipe(Stream.catchCause(() => Stream.empty)))
     return new Response(body, {
       status: response.status,
@@ -110,13 +110,13 @@ export function httpEffect(url: string | URL, extra: HeadersInit | undefined, re
   }).pipe(
     Effect.provide(FetchHttpClient.layer),
     Effect.catch((err) => {
-      Log.Default.error("Proxy request failed", { url: String(url), error: err instanceof Error ? err.message : String(err) })
+      Log.create({ service: "default" }).error("Proxy request failed", { url: String(url), error: err instanceof Error ? err.message : String(err) })
       return Effect.succeed(new Response(null, { status: 500 }))
     }),
   )
 }
 
-export function http(url: string | URL, extra: HeadersInit | undefined, req: Request, workspaceID: WorkspaceID) {
+export function http(url: string | URL, extra: HeadersInit | undefined, req: Request, workspaceID: WorkspaceV2.ID) {
   return AppRuntime.runPromise(httpEffect(url, extra, req, workspaceID))
 }
 

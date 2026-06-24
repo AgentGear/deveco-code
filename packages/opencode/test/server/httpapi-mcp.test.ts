@@ -3,12 +3,9 @@ import { Context, Effect, Layer } from "effect"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
 import { McpPaths } from "../../src/server/routes/instance/httpapi/groups/mcp"
 import { Server } from "../../src/server/server"
-import * as Log from "@opencode-ai/core/util/log"
 import { resetDatabase } from "../fixture/db"
 import { TestInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
-
-void Log.init({ print: false })
 
 const context = Context.empty() as Context.Context<unknown>
 const testStateLayer = Layer.effectDiscard(
@@ -32,7 +29,7 @@ const request = Effect.fnUntraced(function* (
   init?: RequestInit,
 ) {
   const headers = new Headers(init?.headers)
-  headers.set("x-opencode-directory", directory)
+  headers.set("x-deveco-directory", directory)
   return yield* Effect.promise(() =>
     Promise.resolve(
       handler.handler(
@@ -164,7 +161,7 @@ describe("mcp HttpApi", () => {
       Effect.gen(function* () {
         const tmp = yield* TestInstance
         const dir = tmp.directory
-        const headers = { "x-opencode-directory": dir }
+        const headers = { "x-deveco-directory": dir }
 
         yield* Effect.forEach(["/mcp/demo/auth", "/mcp/demo/auth/authenticate"], (path) =>
           Effect.gen(function* () {

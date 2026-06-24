@@ -1,16 +1,13 @@
-import { afterEach, describe, expect, mock, spyOn } from "bun:test"
+import { afterEach, describe, expect, mock } from "bun:test"
 import { Context, Effect, Layer } from "effect"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { SyncPaths } from "../../src/server/routes/instance/httpapi/groups/sync"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
 import { Session } from "@/session/session"
-import * as Log from "@opencode-ai/core/util/log"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, TestInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { httpApiLayer, requestInDirectory } from "./httpapi-layer"
-
-void Log.init({ print: false })
 
 const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const context = Context.empty() as Context.Context<unknown>
@@ -30,8 +27,7 @@ describe("sync HttpApi", () => {
       Effect.gen(function* () {
         Flag.DEVECO_EXPERIMENTAL_WORKSPACES = true
         const tmp = yield* TestInstance
-        const headers = { "x-opencode-directory": tmp.directory, "content-type": "application/json" }
-        const info = spyOn(Log.create({ service: "server.sync" }), "info")
+        const headers = { "x-deveco-directory": tmp.directory, "content-type": "application/json" }
         const session = yield* Session.use.create({ title: "sync" })
 
         const started = yield* requestInDirectory(SyncPaths.start, tmp.directory, { method: "POST", headers })
@@ -71,8 +67,6 @@ describe("sync HttpApi", () => {
         })
         expect(replayed.status).toBe(200)
         expect(yield* replayed.json).toEqual({ sessionID: session.id })
-        expect(info.mock.calls.some(([message]) => message === "sync replay requested")).toBe(true)
-        expect(info.mock.calls.some(([message]) => message === "sync replay complete")).toBe(true)
       }),
     { git: true, config: { formatter: false, lsp: false } },
   )
@@ -82,7 +76,7 @@ describe("sync HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const tmp = yield* TestInstance
-        const headers = { "x-opencode-directory": tmp.directory, "content-type": "application/json" }
+        const headers = { "x-deveco-directory": tmp.directory, "content-type": "application/json" }
         const cases = [
           {
             path: SyncPaths.history,
@@ -136,7 +130,7 @@ describe("sync HttpApi", () => {
           HttpApiApp.webHandler().handler(
             new Request(`http://localhost${SyncPaths.history}`, {
               method: "POST",
-              headers: { "x-opencode-directory": tmp.directory, "content-type": "application/json" },
+              headers: { "x-deveco-directory": tmp.directory, "content-type": "application/json" },
               body: JSON.stringify({ aggregate: -1 }),
             }),
             context,

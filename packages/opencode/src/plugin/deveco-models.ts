@@ -1,38 +1,79 @@
 import { Schema } from "effect"
-import { Model as ModelSchema, type Info as ProviderInfo } from "../provider/provider"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
-import * as Log from "@opencode-ai/core/util/log"
+import * as ModelsDev from "@opencode-ai/core/models-dev"
+import { Log } from "@opencode-ai/core/util/log"
 
-type Model = Schema.Schema.Type<typeof ModelSchema>
-type ModelsMap = Record<string, Model>
+type ModelsMap = Record<string, ModelsDev.Model>
 
 const DEVECO_BASE_URL = "https://cn.devecostudio.huawei.com"
+const DEVECO_PROVIDER_ID = "deveco"
+export const DEVECO_API_URL = `${DEVECO_BASE_URL}/sse/codeGenie/maas/v2`
+const DEVECO_NPM = "@ai-sdk/openai-compatible"
 
 const log = Log.create({ service: "deveco-models" })
 
+function makeModel(modelId: string, opts: {
+  reasoning?: boolean
+  toolcall?: boolean
+  context?: number
+  output?: number
+  inputModalities?: Array<"text" | "audio" | "image" | "video" | "pdf">
+}): ModelsDev.Model {
+  const inputMods = opts.inputModalities ?? ["text"]
+  return {
+    id: modelId,
+    name: modelId,
+    release_date: "",
+    attachment: false,
+    reasoning: opts.reasoning ?? false,
+    temperature: false,
+    tool_call: opts.toolcall ?? true,
+    limit: {
+      context: opts.context ?? 32768,
+      output: opts.output ?? 8192,
+    },
+    cost: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+    modalities: {
+      input: inputMods,
+      output: ["text"],
+    },
+    provider: {
+      npm: DEVECO_NPM,
+      api: DEVECO_API_URL,
+    },
+  }
+}
+
+function makeProviderInfo(models: ModelsMap): ModelsDev.Provider {
+  return {
+    id: DEVECO_PROVIDER_ID,
+    name: "DevEco Code",
+    env: [],
+    npm: DEVECO_NPM,
+    api: DEVECO_API_URL,
+    models,
+  }
+}
+
 // ============ Default (fallback) config ============
 
+const defaultModels: ModelsMap = {
+  "glm-5": makeModel("glm-5", {
+    reasoning: true,
+    toolcall: true,
+    context: 202752,
+    output: 131072,
+    inputModalities: ["text"],
+  }),
+  "Qwen2.5-VL-72B": makeModel("Qwen2.5-VL-72B", {
+    context: 32768,
+    output: 8192,
+    inputModalities: ["text", "image"],
+  }),
+}
+
 export const DEVECO_DEFAULTS = {
-  provider: {
-    name: "DevEco Code",
-    npm: "@ai-sdk/openai-compatible",
-    api: `${DEVECO_BASE_URL}/sse/codeGenie/maas/v2`,
-    env: [] as string[],
-    models: {
-      "glm-5": {
-        name: "glm-5",
-        reasoning: true,
-        tool_call: true,
-        limit: { context: 202752, output: 131072 },
-        modalities: { input: ["text"], output: ["text"] },
-      },
-      "Qwen2.5-VL-72B": {
-        name: "Qwen2.5-VL-72B",
-        limit: { context: 32768, output: 8192 },
-        modalities: { input: ["text", "image"], output: ["text"] },
-      },
-    },
-  } satisfies ProviderInfo,
+  provider: makeProviderInfo(defaultModels),
   taskDefaultModelMap: {
     small_model: "glm-5",
     ui_verification: "Qwen2.5-VL-72B",
@@ -41,7 +82,7 @@ export const DEVECO_DEFAULTS = {
 }
 
 /** @deprecated Use getDevecoProviderConfig() for dynamic model fetching */
-export const DEVECO_PROVIDER_CONFIG: ProviderInfo = DEVECO_DEFAULTS.provider
+export const DEVECO_PROVIDER_CONFIG: ModelsDev.Provider = DEVECO_DEFAULTS.provider
 
 // ============ API response schema ============
 
@@ -82,24 +123,23 @@ function parseOutputLimit(output: string | number | undefined): number | undefin
   return isNaN(num) ? undefined : num
 }
 
-function mapModelConfigToInternal(config: Schema.Schema.Type<typeof ModelConfigSchema>): Model {
-  const limit: { context?: number; output?: number } = {}
-  if (config.context_window) limit.context = config.context_window
-  const outputLimit = parseOutputLimit(config.output)
-  if (outputLimit) limit.output = outputLimit
-
-  return {
-    name: config.model_id,
-    ...(config.thinking_mode === "on" ? { reasoning: true } : {}),
-    ...(config.tool_call_mode === "tool_calls" ? { tool_call: true } : {}),
-    ...(Object.keys(limit).length > 0 ? { limit } : {}),
-    ...(config.input_modalities && config.input_modalities.length > 0 ? { modalities: { input: config.input_modalities, output: ["text"] } } : {}),
-  } as Model
+function mapModelConfigToInternal(config: Schema.Schema.Type<typeof ModelConfigSchema>): ModelsDev.Model {
+  const inputMods =
+    config.input_modalities && config.input_modalities.length > 0
+      ? [...config.input_modalities]
+      : ["text"]
+  return makeModel(config.model_id, {
+    reasoning: config.thinking_mode === "on",
+    toolcall: config.tool_call_mode === "tool_calls",
+    context: config.context_window,
+    output: parseOutputLimit(config.output),
+    inputModalities: inputMods as Array<"text" | "audio" | "image" | "video" | "pdf">,
+  })
 }
 
 // ============ Cache ============
 
-let cachedConfig: ProviderInfo | null = null
+let cachedConfig: ModelsDev.Provider | null = null
 let cachedTaskDefaultModelMap: Record<string, string> | null = null
 
 // ============ API fetch ============
@@ -150,16 +190,16 @@ async function fetchModelsFromAPI(accessToken: string): Promise<{ models: Models
   return { models, taskDefaultModelMap }
 }
 
-function filterBlacklist(models: ModelsMap, blacklist: string[]): ProviderInfo {
+function filterBlacklist(models: ModelsMap, blacklist: string[]): ModelsDev.Provider {
   const filteredModels = Object.fromEntries(
     Object.entries(models).filter(([id]) => !blacklist.includes(id)),
   )
-  return { ...STATIC_PROVIDER_FIELDS, models: filteredModels }
+  return makeProviderInfo(filteredModels)
 }
 
 // ============ Public API ============
 
-export async function getDevecoProviderConfig(accessToken: string): Promise<ProviderInfo> {
+export async function getDevecoProviderConfig(accessToken: string): Promise<ModelsDev.Provider> {
   if (cachedConfig) return cachedConfig
 
   const defaultBlacklist = DEVECO_DEFAULTS.taskDefaultModelMap.blacklist?.split(",") ?? []
@@ -181,14 +221,6 @@ export async function getDevecoProviderConfig(accessToken: string): Promise<Prov
   }
 }
 
-const STATIC_PROVIDER_FIELDS = {
-  name: "DevEco Code",
-  npm: "@ai-sdk/openai-compatible",
-  api: `${DEVECO_BASE_URL}/sse/codeGenie/maas/v2`,
-  env: [] as string[],
-}
-
 export function getTaskDefaultModelMap(): Record<string, string> {
   return cachedTaskDefaultModelMap ?? DEVECO_DEFAULTS.taskDefaultModelMap
 }
-

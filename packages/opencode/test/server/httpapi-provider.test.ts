@@ -2,14 +2,11 @@ import { describe, expect } from "bun:test"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Effect, Layer } from "effect"
 import path from "path"
-import * as Log from "@opencode-ai/core/util/log"
 import { resetDatabase } from "../fixture/db"
 import { TestInstance } from "../fixture/fixture"
 import { markPluginDependenciesReady } from "../fixture/plugin"
 import { testEffect } from "../lib/effect"
 import { httpApiLayer, request } from "./httpapi-layer"
-
-void Log.init({ print: false })
 
 const testStateLayer = Layer.effectDiscard(
   Effect.acquireRelease(
@@ -108,10 +105,10 @@ function requestCallback(input: { providerID: string; method: number; headers: H
 function writeProviderAuthPlugin(dir: string) {
   return Effect.gen(function* () {
     const fs = yield* FSUtil.Service
-    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".opencode")))
+    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".deveco")))
 
     yield* fs.writeWithDirs(
-      path.join(dir, ".opencode", "plugin", "provider-oauth-parity.ts"),
+      path.join(dir, ".deveco", "plugin", "provider-oauth-parity.ts"),
       [
         "export default {",
         '  id: "test.provider-oauth-parity",',
@@ -143,10 +140,10 @@ function writeProviderAuthPlugin(dir: string) {
 function writeProviderAuthValidationPlugin(dir: string) {
   return Effect.gen(function* () {
     const fs = yield* FSUtil.Service
-    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".opencode")))
+    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".deveco")))
 
     yield* fs.writeWithDirs(
-      path.join(dir, ".opencode", "plugin", "provider-oauth-validation.ts"),
+      path.join(dir, ".deveco", "plugin", "provider-oauth-validation.ts"),
       [
         "export default {",
         '  id: "test.provider-oauth-validation",',
@@ -185,10 +182,10 @@ function writeProviderAuthValidationPlugin(dir: string) {
 function writeFunctionOptionsPlugin(dir: string) {
   return Effect.gen(function* () {
     const fs = yield* FSUtil.Service
-    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".opencode")))
+    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".deveco")))
 
     yield* fs.writeWithDirs(
-      path.join(dir, ".opencode", "plugin", "provider-function-options.ts"),
+      path.join(dir, ".deveco", "plugin", "provider-function-options.ts"),
       [
         "export default {",
         '  id: "test.provider-function-options",',
@@ -217,10 +214,10 @@ function writeFunctionOptionsPlugin(dir: string) {
 function writeProviderModelsMutationPlugin(dir: string) {
   return Effect.gen(function* () {
     const fs = yield* FSUtil.Service
-    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".opencode")))
+    yield* Effect.promise(() => markPluginDependenciesReady(path.join(dir, ".deveco")))
 
     yield* fs.writeWithDirs(
-      path.join(dir, ".opencode", "plugin", "provider-models-mutation.ts"),
+      path.join(dir, ".deveco", "plugin", "provider-models-mutation.ts"),
       [
         "export default {",
         '  id: "test.provider-models-mutation",',
@@ -268,7 +265,7 @@ describe("provider HttpApi", () => {
     Effect.gen(function* () {
       const directory = (yield* TestInstance).directory
       const response = yield* request("/api/provider/missing", {
-        headers: { "x-opencode-directory": directory },
+        headers: { "x-deveco-directory": directory },
       })
 
       expect(response.status).toBe(404)
@@ -285,7 +282,7 @@ describe("provider HttpApi", () => {
     "serves OAuth authorize response shapes",
     Effect.gen(function* () {
       const directory = (yield* TestInstance).directory
-      const headers = { "x-opencode-directory": directory, "content-type": "application/json" }
+      const headers = { "x-deveco-directory": directory, "content-type": "application/json" }
       const api = yield* requestAuthorize({
         providerID,
         method: 0,
@@ -320,7 +317,7 @@ describe("provider HttpApi", () => {
         providerID: "test-oauth-validation",
         method: 0,
         inputs: { token: "nope" },
-        headers: { "x-opencode-directory": directory, "content-type": "application/json" },
+        headers: { "x-deveco-directory": directory, "content-type": "application/json" },
       })
 
       expect(response.status).toBe(400)
@@ -340,7 +337,7 @@ describe("provider HttpApi", () => {
       const response = yield* requestCallback({
         providerID,
         method: 0,
-        headers: { "x-opencode-directory": directory, "content-type": "application/json" },
+        headers: { "x-deveco-directory": directory, "content-type": "application/json" },
       })
 
       expect(response.status).toBe(400)
@@ -363,7 +360,7 @@ describe("provider HttpApi", () => {
           google: { type: "oauth", refresh: "dummy", access: "dummy", expires: 9999999999999 },
         }),
       )
-      const headers = { "x-opencode-directory": directory }
+      const headers = { "x-deveco-directory": directory }
       const providerResponse = yield* request("/provider", { headers })
       const configResponse = yield* request("/config/providers", { headers })
 
@@ -385,7 +382,7 @@ describe("provider HttpApi", () => {
     Effect.gen(function* () {
       const directory = (yield* TestInstance).directory
 
-      const headers = { "x-opencode-directory": directory }
+      const headers = { "x-deveco-directory": directory }
       const providerResponse = yield* request("/provider", { headers })
       const configResponse = yield* request("/config/providers", { headers })
 

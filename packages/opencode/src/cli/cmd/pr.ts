@@ -76,7 +76,7 @@ export const PrCommand = effectCmd({
         const sessionMatch = prInfo.body.match(/https:\/\/opncd\.ai\/s\/([a-zA-Z0-9_-]+)/)
         if (sessionMatch) {
           const sessionUrl = sessionMatch[0]
-          UI.println(`Found opencode session: ${sessionUrl}`)
+          UI.println(`Found deveco session: ${sessionUrl}`)
           UI.println(`Importing session...`)
 
           const importResult = yield* Effect.promise(() =>
@@ -95,7 +95,7 @@ export const PrCommand = effectCmd({
 
     UI.println(`Successfully checked out PR #${prNumber} as branch '${localBranchName}'`)
     UI.println()
-    UI.println("Starting opencode...")
+    UI.println("Starting deveco...")
     UI.println()
 
     const opencodeArgs = sessionId ? ["-s", sessionId] : []

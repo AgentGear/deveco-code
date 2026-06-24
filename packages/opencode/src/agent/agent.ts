@@ -1,3 +1,4 @@
+import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { Config } from "@/config/config"
 import { serviceUse } from "@opencode-ai/core/effect/service-use"
@@ -7,9 +8,6 @@ import { generateObject, streamObject, type ModelMessage } from "ai"
 import { Truncate } from "@/tool/truncate"
 import { Auth } from "../auth"
 import { ProviderTransform } from "@/provider/transform"
-import * as Log from "@opencode-ai/core/util/log"
-
-const log = Log.create({ service: "agent" })
 
 import PROMPT_GENERATE from "./generate.txt"
 import PROMPT_BUILD from "./prompt/build.txt"
@@ -32,9 +30,13 @@ import { InstanceState } from "@/effect/instance-state"
 
 import * as Option from "effect/Option"
 import * as OtelTracer from "@effect/opentelemetry/Tracer"
-import { type DeepMutable } from "@opencode-ai/core/schema"
+import { AbsolutePath, type DeepMutable } from "@opencode-ai/core/schema"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import { ModelV2 } from "@opencode-ai/core/model"
+import { LocationServiceMap } from "@opencode-ai/core/location-layer"
+import { PluginBoot } from "@opencode-ai/core/plugin/boot"
+import { Reference } from "@opencode-ai/core/reference"
+import { Location } from "@opencode-ai/core/location"
 
 export const Info = Schema.Struct({
   name: Schema.String,
@@ -97,17 +99,23 @@ export const layer = Layer.effect(
     const plugin = yield* Plugin.Service
     const skill = yield* Skill.Service
     const provider = yield* Provider.Service
+    const locations = yield* LocationServiceMap
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("Agent.state")(function* (ctx) {
         const cfg = yield* config.get()
         const skillDirs = yield* skill.dirs()
+        const referenceDirs = yield* Effect.gen(function* () {
+          yield* (yield* PluginBoot.Service).wait()
+          return (yield* (yield* Reference.Service).list()).map((reference) => reference.path)
+        }).pipe(Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))))
         const whitelistedDirs = [
           Truncate.GLOB,
           path.join(Global.Path.config, "*"),
           path.join(Global.Path.tmp, "*"),
           path.join(Global.Path.data, "specs", "*"),
           ...skillDirs.map((dir) => path.join(dir, "*")),
+          ...referenceDirs.map((dir) => path.join(dir, "*")),
         ]
         const readonlyExternalDirectory = {
           "*": "ask",
@@ -231,8 +239,11 @@ export const layer = Layer.effect(
               defaults,
               Permission.fromConfig({
                 question: "allow",
-                plan_exit: "ask",
+                plan_exit: "allow",
                 plan_write: "allow",
+                task: {
+                  general: "deny",
+                },
                 bash: "deny",
                 build_project: "deny",
                 check_ets_files: "deny",
@@ -510,20 +521,7 @@ export const layer = Layer.effect(
           })
         }
 
-        return yield* Effect.promise(() =>
-          generateObject(params)
-            .then((r) => r.object)
-            .catch((err) => {
-              log.error("generateObject failed", {
-                provider: model.providerID,
-                model: model.modelID,
-                error: err.message,
-                cause: err.cause instanceof Error ? err.cause.message : err.cause,
-                text: err.text ? String(err.text).slice(0, 500) : undefined,
-              })
-              throw err
-            }),
-        )
+        return yield* Effect.promise(() => generateObject(params).then((r) => r.object))
       }),
     })
   }),
@@ -535,6 +533,18 @@ export const defaultLayer = layer.pipe(
   Layer.provide(Auth.defaultLayer),
   Layer.provide(Config.defaultLayer),
   Layer.provide(Skill.defaultLayer),
+  Layer.provide(LocationServiceMap.layer),
 )
+
+const locationServiceMapNode = LayerNode.make(LocationServiceMap.layer, [])
+
+export const node = LayerNode.make(layer, [
+  Config.node,
+  Auth.node,
+  Plugin.node,
+  Skill.node,
+  Provider.node,
+  locationServiceMapNode,
+])
 
 export * as Agent from "./agent"

@@ -63,7 +63,7 @@ function requestURL(request: HttpServerRequest.HttpServerRequest): URL {
 }
 
 function configuredWorkspaceID(): WorkspaceV2.ID | undefined {
-  return Flag.OPENCODE_WORKSPACE_ID ? WorkspaceV2.ID.make(Flag.OPENCODE_WORKSPACE_ID) : undefined
+  return Flag.DEVECO_WORKSPACE_ID ? WorkspaceV2.ID.make(Flag.DEVECO_WORKSPACE_ID) : undefined
 }
 
 function selectedWorkspaceID(url: URL, sessionWorkspaceID?: WorkspaceV2.ID): WorkspaceV2.ID | undefined {
@@ -84,7 +84,7 @@ function selectedV2WorkspaceID(
 }
 
 function defaultDirectory(request: HttpServerRequest.HttpServerRequest, url: URL): string {
-  return url.searchParams.get("directory") || request.headers["x-opencode-directory"] || process.cwd()
+  return url.searchParams.get("directory") || request.headers["x-deveco-directory"] || process.cwd()
 }
 
 function shouldStayOnControlPlane(request: HttpServerRequest.HttpServerRequest, url: URL): boolean {

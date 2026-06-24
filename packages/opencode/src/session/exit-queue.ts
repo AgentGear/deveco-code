@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 import { Global } from "@opencode-ai/core/global"
 import { LocalCrypto } from "@/security/local-crypto"
 import { sessionChatIdMap } from "@/plugin/deveco"

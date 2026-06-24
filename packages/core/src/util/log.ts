@@ -1,32 +1,9 @@
 export * as Log from "./log"
 
-import path from "path"
-import fs from "fs/promises"
-import { createWriteStream } from "fs"
-import * as Global from "../global"
-import { Schema } from "effect"
-import { Glob } from "./glob"
+import fs from "fs"
+import { Global } from "../global"
 
-export const Level = Schema.Literals(["DEBUG", "INFO", "WARN", "ERROR"]).annotate({
-  identifier: "LogLevel",
-  description: "Log level",
-})
-export type Level = Schema.Schema.Type<typeof Level>
-
-const levelPriority: Record<Level, number> = {
-  DEBUG: 0,
-  INFO: 1,
-  WARN: 2,
-  ERROR: 3,
-}
-const keep = 10
-const initializedRunID = "DEVECO_LOG_INITIALIZED_RUN_ID"
-
-let level: Level = "INFO"
-
-function shouldLog(input: Level): boolean {
-  return levelPriority[input] >= levelPriority[level]
-}
+export type Level = "DEBUG" | "INFO" | "WARN" | "ERROR"
 
 export type Logger = {
   debug(message?: any, extra?: Record<string, any>): void
@@ -44,63 +21,22 @@ export type Logger = {
   }
 }
 
+let level: Level = "INFO"
+
+const levelPriority: Record<Level, number> = {
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
+}
+
+function shouldLog(input: Level): boolean {
+  return levelPriority[input] >= levelPriority[level]
+}
+
 const loggers = new Map<string, Logger>()
 
-export const Default = create({ service: "default" })
-
-export interface Options {
-  print: boolean
-  dev?: boolean
-  level?: Level
-}
-
-let logpath = ""
-export function file() {
-  return logpath
-}
-let write = (msg: any) => {
-  process.stderr.write(msg)
-  return msg.length
-}
-
-export async function init(options: Options) {
-  if (options.level) level = options.level
-  await cleanup(Global.Path.log)
-  if (options.print) return
-  logpath = path.join(
-    Global.Path.log,
-    options.dev ? "dev.log" : new Date().toISOString().split(".")[0].replace(/:/g, "") + ".log",
-  )
-  const runID = process.env.DEVECO_RUN_ID
-  const shouldTruncate = !options.dev || !runID || process.env[initializedRunID] !== runID
-  if (shouldTruncate) await fs.truncate(logpath).catch(() => {})
-  if (options.dev && runID) process.env[initializedRunID] = runID
-  const stream = createWriteStream(logpath, { flags: "a" })
-  write = async (msg: any) => {
-    return new Promise((resolve, reject) => {
-      stream.write(msg, (err) => {
-        if (err) reject(err)
-        else resolve(msg.length)
-      })
-    })
-  }
-}
-
-async function cleanup(dir: string) {
-  const files = (
-    await Glob.scan("????-??-??T??????.log", {
-      cwd: dir,
-      absolute: false,
-      include: "file",
-    }).catch(() => [])
-  )
-    .filter((file) => path.basename(file) === file)
-    .sort()
-  if (files.length <= keep) return
-
-  const doomed = files.slice(0, -keep)
-  await Promise.all(doomed.map((file) => fs.unlink(path.join(dir, file)).catch(() => {})))
-}
+let last = Date.now()
 
 function formatError(error: Error, depth = 0): string {
   const result = error.message
@@ -109,29 +45,61 @@ function formatError(error: Error, depth = 0): string {
     : result
 }
 
-let last = Date.now()
+// ---------------------------------------------------------------------------
+// Output routing
+// ---------------------------------------------------------------------------
+// Legacy: this module used to write to process.stderr, which leaked log
+// lines onto the terminal during TUI startup (before the OpenTUI renderer
+// took over the screen). Route to the same file as the Effect file logger
+// (~/.local/share/deveco/log/deveco.log) so startup output stays clean.
+//
+// Set DEVECO_PRINT_LOGS=1 to mirror to stderr for development / debugging.
+// ---------------------------------------------------------------------------
+let cachedLogPath: string | undefined
+let logPathResolved = false
+
+function resolveLogPath(): string | undefined {
+  if (logPathResolved) return cachedLogPath
+  logPathResolved = true
+  try {
+    cachedLogPath = `${Global.Path.log}/deveco.log`
+    return cachedLogPath
+  } catch {
+    return undefined
+  }
+}
+
+function emit(line: string): void {
+  const file = resolveLogPath()
+  if (file) {
+    try {
+      fs.appendFileSync(file, line)
+    } catch {
+      // swallow — logging must never crash the host process
+    }
+  }
+  if (process.env.DEVECO_PRINT_LOGS === "1") {
+    process.stderr.write(line)
+  }
+}
+
 export function create(tags?: Record<string, any>) {
   tags = tags || {}
 
   const service = tags["service"]
   if (service && typeof service === "string") {
     const cached = loggers.get(service)
-    if (cached) {
-      return cached
-    }
+    if (cached) return cached
   }
 
   function build(message: any, extra?: Record<string, any>) {
-    const prefix = Object.entries({
-      ...tags,
-      ...extra,
-    })
+    const prefix = Object.entries({ ...tags, ...extra })
       .filter(([_, value]) => value !== undefined && value !== null)
       .map(([key, value]) => {
-        const prefix = `${key}=`
-        if (value instanceof Error) return prefix + formatError(value)
-        if (typeof value === "object") return prefix + JSON.stringify(value)
-        return prefix + value
+        const p = `${key}=`
+        if (value instanceof Error) return p + formatError(value)
+        if (typeof value === "object") return p + JSON.stringify(value)
+        return p + value
       })
       .join(" ")
     const next = new Date()
@@ -139,26 +107,19 @@ export function create(tags?: Record<string, any>) {
     last = next.getTime()
     return [next.toISOString().split(".")[0], "+" + diff + "ms", prefix, message].filter(Boolean).join(" ") + "\n"
   }
+
   const result: Logger = {
     debug(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("DEBUG")) {
-        write("DEBUG " + build(message, extra))
-      }
+      if (shouldLog("DEBUG")) emit("DEBUG " + build(message, extra))
     },
     info(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("INFO")) {
-        write("INFO  " + build(message, extra))
-      }
+      if (shouldLog("INFO")) emit("INFO  " + build(message, extra))
     },
     error(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("ERROR")) {
-        write("ERROR " + build(message, extra))
-      }
+      if (shouldLog("ERROR")) emit("ERROR " + build(message, extra))
     },
     warn(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("WARN")) {
-        write("WARN  " + build(message, extra))
-      }
+      if (shouldLog("WARN")) emit("WARN  " + build(message, extra))
     },
     tag(key: string, value: string) {
       if (tags) tags[key] = value
@@ -171,24 +132,31 @@ export function create(tags?: Record<string, any>) {
       const now = Date.now()
       result.info(message, { status: "started", ...extra })
       function stop() {
-        result.info(message, {
-          status: "completed",
-          duration: Date.now() - now,
-          ...extra,
-        })
+        result.info(message, { status: "completed", duration: Date.now() - now, ...extra })
       }
-      return {
-        stop,
-        [Symbol.dispose]() {
-          stop()
-        },
-      }
+      return { stop, [Symbol.dispose]() { stop() } }
     },
   }
 
-  if (service && typeof service === "string") {
-    loggers.set(service, result)
-  }
-
+  if (service && typeof service === "string") loggers.set(service, result)
   return result
+}
+
+export const Default = create({ service: "default" })
+
+export interface Options {
+  print: boolean
+  dev?: boolean
+  level?: Level
+}
+
+let logpath = ""
+export function file() {
+  return logpath || resolveLogPath() || ""
+}
+export function getLevel(): Level {
+  return level
+}
+export async function init(options: Options) {
+  if (options.level) level = options.level
 }

@@ -9,7 +9,7 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { createOpencodeClient } from "@opencode-ai/sdk/v2"
-import { validateSession } from "../../src/cli/cmd/tui/validate-session"
+import { validateSession } from "../../src/cli/tui/validate-session"
 import { InstanceBootstrap } from "../../src/project/bootstrap-service"
 import { InstanceStore } from "../../src/project/instance-store"
 import { MessageID, PartID, SessionID } from "../../src/session/schema"
@@ -41,8 +41,8 @@ const it = testEffect(
 )
 
 const original = {
-  OPENCODE_SERVER_PASSWORD: Flag.OPENCODE_SERVER_PASSWORD,
-  OPENCODE_SERVER_USERNAME: Flag.OPENCODE_SERVER_USERNAME,
+  DEVECO_SERVER_PASSWORD: Flag.DEVECO_SERVER_PASSWORD,
+  DEVECO_SERVER_USERNAME: Flag.DEVECO_SERVER_USERNAME,
 }
 
 type ServerPath = "default" | "raw"
@@ -89,8 +89,8 @@ function serverFetch(
   return HttpServer.HttpServer.use((server) =>
     Effect.sync(() => {
       void serverPath
-      Flag.OPENCODE_SERVER_PASSWORD = input?.password
-      Flag.OPENCODE_SERVER_USERNAME = input?.username
+      Flag.DEVECO_SERVER_PASSWORD = input?.password
+      Flag.DEVECO_SERVER_USERNAME = input?.username
       const baseUrl = HttpServer.formatAddress(server.address)
       return Object.assign(
         async (request: RequestInfo | URL, init?: RequestInit) => {
@@ -286,7 +286,7 @@ function writeStandardFiles(dir: string) {
 function writeProjectSkill(dir: string) {
   return FSUtil.Service.use((fs) =>
     fs.writeWithDirs(
-      path.join(dir, ".opencode", "skills", "project-rest-skill", "SKILL.md"),
+      path.join(dir, ".deveco", "skills", "project-rest-skill", "SKILL.md"),
       `---
 name: project-rest-skill
 description: A project skill visible to REST API prompts.
@@ -329,8 +329,8 @@ function seedMessage(directory: string, sessionID: string) {
 }
 
 afterEach(async () => {
-  Flag.OPENCODE_SERVER_PASSWORD = original.OPENCODE_SERVER_PASSWORD
-  Flag.OPENCODE_SERVER_USERNAME = original.OPENCODE_SERVER_USERNAME
+  Flag.DEVECO_SERVER_PASSWORD = original.DEVECO_SERVER_PASSWORD
+  Flag.DEVECO_SERVER_USERNAME = original.DEVECO_SERVER_USERNAME
   await disposeAllInstances()
   await resetDatabase()
 })
@@ -389,17 +389,17 @@ describe("HttpApi SDK", () => {
           workspaceID,
           onRequest: (value) => (request = value),
         })
-        const file = yield* call(() => sdk.v2.fs.read({ path: "hello.txt" }))
+        const found = yield* call(() => sdk.v2.fs.find({ query: "hello", type: "file" }))
         const url = new URL(request!.url)
 
-        expect(file.response.status).toBe(200)
-        expect(file.data).toMatchObject({ data: { content: "hello" } })
+        expect(found.response.status).toBe(200)
+        expect(found.data).toMatchObject({ data: [{ path: "hello.txt", type: "file" }] })
         expect(url.searchParams.get("directory")).toBe(directory)
         expect(url.searchParams.get("workspace")).toBe(workspaceID)
         expect(url.searchParams.get("location[directory]")).toBe(directory)
         expect(url.searchParams.get("location[workspace]")).toBe(workspaceID)
-        expect(request!.headers.has("x-opencode-directory")).toBe(false)
-        expect(request!.headers.has("x-opencode-workspace")).toBe(false)
+        expect(request!.headers.has("x-deveco-directory")).toBe(false)
+        expect(request!.headers.has("x-deveco-workspace")).toBe(false)
       }),
     ),
   )

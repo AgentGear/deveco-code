@@ -3,15 +3,12 @@ import fs from "fs/promises"
 import { Effect } from "effect"
 import type { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
-import * as Log from "@opencode-ai/core/util/log"
 
 type EmbeddedSkillFile = string | { encoding: "base64"; content: string }
 
 declare const DEVECO_DEFAULT_SKILLS: Record<string, Record<string, EmbeddedSkillFile>> | undefined
 
 export namespace Defaults {
-  const log = Log.create({ service: "skill-defaults" })
-
   export const ensure = Effect.fn("Skill.Defaults.ensure")(function* (version: string, fsys: FSUtil.Interface) {
     const dir = path.join(Global.Path.data, "skills")
     const versionFile = path.join(dir, ".version")
@@ -27,7 +24,7 @@ export namespace Defaults {
       return dir
     }
 
-    log.info("extracting default skills", { version })
+    yield* Effect.logInfo("extracting default skills", { version })
 
     // Backup user-installed skills before cleaning built-in skills
     const userSkillBackupDir = path.join(Global.Path.config, "skills")

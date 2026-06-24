@@ -301,7 +301,7 @@ export const dict = {
   "dialog.mcp.empty": "MCP не налаштовано",
 
   "dialog.lsp.empty": "LSP автоматично виявлені за типами файлів",
-  "dialog.plugins.empty": "Плагіни налаштовані в opencode.json",
+  "dialog.plugins.empty": "Плагіни налаштовані в deveco.json",
 
   "mcp.status.connected": "підключено",
   "mcp.status.failed": "помилка",
@@ -313,6 +313,11 @@ export const dict = {
 
   "dialog.directory.search.placeholder": "Пошук папок",
   "dialog.directory.empty": "Папок не знайдено",
+  "dialog.directory.action.selectFile": "Вибрати файл",
+  "dialog.directory.action.selectFolder": "Вибрати папку",
+  "dialog.directory.root": "Корінь",
+  "dialog.directory.parent": "Батьківська папка",
+  "dialog.directory.readError": "Не вдалося прочитати цю папку",
 
   "app.server.unreachable": "Не вдалося досягти {{server}}",
   "app.server.retrying": "Автоматичне повторення...",
@@ -501,7 +506,7 @@ export const dict = {
   "error.chain.responseBody": "Тіло відповіді:\n{{body}}",
   "error.chain.didYouMean": "Можливо, ви мали на увазі: {{suggestions}}",
   "error.chain.modelNotFound": "Модель не знайдено: {{provider}}/{{model}}",
-  "error.chain.checkConfig": "Перевірте назви провайдерів/моделей у конфігурації (opencode.json)",
+  "error.chain.checkConfig": "Перевірте назви провайдерів/моделей у конфігурації (deveco.json)",
   "error.chain.mcpFailed":
     'Сервер MCP "{{name}}" не працює. Зверніть увагу, OpenCode ще не підтримує автентифікацію MCP.',
   "error.chain.providerAuthFailed": "Автентифікація провайдера не вдалася ({{provider}}): {{message}}",
@@ -759,16 +764,15 @@ export const dict = {
   "settings.general.row.followup.option.queue": "Черга",
   "settings.general.row.followup.option.steer": "Керування",
   "settings.general.row.showFileTree.title": "Дерево файлів",
-  "settings.general.row.showFileTree.description": "Показувати панель дерева файлів у сесіях на робочому столі",
+  "settings.general.row.showFileTree.description": "Показувати панель дерева файлів у сесіях",
   "settings.general.row.showNavigation.title": "Елементи навігації",
   "settings.general.row.showNavigation.description": "Показувати кнопки назад і вперед у заголовку робочого столу",
   "settings.general.row.showSearch.title": "Палітра команд",
-  "settings.general.row.showSearch.description":
-    "Показувати кнопку пошуку та палітри команд у заголовку робочого столу",
+  "settings.general.row.showSearch.description": "Показувати кнопку пошуку та палітри команд у заголовку",
   "settings.general.row.showTerminal.title": "Термінал",
   "settings.general.row.showTerminal.description": "Показувати кнопку термінала в заголовку робочого столу",
   "settings.general.row.showStatus.title": "Статус сервера",
-  "settings.general.row.showStatus.description": "Показувати кнопку статусу сервера в заголовку робочого столу",
+  "settings.general.row.showStatus.description": "Показувати кнопку статусу сервера в заголовку",
   "settings.general.row.reasoningSummaries.title": "Показувати підсумки мислення",
   "settings.general.row.reasoningSummaries.description": "Відображати підсумки мислення моделі на часовій шкалі",
   "settings.general.row.shellToolPartsExpanded.title": "Розгортати частини інструменту оболонки",

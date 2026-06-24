@@ -1,17 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { Context, Schema } from "effect"
 import { HttpApiApp } from "../../src/server/routes/instance/httpapi/server"
-import * as Log from "@opencode-ai/core/util/log"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, tmpdir } from "../fixture/fixture"
-
-void Log.init({ print: false })
 
 const context = Context.empty() as Context.Context<unknown>
 
 function request(route: string, directory: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers)
-  headers.set("x-opencode-directory", directory)
+  headers.set("x-deveco-directory", directory)
   return HttpApiApp.webHandler().handler(
     new Request(`http://localhost${route}`, {
       ...init,

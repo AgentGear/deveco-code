@@ -11,7 +11,7 @@ import { WorkspacePaths } from "../../src/server/routes/instance/httpapi/groups/
 import { EventPaths } from "../../src/server/routes/instance/httpapi/groups/event"
 import { Session } from "@/session/session"
 import { Database } from "@opencode-ai/core/database/database"
-import * as Log from "@opencode-ai/core/util/log"
+import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { Server } from "../../src/server/server"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, provideInstance, tmpdirScoped } from "../fixture/fixture"
@@ -21,8 +21,6 @@ import { Project } from "../../src/project/project"
 import { InstancePaths } from "../../src/server/routes/instance/httpapi/groups/instance"
 import { testEffect } from "../lib/effect"
 import { httpApiLayer, requestInDirectory } from "./httpapi-layer"
-
-void Log.init({ print: false })
 
 const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const workspaceLayer = Workspace.defaultLayer.pipe(
@@ -37,7 +35,7 @@ const it = testEffect(
     InstanceStore.defaultLayer.pipe(Layer.provide(InstanceBootstrap.defaultLayer)),
     Database.defaultLayer,
     httpApiLayer,
-  ),
+  ).pipe(Layer.provide(Ripgrep.defaultLayer)),
 )
 
 function request(path: string, directory: string, init: RequestInit = {}) {
@@ -50,7 +48,7 @@ function requestDefault(path: string, directory: string, init: RequestInit = {})
 
 function requestServer(path: string, directory: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers)
-  headers.set("x-opencode-directory", directory)
+  headers.set("x-deveco-directory", directory)
   return Effect.promise(() => Promise.resolve(Server.Default().app.request(path, { ...init, headers })))
 }
 
@@ -406,7 +404,7 @@ describe("workspace HttpApi", () => {
           headers: {
             "accept-encoding": "br",
             "content-type": "application/json",
-            "x-opencode-workspace": "internal",
+            "x-deveco-workspace": "internal",
           },
           body: JSON.stringify({ $schema: "https://opencode.ai/config.json" }),
         })
@@ -428,8 +426,8 @@ describe("workspace HttpApi", () => {
             body: JSON.stringify({ $schema: "https://opencode.ai/config.json" }),
           },
         ])
-        expect(forwarded[0]?.headers).not.toHaveProperty("x-opencode-directory")
-        expect(forwarded[0]?.headers).not.toHaveProperty("x-opencode-workspace")
+        expect(forwarded[0]?.headers).not.toHaveProperty("x-deveco-directory")
+        expect(forwarded[0]?.headers).not.toHaveProperty("x-deveco-workspace")
 
         const eventURL = new URL(`http://localhost${EventPaths.event}`)
         eventURL.searchParams.set("workspace", workspace.id)

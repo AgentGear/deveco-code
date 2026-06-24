@@ -50,7 +50,7 @@ describe("plugin.auth-override", () => {
       Effect.gen(function* () {
         const tmp = yield* TestInstance
         const fs = yield* FSUtil.Service
-        const pluginDir = path.join(tmp.directory, ".opencode", "plugin")
+        const pluginDir = path.join(tmp.directory, ".deveco", "plugin")
 
         yield* fs.writeWithDirs(
           path.join(pluginDir, "custom-copilot-auth.ts"),

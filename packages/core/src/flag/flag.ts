@@ -7,6 +7,7 @@ export function truthy(key: string) {
 
 const DEVECO_EXPERIMENTAL = truthy("DEVECO_EXPERIMENTAL")
 const copy = process.env["DEVECO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT"]
+const fff = process.env["DEVECO_DISABLE_FFF"]
 
 function enabledByExperimental(key: string) {
   return process.env[key] === undefined ? DEVECO_EXPERIMENTAL : truthy(key)
@@ -31,6 +32,7 @@ export const Flag = {
   DEVECO_FAKE_VCS: process.env["DEVECO_FAKE_VCS"],
   DEVECO_SERVER_PASSWORD: process.env["DEVECO_SERVER_PASSWORD"],
   DEVECO_SERVER_USERNAME: process.env["DEVECO_SERVER_USERNAME"],
+  DEVECO_DISABLE_FFF: fff === undefined ? process.platform === "win32" : truthy("DEVECO_DISABLE_FFF"),
 
   // Experimental
   DEVECO_EXPERIMENTAL,
@@ -48,7 +50,6 @@ export const Flag = {
 
   DEVECO_WORKSPACE_ID: process.env["DEVECO_WORKSPACE_ID"],
   DEVECO_EXPERIMENTAL_WORKSPACES: enabledByExperimental("DEVECO_EXPERIMENTAL_WORKSPACES"),
-  DEVECO_EXPERIMENTAL_SESSION_SWITCHER: enabledByExperimental("DEVECO_EXPERIMENTAL_SESSION_SWITCHER"),
 
   // Evaluated at access time (not module load) because tests, the CLI, and
   // external tooling set these env vars at runtime.

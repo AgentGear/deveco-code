@@ -1,10 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import * as Log from "@opencode-ai/core/util/log"
 import { Server } from "../../src/server/server"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances } from "../fixture/fixture"
-
-void Log.init({ print: false })
 
 afterEach(async () => {
   await disposeAllInstances()
@@ -18,7 +15,7 @@ function app() {
 const PREFLIGHT_HEADERS = {
   origin: "http://localhost:3000",
   "access-control-request-method": "POST",
-  "access-control-request-headers": "content-type, x-opencode-directory",
+  "access-control-request-headers": "content-type, x-deveco-directory",
 }
 
 // effect-smol's HttpMiddleware.cors overwrites `Vary: Origin` with

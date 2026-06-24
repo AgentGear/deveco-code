@@ -9,6 +9,7 @@ import { HttpClient, HttpClientRequest, HttpClientResponse, HttpRouter, HttpServ
 import { layerWebSocketConstructorGlobal } from "effect/unstable/socket/Socket"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Flag } from "@opencode-ai/core/flag/flag"
+import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { registerAdapter } from "../../src/control-plane/adapters"
 import type { WorkspaceAdapter } from "../../src/control-plane/types"
 import { Workspace } from "../../src/control-plane/workspace"
@@ -29,15 +30,12 @@ import { SessionMessage } from "@opencode-ai/core/session/message"
 import { ModelV2 } from "@opencode-ai/core/model"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 import * as DateTime from "effect/DateTime"
-import * as Log from "@opencode-ai/core/util/log"
 import { eq } from "drizzle-orm"
 import { resetDatabase } from "../fixture/db"
 import { disposeAllInstances, provideInstanceEffect, TestInstance, tmpdirScoped } from "../fixture/fixture"
 import { TestLLMServer } from "../lib/llm-server"
 import { testProviderConfig } from "../lib/test-provider"
 import { testEffect } from "../lib/effect"
-
-void Log.init({ print: false })
 
 const originalWorkspaces = Flag.DEVECO_EXPERIMENTAL_WORKSPACES
 const workspaceLayer = Workspace.defaultLayer.pipe(
@@ -69,7 +67,7 @@ const it = testEffect(
     workspaceLayer,
     Database.defaultLayer,
     httpApiLayer,
-  ),
+  ).pipe(Layer.provide(Ripgrep.defaultLayer)),
 )
 
 function pathFor(path: string, params: Record<string, string>) {
@@ -267,7 +265,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const missingSession = SessionID.descending()
         const missingSessionBody = {
           name: "NotFoundError",
@@ -332,7 +330,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const parent = yield* createSession({ title: "parent" })
         const child = yield* createSession({ title: "child", parentID: parent.id })
         const message = yield* createTextMessage(parent.id, "hello")
@@ -443,7 +441,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const session = yield* createSession({ title: "v2 cursor" })
         const firstMessage = yield* insertLegacyAssistantMessage(session.id, 1, 2)
         const secondMessage = yield* insertLegacyAssistantMessage(session.id, 2, 1)
@@ -537,7 +535,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const missing = SessionID.descending()
         const expected = {
           _tag: "SessionNotFoundError",
@@ -577,7 +575,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const session = yield* createSession({ title: "v2 prompt recording" })
 
         const recordPrompt = () =>
@@ -636,23 +634,23 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const session = yield* createSession({ title: "v2 unavailable" })
 
         const compact = yield* request(`/api/session/${session.id}/compact`, { method: "POST", headers })
         expect(compact.status).toBe(503)
         expect(yield* responseJson(compact)).toEqual({
           _tag: "ServiceUnavailableError",
-          message: "V2 session compact is not available yet",
-          service: "v2.session.compact",
+          message: "Session compact is not available yet",
+          service: "session.compact",
         })
 
         const wait = yield* request(`/api/session/${session.id}/wait`, { method: "POST", headers })
         expect(wait.status).toBe(503)
         expect(yield* responseJson(wait)).toEqual({
           _tag: "ServiceUnavailableError",
-          message: "V2 session wait is not available yet",
-          service: "v2.session.wait",
+          message: "Session wait is not available yet",
+          service: "session.wait",
         })
       }),
     { git: true, config: { formatter: false, lsp: false } },
@@ -667,7 +665,7 @@ describe("session HttpApi", () => {
         yield* insertCorruptV2Message(session.id)
 
         const messages = yield* request(`/api/session/${session.id}/message`, {
-          headers: { "x-opencode-directory": test.directory },
+          headers: { "x-deveco-directory": test.directory },
         })
         const messagesBody = yield* responseJson(messages)
         expect(messages.status).toBe(500)
@@ -679,7 +677,7 @@ describe("session HttpApi", () => {
         expect(JSON.stringify(messagesBody)).not.toContain("assistant")
 
         const context = yield* request(`/api/session/${session.id}/context`, {
-          headers: { "x-opencode-directory": test.directory },
+          headers: { "x-deveco-directory": test.directory },
         })
         const contextBody = yield* responseJson(context)
         expect(context.status).toBe(500)
@@ -702,7 +700,7 @@ describe("session HttpApi", () => {
         yield* setLegacySummaryDiff(session.id)
 
         const response = yield* request(pathFor(SessionPaths.get, { sessionID: session.id }), {
-          headers: { "x-opencode-directory": test.directory },
+          headers: { "x-deveco-directory": test.directory },
         })
 
         expect(response.status).toBe(200)
@@ -716,7 +714,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory, "content-type": "application/json" }
+        const headers = { "x-deveco-directory": test.directory, "content-type": "application/json" }
 
         const createdEmpty = yield* requestJson<Session.Info>(SessionPaths.create, {
           method: "POST",
@@ -748,7 +746,7 @@ describe("session HttpApi", () => {
           pathFor(SessionPaths.fork, { sessionID: created.id }),
           {
             method: "POST",
-            headers: { "x-opencode-directory": test.directory },
+            headers: { "x-deveco-directory": test.directory },
           },
         )
         expect(forkedWithoutContentType.id).not.toBe(created.id)
@@ -802,13 +800,13 @@ describe("session HttpApi", () => {
 
         const created = yield* requestJson<Session.Info>(`${SessionPaths.create}?workspace=${workspace.id}`, {
           method: "POST",
-          headers: { "x-opencode-directory": test.directory, "content-type": "application/json" },
+          headers: { "x-deveco-directory": test.directory, "content-type": "application/json" },
           body: JSON.stringify({ title: "workspace session" }),
         })
         const messages = yield* request(
           `${pathFor(SessionPaths.messages, { sessionID: created.id })}?workspace=${workspace.id}`,
           {
-            headers: { "x-opencode-directory": test.directory },
+            headers: { "x-deveco-directory": test.directory },
           },
         )
 
@@ -824,7 +822,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory, "content-type": "application/json" }
+        const headers = { "x-deveco-directory": test.directory, "content-type": "application/json" }
         const session = yield* createSession({ title: "archived" })
         const body = JSON.stringify({ time: { archived: -1 } })
 
@@ -864,7 +862,7 @@ describe("session HttpApi", () => {
           path: "packages/opencode/src",
           directory: currentDir,
         })
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const sessions = (yield* json<Session.Info[]>(
           yield* request(`${SessionPaths.list}?${query}`, { headers }),
         )).map((item) => item.id)
@@ -880,7 +878,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory }
+        const headers = { "x-deveco-directory": test.directory }
         const session = yield* createSession({ title: "messages" })
         yield* createTextMessage(session.id, "first")
         yield* createTextMessage(session.id, "second")
@@ -900,7 +898,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory, "content-type": "application/json" }
+        const headers = { "x-deveco-directory": test.directory, "content-type": "application/json" }
         const session = yield* createSession({ title: "messages" })
         const first = yield* createTextMessage(session.id, "first")
         const second = yield* createTextMessage(session.id, "second")
@@ -945,7 +943,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory, "content-type": "application/json" }
+        const headers = { "x-deveco-directory": test.directory, "content-type": "application/json" }
         const session = yield* createSession({ title: "part mismatch" })
         const message = yield* createTextMessage(session.id, "first")
         const response = yield* request(
@@ -971,7 +969,7 @@ describe("session HttpApi", () => {
     () =>
       Effect.gen(function* () {
         const test = yield* TestInstance
-        const headers = { "x-opencode-directory": test.directory, "content-type": "application/json" }
+        const headers = { "x-deveco-directory": test.directory, "content-type": "application/json" }
         const session = yield* createSession({ title: "remaining" })
 
         expect(
