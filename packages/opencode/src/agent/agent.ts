@@ -247,8 +247,6 @@ export const layer = Layer.effect(
                 bash: "deny",
                 build_project: "deny",
                 check_ets_files: "deny",
-                perform_ui_action: "deny",
-                get_app_ui_tree: "deny",
                 start_app: "deny",
                 hdc_log: "deny",
                 switch_cwd: "deny",
