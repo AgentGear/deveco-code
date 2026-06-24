@@ -1,9 +1,12 @@
 import type { NamedError } from "@opencode-ai/core/util/error"
+import { Log } from "@opencode-ai/core/util/log"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Cause, Clock, Duration, Effect, Schedule } from "effect"
 import { MessageV2 } from "./message-v2"
 import { iife } from "@/util/iife"
 import { isRecord } from "@/util/record"
+
+const log = Log.create({ service: "session.retry" })
 
 export type Err = ReturnType<NamedError["toObject"]>
 
@@ -21,18 +24,22 @@ export type Retryable = {
     label: string
     link?: string
   }
+  maxAttempts?: number
+  delays?: number[]
 }
 
 export const RETRY_INITIAL_DELAY = 2000
 export const RETRY_BACKOFF_FACTOR = 2
 export const RETRY_MAX_DELAY_NO_HEADERS = 30_000 // 30 seconds
 export const RETRY_MAX_DELAY = 2_147_483_647 // max 32-bit signed integer for setTimeout
+export const QUEUE_RETRY_DELAY = 5000
 
 function cap(ms: number) {
   return Math.min(ms, RETRY_MAX_DELAY)
 }
 
-export function delay(attempt: number, error?: SessionV1.APIError) {
+export function delay(attempt: number, error?: SessionV1.APIError, isQueue?: boolean) {
+  if (isQueue) return QUEUE_RETRY_DELAY
   if (error) {
     const headers = error.data.responseHeaders
     if (headers) {
@@ -68,8 +75,35 @@ export function delay(attempt: number, error?: SessionV1.APIError) {
 export function retryable(error: Err, provider: string) {
   // context overflow errors should not be retried
   if (SessionV1.ContextOverflowError.isInstance(error)) return undefined
+  // Queue error detection
+  if (SessionV1.QueueError.isInstance(error)) {
+    log.error("queue error matched", { position: error.data.position, message: error.data.message })
+    return { message: error.data.message }
+  }
+  // ModelServiceRateLimit error detection
+  if (SessionV1.ModelServiceRateLimitError.isInstance(error)) {
+    log.error("ModelServiceRateLimit error matched", { provider, message: error.data.message })
+    return {
+      message: error.data.message,
+      maxAttempts: 3,
+      delays: [10_000, 20_000, 30_000],
+    }
+  }
   if (SessionV1.APIError.isInstance(error)) {
     const status = error.data.statusCode
+    // 403 UserRateLimit detection
+    if (status === 403) {
+      const body = parseJSON(error.data.responseBody)
+      const errorType = typeof body?.error?.type === "string" ? body.error.type : ""
+      if (errorType === "UserRateLimit") {
+        const errorMsg = typeof body?.error?.message === "string" ? body.error.message : error.data.message
+        return {
+          message: errorMsg,
+          maxAttempts: 3,
+          delays: [10_000, 20_000, 30_000],
+        }
+      }
+    }
     // 5xx errors are transient server failures and should always be retried,
     // even when the provider SDK doesn't explicitly mark them as retryable.
     if (!error.data.isRetryable && !(status !== undefined && status >= 500)) return undefined
@@ -173,18 +207,56 @@ function parseJSON(value: unknown) {
   })
 }
 
+// Error categories for per-category attempt tracking — resetting the counter
+// on category change gives each maxAttempts error type its own retry budget.
+function getRetryCategory(error: Err): string {
+  if (SessionV1.QueueError.isInstance(error)) return "queue"
+  if (SessionV1.ModelServiceRateLimitError.isInstance(error)) return "model_service_rate_limit"
+  if (SessionV1.APIError.isInstance(error)) {
+    const status = error.data.statusCode
+    if (status === 403) {
+      const body = parseJSON(error.data.responseBody)
+      if (typeof body?.error?.type === "string" && body.error.type === "UserRateLimit") {
+        return "403_user_rate_limit"
+      }
+    }
+    return `api_${status ?? "unknown"}`
+  }
+  return "unknown"
+}
+
 export function policy(opts: {
   provider: string
   parse: (error: unknown) => Err
   set: (input: { attempt: number; message: string; action?: Retryable["action"]; next: number }) => Effect.Effect<void>
 }) {
+  let lastCategory: string | undefined
+  let categoryAttempt = 0
+
   return Schedule.fromStepWithMetadata(
     Effect.succeed((meta: Schedule.InputMetadata<unknown>) => {
       const error = opts.parse(meta.input)
       const retry = retryable(error, opts.provider)
       if (!retry) return Cause.done(meta.attempt)
+
+      const category = getRetryCategory(error)
+      if (category !== lastCategory) {
+        categoryAttempt = 1
+        lastCategory = category
+      } else {
+        categoryAttempt++
+      }
+
+      if (retry.maxAttempts !== undefined && categoryAttempt > retry.maxAttempts) {
+        return Cause.done(meta.attempt)
+      }
+
       return Effect.gen(function* () {
-        const wait = delay(meta.attempt, SessionV1.APIError.isInstance(error) ? error : undefined)
+        const isQueue = SessionV1.QueueError.isInstance(error)
+        const effectiveAttempt = retry.maxAttempts !== undefined ? categoryAttempt : meta.attempt
+        const wait = retry.delays
+          ? (retry.delays[effectiveAttempt - 1] ?? retry.delays[retry.delays.length - 1]!)
+          : delay(effectiveAttempt, SessionV1.APIError.isInstance(error) ? error : undefined, isQueue)
         const now = yield* Clock.currentTimeMillis
         yield* opts.set({
           attempt: meta.attempt,

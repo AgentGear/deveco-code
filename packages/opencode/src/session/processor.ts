@@ -16,6 +16,7 @@ import { isOverflow } from "./overflow"
 import { PartID } from "./schema"
 import type { SessionID } from "./schema"
 import { SessionRetry } from "./retry"
+import { ExitQueue } from "./exit-queue"
 import { SessionStatus } from "./status"
 import { SessionSummary } from "./summary"
 import type { Provider } from "@/provider/provider"
@@ -106,6 +107,7 @@ export const layer = Layer.effect(
     const events = yield* EventV2Bridge.Service
     const flags = yield* RuntimeFlags.Service
     const database = yield* Database.Service
+    const exitQueue = yield* ExitQueue.Service
 
     const create = Effect.fn("SessionProcessor.create")(function* (input: Input) {
       // Pre-capture snapshot before the LLM stream starts. The AI SDK
@@ -982,6 +984,10 @@ export const layer = Layer.effect(
             Effect.onInterrupt(() =>
               Effect.gen(function* () {
                 aborted = true
+                // Exit queue on interrupt
+                if (ctx.model?.id) {
+                  yield* exitQueue.exit(ctx.sessionID, ctx.model.id).pipe(Effect.forkIn(scope), Effect.ignore)
+                }
                 if (!ctx.assistantMessage.error) {
                   yield* halt(new DOMException("Aborted", "AbortError"))
                 }
@@ -1027,6 +1033,11 @@ export const layer = Layer.effect(
             Effect.ensuring(cleanup()),
           )
 
+          // Exit queue on success
+          if (ctx.model?.id) {
+            yield* exitQueue.exit(ctx.sessionID, ctx.model.id).pipe(Effect.forkIn(scope), Effect.ignore)
+          }
+
           if (ctx.needsCompaction) return "compact"
           if (ctx.blocked || ctx.assistantMessage.error) return "stop"
           return "continue"
@@ -1056,6 +1067,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Permission.defaultLayer),
     Layer.provide(Plugin.defaultLayer),
     Layer.provide(SessionSummary.defaultLayer),
+    Layer.provide(ExitQueue.defaultLayer),
     Layer.provide(SessionStatus.defaultLayer),
     Layer.provide(Image.defaultLayer),
     Layer.provide(Config.defaultLayer),
@@ -1074,6 +1086,7 @@ export const node = LayerNode.make(layer, [
   Permission.node,
   Plugin.node,
   SessionSummary.node,
+  ExitQueue.node,
   SessionStatus.node,
   Image.node,
   EventV2Bridge.node,
