@@ -15,7 +15,7 @@ export const dict = {
   "nav.home": "首页",
   "nav.openMenu": "打开菜单",
   "nav.getStartedFree": "免费开始",
-  "nav.logoAlt": "OpenCode",
+  "nav.logoAlt": "DevEco Code",
 
   "nav.context.copyLogo": "复制 Logo (SVG)",
   "nav.context.copyWordmark": "复制商标 (SVG)",

@@ -8,9 +8,6 @@ import { generateObject, streamObject, type ModelMessage } from "ai"
 import { Truncate } from "@/tool/truncate"
 import { Auth } from "../auth"
 import { ProviderTransform } from "@/provider/transform"
-import * as Log from "@opencode-ai/core/util/log"
-
-const log = Log.create({ service: "agent" })
 
 import PROMPT_GENERATE from "./generate.txt"
 import PROMPT_BUILD from "./prompt/build.txt"
@@ -524,20 +521,7 @@ export const layer = Layer.effect(
           })
         }
 
-        return yield* Effect.promise(() =>
-          generateObject(params)
-            .then((r) => r.object)
-            .catch((err) => {
-              log.error("generateObject failed", {
-                provider: model.providerID,
-                model: model.modelID,
-                error: err.message,
-                cause: err.cause instanceof Error ? err.cause.message : err.cause,
-                text: err.text ? String(err.text).slice(0, 500) : undefined,
-              })
-              throw err
-            }),
-        )
+        return yield* Effect.promise(() => generateObject(params).then((r) => r.object))
       }),
     })
   }),

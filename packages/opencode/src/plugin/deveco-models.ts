@@ -1,7 +1,7 @@
 import { Schema } from "effect"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import * as ModelsDev from "@opencode-ai/core/models-dev"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 
 type ModelsMap = Record<string, ModelsDev.Model>
 

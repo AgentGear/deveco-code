@@ -1,9 +1,9 @@
 import { createMemo } from "solid-js"
-import { DialogSelect } from "@tui/ui/dialog-select"
-import { useDialog } from "@tui/ui/dialog"
+import { DialogSelect } from "@opencode-ai/tui/ui/dialog-select"
+import { useDialog } from "@opencode-ai/tui/ui/dialog"
 import open from "open"
-import { useKV } from "@tui/context/kv"
-import { AGREEMENT_DEFAULTS } from "deveco/cli/deveco-legal"
+import { useKV } from "@opencode-ai/tui/context/kv"
+import { AGREEMENT_DEFAULTS } from "@/cli/deveco-legal"
 
 export function DialogPrivacy() {
   const dialog = useDialog()

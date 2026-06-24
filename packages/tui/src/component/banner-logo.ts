@@ -1,7 +1,7 @@
 import { RGBA } from "@opentui/core"
 import { resolveTheme, tint, type ThemeJson } from "@tui/context/theme"
 import { detectCliTerminalLight } from "../util/cli-terminal-light"
-import opencode from "../theme/assets/opencode.json" with { type: "json" }
+import opencode from "../theme/assets/deveco.json" with { type: "json" }
 import { EOL } from "os"
 
 /** 8x11 rows from Downloads/test_ansi/8x11; parsed as SGR spans in the TUI. */

@@ -68,8 +68,8 @@ async function requestTicket(
     method: "POST",
     headers: {
       authorization: authorization(),
-      "x-opencode-directory": dir,
-      ...(options?.ticketHeader === false ? {} : { "x-opencode-ticket": "1" }),
+      "x-deveco-directory": dir,
+      ...(options?.ticketHeader === false ? {} : { "x-deveco-ticket": "1" }),
       ...(options?.origin ? { origin: options.origin } : {}),
     },
   })
@@ -88,7 +88,7 @@ async function createCat(listener: Awaited<ReturnType<typeof startListener>>, di
     method: "POST",
     headers: {
       authorization: authorization(),
-      "x-opencode-directory": dir,
+      "x-deveco-directory": dir,
       "content-type": "application/json",
     },
     body: JSON.stringify({ command: "/bin/cat", title: "listen-smoke" }),
@@ -173,7 +173,7 @@ describe("HttpApi Server.listen", () => {
     let stopped = false
     try {
       const response = await fetch(new URL(PtyPaths.shells, listener.url), {
-        headers: { authorization: authorization(), "x-opencode-directory": tmp.path },
+        headers: { authorization: authorization(), "x-deveco-directory": tmp.path },
       })
       expect(response.status).toBe(200)
       expect(await response.json()).toEqual(
@@ -323,19 +323,19 @@ describe("HttpApi Server.listen", () => {
           ].join("\n"),
         )
         await Bun.write(
-          path.join(directory, "opencode.json"),
+          path.join(directory, "deveco.json"),
           JSON.stringify({ formatter: false, lsp: false, plugin: [pathToFileURL(plugin).href] }),
         )
         return { initialized, completed }
       },
     })
-    const previous = process.env.OPENCODE_DISABLE_DEFAULT_PLUGINS
-    process.env.OPENCODE_DISABLE_DEFAULT_PLUGINS = "1"
+    const previous = process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
+    process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = "1"
     let listener: Awaited<ReturnType<typeof startListener>> | undefined
     try {
       listener = await startListener()
       const response = await fetch(new URL("/config", listener.url), {
-        headers: { authorization: authorization(), "x-opencode-directory": tmp.path },
+        headers: { authorization: authorization(), "x-deveco-directory": tmp.path },
       })
       expect(response.status).toBe(200)
       await withTimeout(
@@ -348,8 +348,8 @@ describe("HttpApi Server.listen", () => {
       expect(await Bun.file(tmp.extra.initialized).text()).toBe("initialized\n")
     } finally {
       if (listener) await stop(listener, "timed out cleaning up plugin client listener").catch(() => undefined)
-      if (previous === undefined) delete process.env.OPENCODE_DISABLE_DEFAULT_PLUGINS
-      else process.env.OPENCODE_DISABLE_DEFAULT_PLUGINS = previous
+      if (previous === undefined) delete process.env.DEVECO_DISABLE_DEFAULT_PLUGINS
+      else process.env.DEVECO_DISABLE_DEFAULT_PLUGINS = previous
     }
   })
 
@@ -392,7 +392,7 @@ describe("HttpApi Server.listen", () => {
       // and cannot find a PTY registered in a project directory.
       const ambiguous = await fetch(new URL(PtyPaths.connectToken.replace(":ptyID", info.id), listener.url), {
         method: "POST",
-        headers: { authorization: authorization(), "x-opencode-ticket": "1" },
+        headers: { authorization: authorization(), "x-deveco-ticket": "1" },
       })
       expect(ambiguous.status).toBe(404)
 
@@ -403,7 +403,7 @@ describe("HttpApi Server.listen", () => {
         ),
         {
           method: "POST",
-          headers: { authorization: authorization(), "x-opencode-ticket": "1" },
+          headers: { authorization: authorization(), "x-deveco-ticket": "1" },
         },
       )
       expect(directoryScoped.status).toBe(200)

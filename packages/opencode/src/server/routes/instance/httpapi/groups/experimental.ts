@@ -268,7 +268,7 @@ export const ExperimentalApi = HttpApi.make("experimental")
   )
   .annotateMerge(
     OpenApi.annotations({
-      title: "opencode experimental HttpApi",
+      title: "DevEco Code experimental HttpApi",
       version: "0.0.1",
       description: "Experimental HttpApi surface for selected instance routes.",
     }),

@@ -2,51 +2,7 @@ import z from "zod"
 import { EOL } from "os"
 import { Schema } from "effect"
 import { NamedError } from "@opencode-ai/core/util/error"
-import { logo as glyphs, marks } from "./logo"
-
-type LogoGlyphs = typeof glyphs & {
-  charMap?: Record<string, string>
-  charOpacity?: Record<string, number>
-}
-
-type LogoRightPart = { text: string; mute: boolean; link: boolean }
-
-function parseLogoRightSegments(line: string): LogoRightPart[] {
-  const parts: LogoRightPart[] = []
-  let s = line
-  while (s.length > 0) {
-    if (s.startsWith("{muted}")) {
-      s = s.slice(7)
-      const j = s.indexOf("{/muted}")
-      if (j === -1) {
-        break
-      }
-      parts.push({ text: s.slice(0, j), mute: true, link: false })
-      s = s.slice(j + 8)
-      continue
-    }
-    if (s.startsWith("{link}")) {
-      s = s.slice(6)
-      const j = s.indexOf("{/link}")
-      if (j === -1) {
-        break
-      }
-      parts.push({ text: s.slice(0, j), mute: false, link: true })
-      s = s.slice(j + 7)
-      continue
-    }
-    const a = s.indexOf("{muted}")
-    const b = s.indexOf("{link}")
-    const candidates = [a, b].filter((x) => x >= 0)
-    const n = candidates.length ? Math.min(...candidates) : s.length
-    const plain = s.slice(0, n)
-    if (plain) {
-      parts.push({ text: plain, mute: false, link: false })
-    }
-    s = s.slice(n)
-  }
-  return parts
-}
+import { formatCliHelpBannerLogoBlock } from "@opencode-ai/tui/component/banner-logo"
 
 export namespace UI {
   export const CancelledError = NamedError.create("UICancelledError", Schema.Void)
@@ -85,144 +41,19 @@ export namespace UI {
     blank = true
   }
 
-  export function logo(pad?: string) {
-    const result: string[] = []
-    const reset = "\x1b[0m"
-    const g = glyphs as LogoGlyphs
-    const maxLeftWidth = Math.max(0, ...g.left.map((row) => row.length))
-    const shadowMarkerRe = new RegExp(`[${marks}]`)
-
-    const getGradientColor = (position: number, totalWidth: number) => {
-      const ratio = totalWidth <= 0 ? 0 : Math.max(0, Math.min(1, position / totalWidth))
-      return {
-        r: Math.round(77 + (220 - 77) * ratio),
-        g: Math.round(43 + (73 - 43) * ratio),
-        b: Math.round(251 + (170 - 251) * ratio),
-      }
-    }
-
-    const tintTowardDark = (rgb: { r: number; g: number; b: number }, alpha: number) => {
-      const br = 12
-      const bg = 12
-      const bb = 24
-      return {
-        r: Math.round(rgb.r * alpha + br * (1 - alpha)),
-        g: Math.round(rgb.g * alpha + bg * (1 - alpha)),
-        b: Math.round(rgb.b * alpha + bb * (1 - alpha)),
-      }
-    }
-
-    const ansiFg = (rgb: { r: number; g: number; b: number }) => `\x1b[38;2;${rgb.r};${rgb.g};${rgb.b}m`
-    const ansiBg = (rgb: { r: number; g: number; b: number }) => `\x1b[48;2;${rgb.r};${rgb.g};${rgb.b}m`
-
-    const drawLeftGradient = (line: string): string => {
-      const parts: string[] = []
-      let i = 0
-      while (i < line.length) {
-        const rest = line.slice(i)
-        const mi = rest.search(shadowMarkerRe)
-        const markerIndex = mi === -1 ? rest.length : mi
-
-        for (let j = 0; j < markerIndex; j++) {
-          const idx = i + j
-          let ch = line[idx]!
-          const src = ch
-          if (g.charMap?.[ch]) {
-            ch = g.charMap[ch]!
-          }
-          if (ch === " ") {
-            parts.push(" ")
-            continue
-          }
-          let rgb = getGradientColor(idx, maxLeftWidth)
-          const op = g.charOpacity?.[src]
-          if (typeof op === "number") {
-            rgb = tintTowardDark(rgb, op)
-          }
-          parts.push(ansiFg(rgb), ch, reset)
-        }
-
-        if (markerIndex >= rest.length) {
-          break
-        }
-
-        const marker = rest[markerIndex]!
-        const pos = i + markerIndex
-        const fgRgb = getGradientColor(pos, maxLeftWidth)
-        const shRgb = tintTowardDark(fgRgb, 0.45)
-
-        if (marker === "_") {
-          parts.push(ansiFg(fgRgb), ansiBg(shRgb), " ", reset)
-        } else if (marker === "^") {
-          parts.push(ansiFg(fgRgb), ansiBg(shRgb), "▀", reset)
-        } else if (marker === "~") {
-          parts.push(ansiFg(shRgb), "▀", reset)
-        }
-
-        i += markerIndex + 1
-      }
-      return parts.join("")
-    }
-
-    const right = {
-      fg: "\x1b[1m\x1b[39m",
-      shadow: "\x1b[2m\x1b[39m",
-      bg: "\x1b[48;5;236m",
-    }
-    const gap = " "
-    const draw = (line: string, fg: string, shadow: string, bg: string) => {
-      const parts: string[] = []
-      for (const char of line) {
-        if (char === "_") {
-          parts.push(bg, " ", reset)
-          continue
-        }
-        if (char === "^") {
-          parts.push(fg, bg, "▀", reset)
-          continue
-        }
-        if (char === "~") {
-          parts.push(shadow, "▀", reset)
-          continue
-        }
-        if (char === " ") {
-          parts.push(" ")
-          continue
-        }
-        parts.push(fg, char, reset)
-      }
-      return parts.join("")
-    }
-
-    const drawRight = (line: string): string => {
-      const hasTags = line.includes("{muted}") || line.includes("{link}")
-      if (!hasTags) {
-        return draw(line, right.fg, right.shadow, right.bg)
-      }
-      const segments = parseLogoRightSegments(line)
-      if (segments.length === 0) {
-        const stripped = line.replace(/\{muted\}|\{\/muted\}|\{link\}|\{\/link\}/g, "")
-        return draw(stripped, right.fg, right.shadow, right.bg)
-      }
-      return segments
-        .map((p) => {
-          const fg = p.mute ? UI.Style.TEXT_DIM : p.link ? UI.Style.TEXT_INFO : right.fg
-          return draw(p.text, fg, right.shadow, right.bg)
-        })
-        .join("")
-    }
-
-    g.left.forEach((row, index) => {
-      if (pad) {
-        result.push(pad)
-      }
-      result.push(drawLeftGradient(row))
-      result.push(gap)
-      const other = g.right[index] ?? ""
-      result.push(drawRight(other))
-      result.push(EOL)
-    })
-    return result.join("").trimEnd()
+  /**
+   * DevEco Code lettermark banner for CLI output (uninstall, upgrade, web, etc.).
+   *
+   * Replaces the legacy OpenCode 3-ring gradient logo (`CG_LEFT` ░▒█ design) with
+   * the DevEco block lettermark (`DEVECO CODE`). The lettermark is rendered from
+   * `@opencode-ai/tui/component/banner-logo` using the active DevEco theme palette,
+   * which adapts to light/dark terminal backgrounds.
+   *
+   * `pad` is ignored — kept for call-site compatibility with the old signature.
+   */
+  export function logo(_pad?: string) {
+    const cols = process.stderr.columns ?? process.stdout.columns ?? 80
+    return formatCliHelpBannerLogoBlock(cols)
   }
 
   export async function input(prompt: string): Promise<string> {

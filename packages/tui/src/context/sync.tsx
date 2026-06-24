@@ -20,7 +20,6 @@ import type {
   SnapshotFileDiff,
   ConsoleState,
 } from "@opencode-ai/sdk/v2"
-import { Effect } from "effect"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useProject } from "./project"
 import { useEvent } from "./event"
@@ -32,8 +31,7 @@ import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import path from "path"
 import { useKV } from "./kv"
-import { Auth } from "deveco/auth"
-import { LOCAL_CREDENTIALS_CORRUPTED_MESSAGE } from "deveco/auth/messages"
+import { getDevEcoExtensions } from "../deveco-extensions"
 
 const emptyConsoleState: ConsoleState = {
   consoleManagedProviders: [],
@@ -436,19 +434,9 @@ export const {
     const args = useArgs()
 
     async function readLocalAuthError() {
-      try {
-        await Effect.runPromise(
-          Effect.gen(function* () {
-            const auth = yield* Auth.Service
-            yield* auth.all()
-          }).pipe(Effect.provide(Auth.defaultLayer)) as Effect.Effect<void>,
-        )
-        return undefined
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        if (message.includes(LOCAL_CREDENTIALS_CORRUPTED_MESSAGE)) return LOCAL_CREDENTIALS_CORRUPTED_MESSAGE
-        throw error
-      }
+      const reader = getDevEcoExtensions().readLocalAuthError
+      if (!reader) return undefined
+      return reader()
     }
 
     async function bootstrap(input: { fatal?: boolean } = {}) {

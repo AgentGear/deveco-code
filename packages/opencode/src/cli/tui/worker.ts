@@ -13,6 +13,18 @@ import { disposeAllInstancesAndEmitGlobalDisposed } from "@/server/global-lifecy
 
 Heap.start()
 
+// Swallow unhandled rejections / uncaught exceptions in the worker. Mirrors
+// upstream opencode — without these, any defect that escapes the Effect
+// runtime (e.g. a rejected promise from a module-level side effect during
+// worker boot) gets printed to the parent's stderr by Node/Bun before the TUI
+// renderer has taken over the screen, leaking log-looking lines onto the
+// terminal. The worker is a fire-and-forget child; crashes here are already
+// surfaced to the main thread via RPC when relevant.
+const onUnhandledRejection = (_error: unknown) => {}
+const onUncaughtException = (_error: Error) => {}
+process.on("unhandledRejection", onUnhandledRejection)
+process.on("uncaughtException", onUncaughtException)
+
 // Subscribe to global events and forward them via RPC
 GlobalBus.on("event", (event) => {
   Rpc.emit("global.event", event)
@@ -65,6 +77,8 @@ export const rpc = {
   async shutdown() {
     await InstanceRuntime.disposeAllInstances()
     if (server) await server.stop(true)
+    process.off("unhandledRejection", onUnhandledRejection)
+    process.off("uncaughtException", onUncaughtException)
   },
 }
 

@@ -49,7 +49,7 @@ describe("HttpApi instance route authorization", () => {
   test("requires configured auth before opening the instance event stream", async () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
     const server = app({ password: "secret" })
-    const headers = { "x-opencode-directory": tmp.path }
+    const headers = { "x-deveco-directory": tmp.path }
 
     const missing = await server.request(EventPaths.event, { headers })
     await cancelBody(missing)
@@ -66,7 +66,7 @@ describe("HttpApi instance route authorization", () => {
     await using tmp = await tmpdir({ git: true, config: { formatter: false, lsp: false } })
     const server = app({ password: "secret" })
     const route = PtyPaths.connect.replace(":ptyID", PtyID.ascending())
-    const headers = { "x-opencode-directory": tmp.path }
+    const headers = { "x-deveco-directory": tmp.path }
 
     const missing = await server.request(route, { headers })
     await cancelBody(missing)

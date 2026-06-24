@@ -15,7 +15,7 @@ export const dict = {
   "nav.home": "홈",
   "nav.openMenu": "메뉴 열기",
   "nav.getStartedFree": "무료로 시작하기",
-  "nav.logoAlt": "OpenCode",
+  "nav.logoAlt": "DevEco Code",
 
   "nav.context.copyLogo": "로고를 SVG로 복사",
   "nav.context.copyWordmark": "워드마크를 SVG로 복사",

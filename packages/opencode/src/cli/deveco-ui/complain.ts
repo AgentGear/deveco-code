@@ -2,8 +2,8 @@ import { spawn } from "node:child_process"
 import { existsSync, readFileSync, rmSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
-import { devecoAuth } from "deveco/plugin/deveco"
-import { getOrCreateDeviceId } from "deveco/plugin/analytics/storage"
+import { devecoAuth } from "@/plugin/deveco"
+import { getOrCreateDeviceId } from "@/plugin/analytics/storage"
 
 const TARGET_URL = "https://css-complain-drcn.platform.dbankcloud.cn/?next=1&theme=light&lang=zh-cn"
 const PROFILE_DIR = join(tmpdir(), "deveco-complain-chrome-profile")

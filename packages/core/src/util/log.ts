@@ -1,5 +1,8 @@
 export * as Log from "./log"
 
+import fs from "fs"
+import { Global } from "../global"
+
 export type Level = "DEBUG" | "INFO" | "WARN" | "ERROR"
 
 export type Logger = {
@@ -42,6 +45,44 @@ function formatError(error: Error, depth = 0): string {
     : result
 }
 
+// ---------------------------------------------------------------------------
+// Output routing
+// ---------------------------------------------------------------------------
+// Legacy: this module used to write to process.stderr, which leaked log
+// lines onto the terminal during TUI startup (before the OpenTUI renderer
+// took over the screen). Route to the same file as the Effect file logger
+// (~/.local/share/deveco/log/deveco.log) so startup output stays clean.
+//
+// Set DEVECO_PRINT_LOGS=1 to mirror to stderr for development / debugging.
+// ---------------------------------------------------------------------------
+let cachedLogPath: string | undefined
+let logPathResolved = false
+
+function resolveLogPath(): string | undefined {
+  if (logPathResolved) return cachedLogPath
+  logPathResolved = true
+  try {
+    cachedLogPath = `${Global.Path.log}/deveco.log`
+    return cachedLogPath
+  } catch {
+    return undefined
+  }
+}
+
+function emit(line: string): void {
+  const file = resolveLogPath()
+  if (file) {
+    try {
+      fs.appendFileSync(file, line)
+    } catch {
+      // swallow — logging must never crash the host process
+    }
+  }
+  if (process.env.DEVECO_PRINT_LOGS === "1") {
+    process.stderr.write(line)
+  }
+}
+
 export function create(tags?: Record<string, any>) {
   tags = tags || {}
 
@@ -69,16 +110,16 @@ export function create(tags?: Record<string, any>) {
 
   const result: Logger = {
     debug(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("DEBUG")) process.stderr.write("DEBUG " + build(message, extra))
+      if (shouldLog("DEBUG")) emit("DEBUG " + build(message, extra))
     },
     info(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("INFO")) process.stderr.write("INFO  " + build(message, extra))
+      if (shouldLog("INFO")) emit("INFO  " + build(message, extra))
     },
     error(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("ERROR")) process.stderr.write("ERROR " + build(message, extra))
+      if (shouldLog("ERROR")) emit("ERROR " + build(message, extra))
     },
     warn(message?: any, extra?: Record<string, any>) {
-      if (shouldLog("WARN")) process.stderr.write("WARN  " + build(message, extra))
+      if (shouldLog("WARN")) emit("WARN  " + build(message, extra))
     },
     tag(key: string, value: string) {
       if (tags) tags[key] = value
@@ -111,7 +152,7 @@ export interface Options {
 
 let logpath = ""
 export function file() {
-  return logpath
+  return logpath || resolveLogPath() || ""
 }
 export function getLevel(): Level {
   return level

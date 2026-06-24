@@ -10,7 +10,7 @@ import { InstanceStore } from "@/project/instance-store"
 import { context } from "@/project/instance-context"
 import { Session } from "@/session/session"
 import { Effect } from "effect"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 import { ServerProxy } from "./proxy"
 import { getWorkspaceRouteSessionID, isLocalWorkspaceRoute, workspaceProxyURL } from "./shared/workspace-routing"
 

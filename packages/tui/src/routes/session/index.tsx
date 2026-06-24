@@ -69,7 +69,6 @@ import { QuestionPrompt } from "./question"
 import { DialogExportOptions } from "../../ui/dialog-export-options"
 import * as Model from "../../util/model"
 import { formatTranscript } from "../../util/transcript"
-import { UI } from "deveco/cli/ui"
 import { bannerLogoPalette, formatBannerLogoAnsiLines, wordFullSmall } from '../../component/banner-logo';
 import { sessionEpilogue } from "../../util/presentation"
 import { setPreLayoutSiblingMargin } from "../../util/layout"
@@ -367,7 +366,12 @@ export function Session() {
   createEffect(() => {
     const title = Locale.truncate(session()?.title ?? "", 50)
     const pad = (text: string) => text.padEnd(10, " ")
-    const weak = (text: string) => UI.Style.TEXT_DIM + pad(text) + UI.Style.TEXT_NORMAL
+    // ANSI style codes (inlined to avoid importing `UI` from `deveco/cli/ui`,
+    // which would reintroduce the deveco↔TUI workspace cycle).
+    const DIM = "\x1b[90m"
+    const NORMAL = "\x1b[0m"
+    const NORMAL_BOLD = "\x1b[1m"
+    const weak = (text: string) => DIM + pad(text) + NORMAL
     const logo = formatBannerLogoAnsiLines(dimensions().width, bannerLogoPalette(mode() === 'light', theme), {
       rows: wordFullSmall,
       align: 'start',
@@ -377,8 +381,8 @@ export function Session() {
         '',
         ...logo,
         '',
-        `  ${weak('Session')}${UI.Style.TEXT_NORMAL_BOLD}${title}${UI.Style.TEXT_NORMAL}`,
-        `  ${weak('Continue')}${UI.Style.TEXT_NORMAL_BOLD}deveco -s ${session()?.id}${UI.Style.TEXT_NORMAL}`,
+        `  ${weak('Session')}${NORMAL_BOLD}${title}${NORMAL}`,
+        `  ${weak('Continue')}${NORMAL_BOLD}deveco -s ${session()?.id}${NORMAL}`,
         '',
       ].join('\n'),
     );

@@ -39,7 +39,7 @@ const DEVECO_REGISTRY_TOOL_NAMES = ["hdc_log", "switch_cwd"] as const
 
 const node = CrossSpawnSpawner.defaultLayer
 const configLayer = TestConfig.layer({
-  directories: () => InstanceState.directory.pipe(Effect.map((dir) => [path.join(dir, ".opencode")])),
+  directories: () => InstanceState.directory.pipe(Effect.map((dir) => [path.join(dir, ".deveco")])),
 })
 
 const registryLayer = (auth = Auth.defaultLayer) =>

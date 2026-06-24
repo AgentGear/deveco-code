@@ -1,14 +1,5 @@
 import { Prompt, type PromptRef } from "../component/prompt"
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  Match,
-  on,
-  onMount,
-  Show,
-  Switch,
-} from "solid-js"
+import { createEffect, createMemo, on, onMount, Show, Switch, Match } from "solid-js"
 import { useTerminalDimensions } from "@opentui/solid"
 import { useTheme } from "../context/theme"
 import {
@@ -19,25 +10,15 @@ import {
   HOME_CONTENT_MAX_WIDTH,
   homeBodySlotRows,
 } from "../component/banner"
-import { pluralize } from "deveco/util/locale"
-import { Logo } from "../component/logo"
 import { useSync } from "../context/sync"
-import { useKV } from "../context/kv"
 import { Toast } from "../ui/toast"
 import { useArgs } from "../context/args"
 import { useRouteData } from "../context/route"
 import { usePromptRef } from "../context/prompt"
 import { useLocal } from "../context/local"
-import { DevEcoOnboarding } from "../component/deveco-onboarding"
-import { agreementService, AgreementStatus } from "deveco/cli/deveco-agreement"
-import { devecoAuth, hasDevecoOAuthEntry } from "deveco/plugin/deveco"
-import type { AgreementConfig } from "deveco/cli/deveco-legal"
 import { usePluginRuntime } from "../plugin/runtime"
-import { useEditorContext } from "../context/editor"
-import { useTuiConfig } from "../config"
 import { HomeSessionDestinationProvider } from "./home/session-destination"
-
-declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
+import { getDevEcoExtensions } from "../deveco-extensions"
 
 // TODO: what is the best way to do this?
 let once = false
@@ -50,156 +31,30 @@ const placeholder = {
 export function Home() {
   const pluginRuntime = usePluginRuntime()
   const sync = useSync()
-  const kv = useKV()
   const { theme } = useTheme()
   const route = useRouteData("home")
   const promptRef = usePromptRef()
   const dimensions = useTerminalDimensions()
-
-  // DevEco onboarding state - null = checking, false = show onboarding, true = ready
-  const [devecoReady, setDevecoReady] = createSignal<boolean | null>(null)
-  const [devecoInitialStep, setDevecoInitialStep] = createSignal<"entry" | "privacy">("entry")
-  // Cached auth check result — used to defer devecoReady=true until sync completes
-  // (the Prompt component needs sync data to render properly)
-  const [authCanEnter, setAuthCanEnter] = createSignal(false)
-  // Track whether the auth check itself has finished (distinct from sync progress)
-  const [authCheckDone, setAuthCheckDone] = createSignal(false)
-  let devecoChecked = false
+  const args = useArgs()
+  const local = useLocal()
 
   const bodySlotHeight = createMemo(() => homeBodySlotRows(dimensions().height))
 
-  // Check login + agreement status immediately on mount (no sync dependency).
-  // The auth check reads auth.json and calls the TMS API — it does not
-  // need sync data.  For canEnter=false (not logged in / agreement pending),
-  // set devecoReady=false right away so the user sees the login/agreement page
-  // without waiting.  For canEnter=true, defer devecoReady=true until sync
-  // completes because the Prompt component requires sync data.
-  //
-  // When built with --skip-agreement, the agreement check is skipped;
-  // login is still required, but after login the user enters the
-  // conversation page directly without the privacy/agreement step.
-  const runDevecoCheck = async () => {
-    if (devecoChecked) return
-    devecoChecked = true
-
-    // First, check auth.json for a deveco OAuth entry — this is the same
-    // data source that `deveco auth list` reads.  If auth.json has no entry,
-    // the user has not completed the DevEco login flow, regardless of whether
-    // token.enc or an in-memory userInfo exists.
-    if (!hasDevecoOAuthEntry()) {
-      setDevecoInitialStep("entry")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
-      return
-    }
-
-    // auth.json has a deveco entry — read the persisted OAuth tokens
-    const session = await devecoAuth.getSession()
-
-    // Session should not be null since auth.json has an entry, but guard anyway
-    if (!session) {
-      setDevecoInitialStep("entry")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
-      return
-    }
-
-    // Use accessToken from session (populated from auth.json or userInfo)
-    let accessToken = session.accessToken
-    if (!accessToken) {
-      // accessToken missing → try refresh via JWT token check API
-      const newTokens = await devecoAuth.refreshToken()
-      if (newTokens?.accessToken) {
-        accessToken = newTokens.accessToken
-      } else {
-        // Refresh failed → login state expired, need to re-login
-        setDevecoInitialStep("entry")
-        setDevecoReady(false)
-        setAuthCheckDone(true)
-        return
-      }
-    }
-
-    // Get userId for user-specific KV cache keys
-    const userId = session.userId || await devecoAuth.getUserId() || ''
-
-    // Build-time flag or runtime env: skip agreement query and sign check, enter conversation directly
-    if (
-      (typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) ||
-      process.env.DEVECO_SKIP_AGREEMENT === "1"
-    ) {
-      setAuthCanEnter(true)
-      setAuthCheckDone(true)
-      if (sync.status === "complete") {
-        setDevecoReady(true)
-      }
-      return
-    }
-
-    // Wait for KV store to finish loading from disk before reading local cache.
-    // Without this, kv.get() returns defaults and hasLocalCache is always false,
-    // causing the offline degradation path to never trigger on startup.
-    if (!kv.ready) {
-      await new Promise<void>((resolve) => {
-        const check = () => {
-          if (kv.ready) { resolve(); return }
-          setTimeout(check, 50)
-        }
-        check()
-        setTimeout(() => resolve(), 5000)
-      })
-    }
-
-    // Remote query agreement signing status
-    // Inject project-level agreement config overrides before making API calls
-    agreementService.configure((sync.data.config as unknown as { agreement?: AgreementConfig }).agreement)
-    const checkResult = await agreementService.checkAllAgreements(accessToken, userId, kv)
-
-    if (checkResult.canEnter) {
-      // Logged in + agreements compliant (or offline with local cache) →
-      // cache result, apply when sync completes
-      setAuthCanEnter(true)
-      setAuthCheckDone(true)
-      // Background retry: if there's a pending offline sign, try to sync it now
-      void agreementService.retryPendingSign(accessToken, userId, kv)
-      if (sync.status === "complete") {
-        // Sync already done → apply immediately
-        setDevecoReady(true)
-      }
-    } else if (checkResult.overallStatus === AgreementStatus.SESSION_EXPIRED) {
-      // Session expired → redirect to login page
-      setDevecoInitialStep("entry")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
-    } else {
-      // Logged in but agreements not compliant or network error → show privacy step immediately
-      setDevecoInitialStep("privacy")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
-    }
+  // If DevEco has registered its home body extension, delegate the entire center
+  // slot to it. DevEco handles auth + agreement + onboarding + prompt rendering
+  // internally, keeping the TUI package generic.
+  const DevEcoBody = getDevEcoExtensions().homeBody
+  if (DevEcoBody) {
+    return <DevEcoBody sync={sync} bodySlotHeight={bodySlotHeight()} />
   }
 
-  // Run auth check immediately on mount — don't wait for sync
-  onMount(() => {
-    void runDevecoCheck()
-  })
+  // Generic fallback — upstream OpenCode layout (no DevEco onboarding).
+  let prompt: PromptRef | undefined
 
-  // When sync completes, apply the deferred auth check result.
-  // Tracks both sync.status and authCanEnter so it fires correctly
-  // regardless of which signal changes last.
-  createEffect(() => {
-    if (sync.status === "complete" && authCanEnter()) {
-      setDevecoReady(true)
-    }
-  })
-
-  const mcpError = createMemo(() => {
-    return Object.values(sync.data.mcp).some((x) => x.status === "failed")
-  })
-
-  const connectedMcpCount = createMemo(() => {
-    return Object.values(sync.data.mcp).filter((x) => x.status === "connected").length
-  })
+  const mcpError = createMemo(() => Object.values(sync.data.mcp).some((x) => x.status === "failed"))
+  const connectedMcpCount = createMemo(() =>
+    Object.values(sync.data.mcp).filter((x) => x.status === "connected").length,
+  )
 
   const Hint = (
     <Show when={connectedMcpCount() > 0}>
@@ -212,7 +67,7 @@ export function Home() {
             </Match>
             <Match when={true}>
               <span style={{ fg: theme.success }}>•</span>{" "}
-              {pluralize(connectedMcpCount(), "{} mcp server", "{} mcp servers")}
+              {connectedMcpCount() === 1 ? "1 mcp server" : `${connectedMcpCount()} mcp servers`}
             </Match>
           </Switch>
         </text>
@@ -220,9 +75,6 @@ export function Home() {
     </Show>
   )
 
-  let prompt: PromptRef | undefined
-  const args = useArgs()
-  const local = useLocal()
   onMount(() => {
     if (once) return
     if (!prompt) return
@@ -235,7 +87,6 @@ export function Home() {
     }
   })
 
-  // Wait for sync and model store to be ready before auto-submitting --prompt
   createEffect(
     on(
       () => sync.ready && local.model.ready && prompt,
@@ -279,53 +130,29 @@ export function Home() {
               height={bodySlotHeight()}
               maxHeight={HOME_BODY_MAX_ROWS}
               flexDirection="column"
-              justifyContent={devecoReady() === true ? "center" : "flex-start"}
+              justifyContent="center"
               alignItems="center"
               paddingTop={HOME_BODY_GAP_ROWS}
               flexShrink={0}
             >
-              <Show when={!authCheckDone()}>
-                <text fg={theme.textMuted} selectable={false}>
-                  Checking login status...
-                </text>
-              </Show>
-              <Show when={authCheckDone() && authCanEnter() && devecoReady() !== true}>
-                <box flexDirection="column" alignItems="center">
-                  <text fg={theme.textMuted} selectable={false}>
-                    Loading project data...
-                  </text>
-                  <text fg={theme.textMuted} selectable={false}>
-                    providers, MCP servers, LSP, sessions...
-                  </text>
+              <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
+                <box width="100%" flexShrink={0}>
+                  <pluginRuntime.Slot name="home_prompt" mode="replace">
+                    <Prompt
+                      ref={(r) => {
+                        if (r) {
+                          prompt = r
+                          promptRef.set(r)
+                        }
+                      }}
+                      hint={Hint}
+                      placeholders={placeholder}
+                      homeBodySlotHeight={bodySlotHeight()}
+                    />
+                  </pluginRuntime.Slot>
                 </box>
-              </Show>
-              <Show when={devecoReady()}>
-                <box width="100%" flexDirection="column" alignItems="center" flexShrink={0}>
-                  <box width="100%" flexShrink={0}>
-                    <pluginRuntime.Slot name="home_prompt" mode="replace">
-                      <Prompt
-                        ref={(r) => {
-                          if (r) {
-                            prompt = r
-                            promptRef.set(r)
-                          }
-                        }}
-                        hint={Hint}
-                        placeholders={placeholder}
-                        homeBodySlotHeight={bodySlotHeight()}
-                      />
-                    </pluginRuntime.Slot>
-                  </box>
-                  <pluginRuntime.Slot name="home_bottom" />
-                </box>
-              </Show>
-              <Show when={devecoReady() === false}>
-                <DevEcoOnboarding
-                  onComplete={() => setDevecoReady(true)}
-                  bodySlotHeight={bodySlotHeight()}
-                  initialStep={devecoInitialStep()}
-                />
-              </Show>
+                <pluginRuntime.Slot name="home_bottom" />
+              </box>
             </box>
           </box>
         </box>

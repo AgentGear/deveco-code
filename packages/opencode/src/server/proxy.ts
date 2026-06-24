@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import type { UpgradeWebSocket } from "hono/ws"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 import * as Fence from "./shared/fence"
 import type { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { Workspace } from "@/control-plane/workspace"
@@ -110,7 +110,7 @@ export function httpEffect(url: string | URL, extra: HeadersInit | undefined, re
   }).pipe(
     Effect.provide(FetchHttpClient.layer),
     Effect.catch((err) => {
-      Log.Default.error("Proxy request failed", { url: String(url), error: err instanceof Error ? err.message : String(err) })
+      Log.create({ service: "default" }).error("Proxy request failed", { url: String(url), error: err instanceof Error ? err.message : String(err) })
       return Effect.succeed(new Response(null, { status: 500 }))
     }),
   )

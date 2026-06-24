@@ -1,0 +1,115 @@
+import { Log } from "@opencode-ai/core/util/log"
+import { loginService } from "./login-service"
+import { tokenStorage } from "./token-storage"
+import { loadAccessTokenFromDisk } from "./storage"
+import type { DevEcoSession, LoginResult } from "./types"
+
+const log = Log.create({ service: "deveco" })
+
+export class DevEcoAuth {
+  async isLoggedIn(): Promise<boolean> {
+    return loginService.isLoggedIn()
+  }
+
+  async getSession(): Promise<DevEcoSession | null> {
+    const userInfo = loginService.getUserInfo()
+    if (userInfo) {
+      return {
+        ...userInfo,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      }
+    }
+    const jwtToken = await tokenStorage.loadToken()
+    if (jwtToken) {
+      try {
+        const parsed = loginService.parseJwt(jwtToken)
+        if (parsed.userId) {
+          // When restoring from jwtToken only (no userInfo in memory),
+          // accessToken may be stored in auth.json — read it from disk
+          const accessToken = loadAccessTokenFromDisk()
+          return {
+            userId: parsed.userId,
+            userName: parsed.userName ?? "",
+            accessToken,
+            refreshToken: "",
+            jwtToken,
+            countryCode: "",
+            language: "",
+            isRealName: false,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          }
+        }
+      } catch (err) {
+        // ignore parse errors — session may not be available from disk token
+        log.warn("failed to parse jwtToken when restoring session from disk", {
+          error: err instanceof Error ? err.message : String(err),
+        })
+      }
+    }
+    return null
+  }
+
+  async login(): Promise<LoginResult> {
+    return loginService.login()
+  }
+
+  cancel(): void {
+    loginService.cancel()
+  }
+
+  async logout(): Promise<void> {
+    return loginService.logout()
+  }
+
+  /**
+   * 检查 token 是否过期
+   * @param expires 过期时间戳（毫秒）
+   * @returns true 表示已过期
+   */
+  isTokenExpired(expires: number): boolean {
+    return Date.now() >= expires
+  }
+
+  /**
+   * 刷新 accessToken
+   * @returns 刷新成功返回新的 token 信息，失败返回 null
+   */
+  async refreshToken(): Promise<{ accessToken: string; refreshToken: string } | null> {
+    const userInfo = this.getUserInfo()
+    const jwtToken = userInfo?.jwtToken ?? (await tokenStorage.loadToken())
+    if (!jwtToken) return null
+    const newTokens = await loginService.refreshToken(jwtToken)
+    if (newTokens && userInfo) {
+      userInfo.accessToken = newTokens.accessToken
+      userInfo.refreshToken = newTokens.refreshToken
+    }
+    return newTokens
+  }
+
+  private getUserInfo() {
+    return loginService.getUserInfo()
+  }
+
+  /**
+   * 获取当前登录用户的 userId，供 AgreementService 使用。
+   * 优先从内存中的 userInfo 取，其次从持久化的 jwtToken 解析。
+   * 解析失败返回 null（不抛出错误）。
+   */
+  async getUserId(): Promise<string | null> {
+    const userInfo = this.getUserInfo()
+    if (userInfo?.userId) return userInfo.userId
+    const jwtToken = await tokenStorage.loadToken()
+    if (!jwtToken) return null
+    try {
+      const parsed = loginService.parseJwt(jwtToken)
+      return parsed.userId || null
+    } catch (err) {
+      log.warn("failed to parse jwtToken for userId", { error: err instanceof Error ? err.message : String(err) })
+      return null
+    }
+  }
+}
+
+export const devecoAuth = new DevEcoAuth()

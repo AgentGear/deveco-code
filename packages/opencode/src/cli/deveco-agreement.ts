@@ -3,7 +3,7 @@ import http from "http"
 import querystring from "querystring"
 import { resolveAgreementConfig, getPrivacyAcceptedKey, getSignPendingKey, type AgreementConfig } from "@/cli/deveco-legal"
 import { devecoAuth, saveAuthToDisk, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/deveco"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 
 const log = Log.create({ service: "deveco-agreement" })
 

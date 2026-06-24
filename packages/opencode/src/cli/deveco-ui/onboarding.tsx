@@ -1,21 +1,21 @@
 import { Show, createSignal, createMemo, For, createEffect, onMount, type ParentProps } from 'solid-js';
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { ScrollBoxRenderable, TextareaRenderable } from '@opentui/core';
-import { useTheme } from '@tui/context/theme';
-import { useSync } from '@tui/context/sync';
-import { useExit } from '@tui/context/exit';
-import { useDialog } from '@tui/ui/dialog';
-import { useSDK } from '../context/sdk';
-import { DialogSelect } from '@tui/ui/dialog-select';
-import { DialogPrompt } from '@tui/ui/dialog-prompt';
-import { Link } from '../ui/link';
-import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from 'deveco/plugin/deveco';
-import { useKV } from '@tui/context/kv';
-import { resolveAgreementConfig, getPrivacyAcceptedKey, getSignPendingKey, type AgreementConfig } from 'deveco/cli/deveco-legal';
-import * as Log from '@opencode-ai/core/util/log';
-import { agreementService, AgreementStatus } from 'deveco/cli/deveco-agreement';
-import type { AgreementCheckResult } from 'deveco/cli/deveco-agreement';
-import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH, homeContentPadX } from './banner';
+import { useTheme } from '@opencode-ai/tui/context/theme';
+import { useSync } from '@opencode-ai/tui/context/sync';
+import { useExit } from '@opencode-ai/tui/context/exit';
+import { useDialog } from '@opencode-ai/tui/ui/dialog';
+import { useSDK } from '@opencode-ai/tui/context/sdk';
+import { DialogSelect } from '@opencode-ai/tui/ui/dialog-select';
+import { DialogPrompt } from '@opencode-ai/tui/ui/dialog-prompt';
+import { Link } from '@opencode-ai/tui/ui/link';
+import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from '@/plugin/deveco';
+import { useKV } from '@opencode-ai/tui/context/kv';
+import { resolveAgreementConfig, getPrivacyAcceptedKey, getSignPendingKey, type AgreementConfig } from '@/cli/deveco-legal';
+import { Log } from '@opencode-ai/core/util/log';
+import { agreementService, AgreementStatus } from '@/cli/deveco-agreement';
+import type { AgreementCheckResult } from '@/cli/deveco-agreement';
+import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH, homeContentPadX } from '@opencode-ai/tui/component/banner';
 
 declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';

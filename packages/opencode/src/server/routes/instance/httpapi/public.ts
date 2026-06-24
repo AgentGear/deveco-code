@@ -529,7 +529,7 @@ export const PublicApi = OpenCodeHttpApi.annotateMerge(
   OpenApi.annotations({
     title: "opencode",
     version: "1.0.0",
-    description: "opencode api",
+    description: "DevEco Code API",
     transform: matchLegacyOpenApi,
   }),
 )

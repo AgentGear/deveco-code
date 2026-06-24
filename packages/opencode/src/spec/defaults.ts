@@ -3,7 +3,6 @@ import fs from "fs/promises"
 import { Effect } from "effect"
 import type { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
-import * as Log from "@opencode-ai/core/util/log"
 
 interface EmbeddedSpecFileMap {
   [key: string]: EmbeddedSpecFile
@@ -57,8 +56,6 @@ async function loadSpecResourcesFromDisk(): Promise<Record<string, EmbeddedSpecF
 }
 
 export namespace Defaults {
-  const log = Log.create({ service: "spec-defaults" })
-
   export const ensure = Effect.fn("Spec.Defaults.ensure")(function* (version: string, fsys: FSUtil.Interface) {
     const specDir = path.join(Global.Path.data, "specs")
     const versionFile = path.join(specDir, ".version")
@@ -73,7 +70,7 @@ export namespace Defaults {
       return { specDir }
     }
 
-    log.info("extracting default spec resources", { version })
+    yield* Effect.logInfo("extracting default spec resources", { version })
 
     yield* Effect.tryPromise(() =>
       import("fs/promises").then((fs) => fs.rm(path.join(specDir, "commands"), { recursive: true, force: true })),

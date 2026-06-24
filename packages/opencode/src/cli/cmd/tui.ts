@@ -144,11 +144,11 @@ async function ensureDevEcoHomeForTuiStartup() {
     if (candidates[0]) await applyDevEcoHome(candidates[0])
     return
   }
-  UI.println(
-    UI.Style.TEXT_DANGER_BOLD +
-      "DEVECO_HOME environment variable is not configured, features may be unusable." +
-      UI.Style.TEXT_NORMAL,
-  )
+  // Skip the stderr warning (was: "DEVECO_HOME environment variable is not
+  // configured, features may be unusable"). Auto-detection below resolves a
+  // DevEco Studio path silently; the warning was alarming and preceded the
+  // TUI render, briefly leaking text onto the terminal before the UI took
+  // over the screen.
   const selected = await selectDevEcoHome(candidates)
   if (selected) await applyDevEcoHome(selected)
 }
@@ -283,6 +283,11 @@ export const TuiThreadCommand = cmd({
         const { Effect } = await import("effect")
         const { run } = await import("../tui/layer")
         const { createLegacyTuiPluginHost } = await import("@/plugin/tui/runtime")
+        // Register DevEco-specific extensions into the generic TUI package before
+        // rendering. This is the only site that bridges deveco → TUI, which keeps
+        // TUI free of `deveco` imports (breaks the workspace cycle).
+        const { registerDevEcoTuiExtensions } = await import("@/cli/deveco-ui/register")
+        registerDevEcoTuiExtensions()
         await Effect.runPromise(
           run({
             url: transport.url,

@@ -42,7 +42,7 @@ import { migrate } from "./migrate"
 const APP_NAMES: Record<string, string> = {
   dev: "OpenCode Dev",
   beta: "OpenCode Beta",
-  prod: "OpenCode",
+  prod: "DevEco Code",
 }
 const APP_IDS: Record<string, string> = {
   dev: "ai.opencode.desktop.dev",

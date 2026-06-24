@@ -87,19 +87,79 @@ const defaultSkillsData = Object.fromEntries(
 console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
 
 // Load default spec resources
+//
+// Mirrors the loader in src/spec/defaults.ts: the top level of resources/spec/
+// may contain both files (embedded as strings / base64) and subdirectories
+// (embedded as { [relPath]: content } maps). Build output shape:
+//
+//   {
+//     "some-top-level-file.md": "<content>",
+//     "commands":   { "spec-implement.md": "<content>", ... },
+//     "templates":  { "plan-template.md":  "<content>", ... },
+//   }
 const defaultSpecDir = path.join(dir, "resources/spec")
-const defaultSpecFiles = fs.existsSync(defaultSpecDir)
-  ? (await fs.promises.readdir(defaultSpecDir)).filter((f) => f !== ".DS_Store")
-  : []
-const defaultSpecData = Object.fromEntries(
-  await Promise.all(
-    defaultSpecFiles.map(async (file) => {
-      const content = await Bun.file(path.join(defaultSpecDir, file)).text()
-      return [file, content] as const
-    }),
-  ),
-)
-console.log(`Loaded ${Object.keys(defaultSpecData).length} default spec resources`)
+const binaryExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bin"])
+
+type EmbeddedSpecFile = string | { encoding: "base64"; content: string }
+// Recursive mirror of src/spec/defaults.ts's EmbeddedSpecFileMap. Top-level
+// entries can be files (string/base64) or subdirectory maps (Record<string, EmbeddedSpecEntry>).
+type EmbeddedSpecEntry = EmbeddedSpecFile | Record<string, EmbeddedSpecFile>
+
+async function readSpecFile(filePath: string): Promise<EmbeddedSpecFile> {
+  if (binaryExtensions.has(path.extname(filePath).toLowerCase())) {
+    const buf = await Bun.file(filePath).arrayBuffer()
+    return { encoding: "base64", content: Buffer.from(buf).toString("base64") }
+  }
+  return await Bun.file(filePath).text()
+}
+
+async function walkSpecDir(dir: string): Promise<Record<string, EmbeddedSpecFile>> {
+  const result: Record<string, EmbeddedSpecFile> = {}
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true })
+  for (const entry of entries) {
+    if (entry.name === ".DS_Store") continue
+    const full = path.join(dir, entry.name)
+    if (entry.isFile()) {
+      const rel = path.relative(dir, full).replaceAll("\\", "/")
+      result[rel] = await readSpecFile(full)
+    } else if (entry.isDirectory()) {
+      // Flatten nested subdirs (resources/spec/<subdir>/<deep>/<file>.md) into a
+      // single-level map keyed by path relative to <subdir>.
+      const nested = await walkSpecDir(full)
+      for (const [k, v] of Object.entries(nested)) result[k] = v
+    }
+  }
+  return result
+}
+
+const defaultSpecData: Record<string, EmbeddedSpecEntry> = fs.existsSync(defaultSpecDir)
+  ? await (async () => {
+      const data: Record<string, EmbeddedSpecEntry> = {}
+      for (const entry of await fs.promises.readdir(defaultSpecDir, { withFileTypes: true })) {
+        if (entry.name === ".DS_Store") continue
+        const full = path.join(defaultSpecDir, entry.name)
+        if (entry.isFile()) {
+          data[entry.name] = await readSpecFile(full)
+        } else if (entry.isDirectory()) {
+          data[entry.name] = await walkSpecDir(full)
+        }
+      }
+      return data
+    })()
+  : {}
+
+const countSpecEntries = (obj: Record<string, EmbeddedSpecEntry>): number => {
+  let n = 0
+  for (const v of Object.values(obj)) {
+    if (typeof v === "string" || (typeof v === "object" && v !== null && "encoding" in v)) {
+      n += 1
+    } else if (typeof v === "object" && v !== null) {
+      n += countSpecEntries(v as Record<string, EmbeddedSpecEntry>)
+    }
+  }
+  return n
+}
+console.log(`Loaded ${countSpecEntries(defaultSpecData)} default spec resources`)
 
 const createEmbeddedWebUIBundle = async () => {
   console.log(`Building Web UI to embed in the binary`)
@@ -134,50 +194,12 @@ const allTargets: {
   avx2?: false
 }[] = [
   {
-    os: "linux",
-    arch: "arm64",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-    avx2: false,
-  },
-  {
-    os: "linux",
-    arch: "arm64",
-    abi: "musl",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-    abi: "musl",
-  },
-  {
-    os: "linux",
-    arch: "x64",
-    abi: "musl",
-    avx2: false,
-  },
-  {
     os: "darwin",
     arch: "arm64",
   },
   {
     os: "darwin",
     arch: "x64",
-  },
-  {
-    os: "darwin",
-    arch: "x64",
-    avx2: false,
-  },
-  {
-    os: "win32",
-    arch: "arm64",
   },
   {
     os: "win32",
@@ -212,6 +234,18 @@ const targets = singleFlag
   : allTargets
 
 await $`rm -rf dist`
+
+// Vendored binaries cache (downloaded by postinstall.ts during bun install)
+const cacheDir = path.join(dir, ".build-cache")
+const rgCacheDir = path.join(cacheDir, "ripgrep")
+const mcpCacheDir = path.join(cacheDir, "mcp-bridge")
+
+const RG_VERSION = "15.1.0"
+const rgArchiveMap: Record<string, { archive: string; binary: string }> = {
+  "darwin-arm64": { archive: `ripgrep-${RG_VERSION}-aarch64-apple-darwin.tar.gz`, binary: "rg" },
+  "darwin-x64":   { archive: `ripgrep-${RG_VERSION}-x86_64-apple-darwin.tar.gz`, binary: "rg" },
+  "win32-x64":    { archive: `ripgrep-${RG_VERSION}-x86_64-pc-windows-msvc.zip`, binary: "rg.exe" },
+}
 
 const binaries: Record<string, string> = {}
 if (!skipInstall) {
@@ -293,6 +327,46 @@ for (const item of targets) {
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`
+
+  // Copy mcp-bridge-native from cache (when available for this platform)
+  const mcpKey = `${item.os}-${item.arch}`
+  const mcpCache = path.join(mcpCacheDir, mcpKey)
+  const cachedNode = path.join(mcpCache, "napi_bridge.node")
+  if (fs.existsSync(cachedNode)) {
+    const vendorDir = path.join(dir, "dist", name, "bin", "vendor", "mcp-bridge-native")
+    await fs.promises.mkdir(vendorDir, { recursive: true })
+    await fs.promises.copyFile(path.join(mcpCache, "package.json"), path.join(vendorDir, "package.json"))
+    await fs.promises.copyFile(cachedNode, path.join(vendorDir, "napi_bridge.node"))
+    console.log(`  Bundled mcp-bridge for ${mcpKey}`)
+  } else {
+    console.log(`  Skipped mcp-bridge for ${mcpKey} (not in .build-cache/)`)
+  }
+
+  // Copy ripgrep from cache (when available for this platform)
+  const rgKey = `${item.os}-${item.arch}`
+  const rgInfo = rgArchiveMap[rgKey]
+  if (rgInfo) {
+    const cachePath = path.join(rgCacheDir, rgKey, rgInfo.binary)
+    if (fs.existsSync(cachePath)) {
+      const vendorDir = path.join(dir, "dist", name, "bin", "vendor", "ripgrep")
+      await fs.promises.mkdir(vendorDir, { recursive: true })
+      const rgBinaryName = item.os === "win32" ? "rg.exe" : "rg"
+      const rgDest = path.join(vendorDir, rgBinaryName)
+      await fs.promises.copyFile(cachePath, rgDest)
+      if (item.os !== "win32") {
+        await fs.promises.chmod(rgDest, 0o755)
+      }
+      console.log(`  Bundled ripgrep for ${rgKey}`)
+    } else {
+      console.log(`  Skipped ripgrep for ${rgKey} (not in .build-cache/)`)
+    }
+  }
+
+  await fs.promises.copyFile(
+    path.join(dir, "README.md"),
+    path.join(dir, "dist", name, "bin", "README.md"),
+  )
+
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
@@ -301,6 +375,10 @@ for (const item of targets) {
         preferUnplugged: true,
         os: [item.os],
         cpu: [item.arch],
+        files: [
+          "bin/**/*",
+          "README.md",
+        ],
         ...(item.abi ? { libc: [item.abi] } : {}),
       },
       null,

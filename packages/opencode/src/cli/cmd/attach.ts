@@ -79,6 +79,8 @@ export const AttachCommand = cmd({
     const { Effect } = await import("effect")
     const { run } = await import("../tui/layer")
     const { createLegacyTuiPluginHost } = await import("@/plugin/tui/runtime")
+    const { registerDevEcoTuiExtensions } = await import("@/cli/deveco-ui/register")
+    registerDevEcoTuiExtensions()
     await Effect.runPromise(
       run({
         url: args.url,

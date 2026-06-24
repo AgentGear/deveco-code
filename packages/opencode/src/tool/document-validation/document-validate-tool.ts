@@ -1,5 +1,5 @@
 import { readFileSync } from "fs"
-import * as Log from "@opencode-ai/core/util/log"
+import { Log } from "@opencode-ai/core/util/log"
 import { SddMarkdownParser } from "./markdown-parser"
 import { FORMAT_RULES } from "./config"
 import type { Section } from "./models"
