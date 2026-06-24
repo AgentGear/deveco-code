@@ -21,7 +21,7 @@
   },
   {
     "name": "build_project",
-    "description": "执行编译构建导出构建产物。支持构建整个 APP 或特定模块（HAP/HSP/HAR）。当需要重新构建或清理项目缓存时请将 clean 参数设为 true，这将在构建前执行清理clean。",
+    "description": "执行编译构建导出构建产物。支持构建整个 APP 或特定模块（HAP/HSP/HAR）。默认增量构建：不要传 clean 或传 false。仅当用户明确要求 clean/全量重建，或多次增量构建仍失败且已排除代码问题时，才传 clean=true。",
     "inputSchema": {
       "properties": {
         "build_mode": {
@@ -30,7 +30,7 @@
           "type": "string"
         },
         "clean": {
-          "description": "是否在构建前执行 clean 清理构建产物（类似 cargo clean或者mvn clean）。如果为 true，则会先执行清理然后再进行构建。",
+          "description": "是否在构建前执行 clean 清理构建产物（类似 cargo clean 或 mvn clean）。默认 false；日常改代码后的 rebuild 不要传 true。仅当用户明确要求 clean/清理缓存/全量构建，或增量 build 多次失败且怀疑缓存污染时才设为 true。",
           "nullable": true,
           "type": "boolean"
         },

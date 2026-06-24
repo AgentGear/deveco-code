@@ -39,7 +39,7 @@ export const OhKnowledgeTool = Tool.define(KNOWLEDGE_TOOL_ID, Effect.gen(functio
   const auth = yield* Auth.Service
   return {
     description:
-      "Search the official ArkTS / ArkUI / HarmonyOS / OpenHarmony knowledge base. MUST call this tool before answering questions about .ets code, ArkUI decorators or lifecycle, state refresh issues, HarmonyOS SDK APIs, DevEco/hvigor build errors, @kit.* or @ohos.* APIs, or HarmonyOS documentation URLs. For code snippets or URLs, extract the key symbols, APIs, errors, and observed symptom as the question.",
+      "Search the official ArkTS / ArkUI / HarmonyOS / OpenHarmony knowledge base. MUST call this tool before answering questions about .ets code, ArkUI decorators or lifecycle, state refresh issues, HarmonyOS SDK APIs, DevEco/hvigor build errors, @kit.* or @ohos.* APIs, or HarmonyOS documentation URLs. For code snippets or URLs, extract the key symbols, APIs, errors, and observed symptom as the question. Call this tool in parallel when you have multiple independent questions to search.",
     parameters: Parameters,
     execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
       Effect.gen(function* () {
