@@ -56,34 +56,28 @@ const migrations = await Promise.all(
 console.log(`Loaded ${migrations.length} migrations`)
 
 // Load default skills from resources/skills/
-async function walkSkills(directory: string): Promise<string[]> {
-  const result: string[] = []
-  async function recurse(d: string) {
-    for (const entry of await fs.promises.readdir(d, { withFileTypes: true })) {
-      const full = path.join(d, entry.name)
-      if (entry.isSymbolicLink()) continue
-      if (entry.isDirectory()) {
-        await recurse(full)
-      } else if (entry.name !== ".DS_Store") {
-        result.push(full)
-      }
-    }
-  }
-  await recurse(directory)
-  return result
-}
-
+// Structure: { skillName: { relPath: content } } — must match defaults.ts extraction
 const defaultSkillsDir = path.join(dir, "resources/skills")
-const defaultSkillsFiles = fs.existsSync(defaultSkillsDir) ? await walkSkills(defaultSkillsDir) : []
-const defaultSkillsData = Object.fromEntries(
-  await Promise.all(
-    defaultSkillsFiles.map(async (file) => {
-      const rel = path.relative(defaultSkillsDir, file)
-      const content = await Bun.file(file).text()
-      return [rel, content] as const
-    }),
-  ),
-)
+const defaultSkillsData: Record<string, Record<string, string>> = {}
+if (fs.existsSync(defaultSkillsDir)) {
+  for (const entry of await fs.promises.readdir(defaultSkillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const files: Record<string, string> = {}
+    const skillPath = path.join(defaultSkillsDir, entry.name)
+    await (async function recurse(d: string) {
+      for (const e of await fs.promises.readdir(d, { withFileTypes: true })) {
+        if (e.isSymbolicLink()) continue
+        const full = path.join(d, e.name)
+        if (e.isDirectory()) {
+          await recurse(full)
+        } else if (e.name !== ".DS_Store") {
+          files[path.relative(skillPath, full).replaceAll("\\", "/")] = await Bun.file(full).text()
+        }
+      }
+    })(skillPath)
+    defaultSkillsData[entry.name] = files
+  }
+}
 console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
 
 // Load default spec resources
