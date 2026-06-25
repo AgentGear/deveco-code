@@ -8,6 +8,7 @@ import { LayerNode } from "../effect/layer-node"
 import { httpClient } from "../effect/layer-node-platform"
 import { FSUtil } from "../fs-util"
 import { Global } from "../global"
+import { PS_ENCODING_PREAMBLE } from "../shell"
 import { which } from "../util/which"
 
 export namespace RipgrepBinary {
@@ -61,7 +62,7 @@ export namespace RipgrepBinary {
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            `$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force`,
+            `${PS_ENCODING_PREAMBLE}$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force`,
           ])
           if (result.code !== 0)
             throw new Error(

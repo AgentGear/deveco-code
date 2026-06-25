@@ -10,6 +10,13 @@ import { FSUtil } from "./fs-util"
 import { which } from "./util/which"
 
 const SIGKILL_TIMEOUT_MS = 200
+/**
+ * PowerShell on Windows defaults to the system OEM code page (e.g. CP936 for
+ * Chinese, CP437 for US English) when writing to stdout pipes. Since we decode
+ * process output as UTF-8, we must instruct PowerShell to emit UTF-8 first.
+ */
+export const PS_ENCODING_PREAMBLE =
+  "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; "
 const META: Record<string, { deny?: boolean; login?: boolean; posix?: boolean; ps?: boolean }> = {
   bash: { login: true, posix: true },
   dash: { login: true, posix: true },
@@ -195,7 +202,7 @@ export function args(file: string, command: string, cwd: string) {
     ]
   }
   if (n === "cmd") return ["/c", command]
-  if (ps(file)) return ["-NoProfile", "-Command", command]
+  if (ps(file)) return ["-NoProfile", "-Command", PS_ENCODING_PREAMBLE + command]
   return ["-c", command]
 }
 

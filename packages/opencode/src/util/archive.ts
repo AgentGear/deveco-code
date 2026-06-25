@@ -1,4 +1,5 @@
 import path from "path"
+import { PS_ENCODING_PREAMBLE } from "@opencode-ai/core/shell"
 import * as Process from "./process"
 
 export async function extractZip(zipPath: string, destDir: string) {
@@ -6,7 +7,7 @@ export async function extractZip(zipPath: string, destDir: string) {
     const winZipPath = path.resolve(zipPath)
     const winDestDir = path.resolve(destDir)
     // $global:ProgressPreference suppresses PowerShell's blue progress bar popup
-    const cmd = `$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -Path '${winZipPath}' -DestinationPath '${winDestDir}' -Force`
+    const cmd = `${PS_ENCODING_PREAMBLE}$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -Path '${winZipPath}' -DestinationPath '${winDestDir}' -Force`
     await Process.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd])
     return
   }

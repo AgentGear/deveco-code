@@ -32,6 +32,12 @@ export type RunWslOptions = {
 
 const DEFAULT_WSL_TIMEOUT_MS = 20_000
 const DEFAULT_WSL_INSTALL_TIMEOUT_MS = 15 * 60_000
+// Mirrors PS_ENCODING_PREAMBLE in @opencode-ai/core/shell. Duplicated here
+// because desktop does not depend on core. Force PowerShell to emit UTF-8 so
+// our UTF-8 decode (see detectOutputEncoding) doesn't garble localized errors
+// from the system OEM code page (e.g. CP936 on Chinese Windows).
+const PS_ENCODING_PREAMBLE =
+  "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; "
 
 export function wslArgs(args: string[], distro?: string | null, user?: string | null) {
   return [...(distro ? ["-d", distro] : []), ...(user ? ["--user", user] : []), "--", ...args]
@@ -44,7 +50,7 @@ export function runWsl(args: string[], opts: RunWslOptions = {}) {
 function runPowerShell(command: string, opts: RunWslOptions = {}) {
   return runCommand(
     "powershell.exe",
-    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command],
+    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", PS_ENCODING_PREAMBLE + command],
     opts,
   )
 }
