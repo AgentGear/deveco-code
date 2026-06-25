@@ -12,7 +12,7 @@ const KNOWN_OPENCODE_FLAG_FILES: Array<{ path: string; flag: string }> = [
 
 describe("OPENCODE_* flag residual regression guard (P0 Bug #1)", () => {
   for (const { path, flag } of KNOWN_OPENCODE_FLAG_FILES) {
-    test.skip(`Flag.${flag} in ${path} should be DEVECO_* equivalent`, () => {
+    test(`Flag.${flag} in ${path} should be DEVECO_* equivalent`, () => {
       const source = readSource(path)
       expect(source).not.toContain(`Flag.${flag}`)
       const devecoFlag = flag.replace("OPENCODE_", "DEVECO_")

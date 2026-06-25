@@ -136,7 +136,6 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
                 const result = await devecoAuth.login()
 
                 if (!result.success) {
-                  process.exit(1)
                   if (result.unsupportedRegion) {
                     return {
                       type: "failed" as const,

@@ -51,10 +51,12 @@ const runtime = makeRuntime(Database.Service, Database.defaultLayer)
 const parentTitlePrefix = "New session - "
 const childTitlePrefix = "Child session - "
 
-export function isDefaultTitle(title: string) {
-  return new RegExp(
-    `^(${parentTitlePrefix}|${childTitlePrefix})\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$`,
-  ).test(title)
+export function isDefaultTitle(title: string): boolean {
+  if (!title.startsWith(parentTitlePrefix) && !title.startsWith(childTitlePrefix)) return false
+  const timestamp = title.startsWith(parentTitlePrefix)
+    ? title.slice(parentTitlePrefix.length)
+    : title.slice(childTitlePrefix.length)
+  return /^\d{1,4}[\s/\-:,.]+\d/.test(timestamp)
 }
 
 type SessionRow = typeof SessionTable.$inferSelect
@@ -560,7 +562,7 @@ export const layer: Layer.Layer<
         path: input.path,
         workspaceID: input.workspaceID,
         parentID: input.parentID,
-        title: input.title ?? (input.parentID ? childTitlePrefix : parentTitlePrefix) + new Date().toISOString(),
+        title: input.title ?? (input.parentID ? childTitlePrefix : parentTitlePrefix) + new Date().toLocaleString(),
         agent: input.agent,
         model: input.model,
         metadata: input.metadata,
