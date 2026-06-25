@@ -10,8 +10,10 @@ import {
   CompactionPart,
   ContextOverflowError,
   Info,
+  ModelServiceRateLimitError,
   OutputLengthError,
   Part,
+  QueueError,
   StructuredOutputError,
   SubtaskPart,
   User,
@@ -710,6 +712,13 @@ export function fromError(
         },
         { cause: e },
       ).toObject()
+    // Queue error string detection
+    case typeof e === "string" &&
+      (/排队/.test(e) || /position\s+\d+\s+(?:of|in)\s+(?:the\s+)?queue/i.test(e) || /high demand.*queue/i.test(e)): {
+      const posMatch = e.match(/第\s*(\d+)\s*位/) || e.match(/position\s+(\d+)/i)
+      const position = posMatch ? parseInt(posMatch[1], 10) : 0
+      return new QueueError({ position, message: e }, { cause: e }).toObject()
+    }
     case e instanceof Error:
       return new NamedError.Unknown({ message: errorMessage(e) }, { cause: e }).toObject()
     default:

@@ -1,6 +1,7 @@
 import { Context, Effect, Layer } from "effect"
 import { Log } from "@opencode-ai/core/util/log"
 import { Global } from "@opencode-ai/core/global"
+import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { LocalCrypto } from "@/security/local-crypto"
 import { sessionChatIdMap } from "@/plugin/deveco"
 import fs from "fs"
@@ -65,5 +66,7 @@ export const layer = Layer.effect(
 )
 
 export const defaultLayer = layer
+
+export const node = LayerNode.make(layer, [])
 
 export * as ExitQueue from "./exit-queue"

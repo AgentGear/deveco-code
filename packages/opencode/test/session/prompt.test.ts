@@ -34,6 +34,7 @@ import { SessionCompaction } from "../../src/session/compaction"
 import { SessionSummary } from "../../src/session/summary"
 import { Instruction } from "../../src/session/instruction"
 import { SessionProcessor } from "../../src/session/processor"
+import { ExitQueue } from "../../src/session/exit-queue"
 import { SessionPrompt } from "../../src/session/prompt"
 import { SessionRevert } from "../../src/session/revert"
 import { SessionRunState } from "../../src/session/run-state"
@@ -205,6 +206,7 @@ function makePrompt(input?: { processor?: "blocking" }) {
           Layer.provide(summary),
           Layer.provide(Image.defaultLayer),
           Layer.provide(RuntimeFlags.layer({ experimentalEventSystem: true })),
+          Layer.provide(ExitQueue.defaultLayer),
           Layer.provideMerge(deps),
         )
   const compact = SessionCompaction.layer.pipe(

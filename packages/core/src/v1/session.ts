@@ -55,6 +55,17 @@ export const ContextOverflowError = NamedError.create("ContextOverflowError", {
 export const ContentFilterError = NamedError.create("ContentFilterError", {
   message: Schema.String,
 })
+// Queue polling error types
+export const QueueError = NamedError.create("QueueError", {
+  position: Schema.Number,
+  message: Schema.String,
+  responseBody: Schema.optional(Schema.String),
+})
+export type QueueError = Schema.Schema.Type<typeof QueueError.Schema>
+export const ModelServiceRateLimitError = NamedError.create("ModelServiceRateLimitError", {
+  message: Schema.String,
+})
+export type ModelServiceRateLimitError = Schema.Schema.Type<typeof ModelServiceRateLimitError.Schema>
 
 export class OutputFormatText extends Schema.Class<OutputFormatText>("OutputFormatText")({
   type: Schema.Literal("text"),
@@ -392,6 +403,8 @@ const AssistantErrorSchema = Schema.Union([
   StructuredOutputError.EffectSchema,
   ContextOverflowError.EffectSchema,
   ContentFilterError.EffectSchema,
+  QueueError.EffectSchema,
+  ModelServiceRateLimitError.EffectSchema,
   APIError.EffectSchema,
 ]).annotate({ discriminator: "name" })
 type AssistantError = Schema.Schema.Type<typeof AssistantErrorSchema>

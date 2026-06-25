@@ -11,6 +11,7 @@ import { ProviderError } from "../../src/provider/error"
 import { SessionID } from "../../src/session/schema"
 import { SessionStatus } from "../../src/session/status"
 import { testEffect } from "../lib/effect"
+import { provideTmpdirInstance } from "../fixture/fixture"
 import { ProviderV2 } from "@opencode-ai/core/provider"
 
 const providerID = ProviderV2.ID.make("test")
@@ -121,15 +122,15 @@ it.live("policy gives each error category its own retry budget (QueueError → 4
         const sessionID = SessionID.make("session-retry-category-test")
         const status = yield* SessionStatus.Service
 
-        const queueErr = Schema.decodeUnknownSync(MessageV2.QueueError.Schema)(
-          new MessageV2.QueueError({
+        const queueErr = Schema.decodeUnknownSync(SessionV1.QueueError.Schema)(
+          new SessionV1.QueueError({
             position: 1,
             message: "position 1 in queue",
           }).toObject(),
         )
 
-        const rateLimitErr = Schema.decodeUnknownSync(MessageV2.APIError.Schema)(
-          new MessageV2.APIError({
+        const rateLimitErr = Schema.decodeUnknownSync(SessionV1.APIError.Schema)(
+          new SessionV1.APIError({
             message: "Rate limit exceeded",
             statusCode: 403,
             isRetryable: false,

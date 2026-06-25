@@ -312,6 +312,22 @@ export type ContentFilterError = {
   }
 }
 
+export type QueueError = {
+  name: "QueueError"
+  data: {
+    position: number
+    message: string
+    responseBody?: string
+  }
+}
+
+export type ModelServiceRateLimitError = {
+  name: "ModelServiceRateLimitError"
+  data: {
+    message: string
+  }
+}
+
 export type ApiError = {
   name: "APIError"
   data: {
@@ -344,6 +360,8 @@ export type AssistantMessage = {
     | StructuredOutputError
     | ContextOverflowError
     | ContentFilterError
+    | QueueError
+    | ModelServiceRateLimitError
     | ApiError
   parentID: string
   modelID: string
@@ -1240,6 +1258,8 @@ export type GlobalEvent = {
             | StructuredOutputError
             | ContextOverflowError
             | ContentFilterError
+            | QueueError
+            | ModelServiceRateLimitError
             | ApiError
         }
       }
@@ -4774,6 +4794,8 @@ export type EventSessionError = {
       | StructuredOutputError
       | ContextOverflowError
       | ContentFilterError
+      | QueueError
+      | ModelServiceRateLimitError
       | ApiError
   }
 }
