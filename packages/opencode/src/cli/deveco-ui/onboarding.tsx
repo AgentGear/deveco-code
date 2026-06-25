@@ -295,6 +295,20 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     setSignError(null)
     setPrivacyIndex(1)
 
+    if (!kv.ready) {
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          if (kv.ready) {
+            resolve()
+            return
+          }
+          setTimeout(check, 50)
+        }
+        check()
+        setTimeout(() => resolve(), 5000)
+      })
+    }
+
     const session = await devecoAuth.getSession()
     const accessToken = session?.accessToken || ''
     const userId = session?.userId || await devecoAuth.getUserId() || ''
@@ -316,9 +330,15 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
       return
     }
 
-    // NETWORK_ERROR → show agreement form so user can sign offline (degraded mode).
-    // The sign will be saved locally as pending and retried on next startup.
+    // NETWORK_ERROR → if local cache exists (canEnter=true), allow entry (offline degradation).
+    // Otherwise, show agreement form so user can sign offline (degraded mode).
     if (checkResult.overallStatus === AgreementStatus.NETWORK_ERROR) {
+      if (checkResult.canEnter) {
+        setCheckingStatus(false)
+        void agreementService.retryPendingSign(accessToken, userId, kv)
+        props.onComplete()
+        return
+      }
       setCheckingStatus(false)
       setPrivacyIndex(0)
       return
