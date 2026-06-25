@@ -1,5 +1,5 @@
 import { createEffect, For, createMemo, createSignal, onCleanup, onMount } from "solid-js";
-import { RGBA } from "@opentui/core";
+import { BoxRenderable, MouseButton, MouseEvent, RGBA } from "@opentui/core";
 import { useRenderer, useTerminalDimensions } from "@opentui/solid";
 import { useTheme } from "@tui/context/theme";
 import { useKV } from "@tui/context/kv";
@@ -14,6 +14,7 @@ import {
   type LogoIntroFrame,
   type Tone,
 } from "./banner-logo";
+import { applyBurst, buildGlyphMap, BurstController } from "./banner-burst";
 
 /**
  * DevEco Code home banner.
@@ -117,12 +118,21 @@ export function Banner(props?: { contentInset?: number }) {
       : { kind: "done" },
   );
 
+  let burst: BurstController | undefined;
+  const [burstTick, setBurstTick] = createSignal(0);
+
   const width = createMemo(() => {
     const inset = props?.contentInset ?? 0;
     return Math.max(0, Math.floor(dimensions().width) - inset);
   });
   const logoRows = createMemo(() => logoRowsForWidth(width()).slice(0, LOGO_ROW_CAP));
   const logoRowsThickTop = createMemo(() => thickTopLogoRows(logoRows()));
+
+  const glyphMap = createMemo(() => {
+    const map = buildGlyphMap(width());
+    burst?.setGlyphMap(map);
+    return map;
+  });
 
   const isLight = createMemo(() => mode() === "light");
 
@@ -134,17 +144,28 @@ export function Banner(props?: { contentInset?: number }) {
   });
 
   onMount(() => {
+    // Initialize burst controller
+    burst = new BurstController(() => {
+      setBurstTick((prev) => prev + 1);
+      renderer.requestRender();
+    });
+    burst.setGlyphMap(glyphMap());
+
     if (!animationsEnabled()) return;
 
     const rows = logoRows().length;
     const fadeStart = performance.now();
+
     const interval = setInterval(() => {
       const elapsed = performance.now() - fadeStart;
       setIntroFrame(logoIntroFrameAt(elapsed, rows));
       if (elapsed >= LOGO_INTRO_DURATION_MS) clearInterval(interval);
     }, 16);
 
-    onCleanup(() => clearInterval(interval));
+    onCleanup(() => {
+      clearInterval(interval);
+      burst?.dispose();
+    });
   });
 
   const bannerPalette = createMemo(() => {
@@ -187,22 +208,69 @@ export function Banner(props?: { contentInset?: number }) {
   const poweredBy = "Powered by BitFun & OpenCode";
   const poweredByLen = poweredBy.length;
   const poweredByPadLeft = createMemo(() => Math.max(0, Math.floor((width() - poweredByLen) / 2)));
+
+  const logoRowsWithBurst = createMemo(() => {
+    const rows = logoRows();
+    const thickRows = logoRowsThickTop();
+    const frame = introFrame();
+    const vw = width();
+    const pal = logoPalette();
+    // Track burst tick for reactivity
+    burstTick();
+    const burstActive = burst?.isActive() ?? false;
+    const burstFrame = burst?.frame();
+    const map = glyphMap();
+    return rows.map((line, i) => {
+      const baseTones = bannerLogoScannedLineTonesWithIntro(
+        line,
+        thickRows[i] ?? line,
+        i,
+        frame,
+        vw,
+        pal,
+      );
+      if (burstActive && burstFrame) {
+        return applyBurst(baseTones, i, burstFrame, map, theme);
+      }
+      return baseTones;
+    });
+  });
+
+  let burstBox: BoxRenderable | undefined;
+
   return (
     <box flexDirection="column" width={width()} backgroundColor={stripeTransparent}>
-      <box flexDirection="column" width={width()} paddingTop={1} backgroundColor={stripeTransparent}>
-        <For each={logoRows()}>
-          {(line, rowIndex) => (
+      <box
+        ref={(el: BoxRenderable) => (burstBox = el)}
+        flexDirection="column"
+        width={width()}
+        paddingTop={1}
+        backgroundColor={stripeTransparent}
+      >
+        <box
+          position="absolute"
+          top={0}
+          left={0}
+          width={width()}
+          height={LOGO_ROW_CAP + 1}
+          zIndex={1}
+          onMouse={(evt: MouseEvent) => {
+            if (!burst || !burstBox) return;
+            if ((evt.type === "down" || evt.type === "drag") && evt.button === MouseButton.LEFT) {
+              const x = evt.x - burstBox.x;
+              const y = evt.y - burstBox.y - 1;
+              burst.handleDown(x, y);
+              return;
+            }
+            if (evt.type === "up") {
+              burst.handleUp();
+            }
+          }}
+        />
+        <For each={logoRowsWithBurst()}>
+          {(tones) => (
             <text bg={stripeTransparent} selectable={false}>
-              <For
-                each={bannerLogoScannedLineTonesWithIntro(
-                  line,
-                  logoRowsThickTop()[rowIndex()] ?? line,
-                  rowIndex(),
-                  introFrame(),
-                  width(),
-                  logoPalette(),
-                )}
-              >
+              <For each={tones}>
                 {(p: Tone) => <span style={{ fg: p.fg }}>{p.t}</span>}
               </For>
             </text>

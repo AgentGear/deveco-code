@@ -56,34 +56,28 @@ const migrations = await Promise.all(
 console.log(`Loaded ${migrations.length} migrations`)
 
 // Load default skills from resources/skills/
-async function walkSkills(directory: string): Promise<string[]> {
-  const result: string[] = []
-  async function recurse(d: string) {
-    for (const entry of await fs.promises.readdir(d, { withFileTypes: true })) {
-      const full = path.join(d, entry.name)
-      if (entry.isSymbolicLink()) continue
-      if (entry.isDirectory()) {
-        await recurse(full)
-      } else if (entry.name !== ".DS_Store") {
-        result.push(full)
-      }
-    }
-  }
-  await recurse(directory)
-  return result
-}
-
+// Structure: { skillName: { relPath: content } } — must match defaults.ts extraction
 const defaultSkillsDir = path.join(dir, "resources/skills")
-const defaultSkillsFiles = fs.existsSync(defaultSkillsDir) ? await walkSkills(defaultSkillsDir) : []
-const defaultSkillsData = Object.fromEntries(
-  await Promise.all(
-    defaultSkillsFiles.map(async (file) => {
-      const rel = path.relative(defaultSkillsDir, file)
-      const content = await Bun.file(file).text()
-      return [rel, content] as const
-    }),
-  ),
-)
+const defaultSkillsData: Record<string, Record<string, string>> = {}
+if (fs.existsSync(defaultSkillsDir)) {
+  for (const entry of await fs.promises.readdir(defaultSkillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const files: Record<string, string> = {}
+    const skillPath = path.join(defaultSkillsDir, entry.name)
+    await (async function recurse(d: string) {
+      for (const e of await fs.promises.readdir(d, { withFileTypes: true })) {
+        if (e.isSymbolicLink()) continue
+        const full = path.join(d, e.name)
+        if (e.isDirectory()) {
+          await recurse(full)
+        } else if (e.name !== ".DS_Store") {
+          files[path.relative(skillPath, full).replaceAll("\\", "/")] = await Bun.file(full).text()
+        }
+      }
+    })(skillPath)
+    defaultSkillsData[entry.name] = files
+  }
+}
 console.log(`Loaded ${Object.keys(defaultSkillsData).length} default skills`)
 
 // Load default spec resources
@@ -333,7 +327,7 @@ for (const item of targets) {
   const mcpCache = path.join(mcpCacheDir, mcpKey)
   const cachedNode = path.join(mcpCache, "napi_bridge.node")
   if (fs.existsSync(cachedNode)) {
-    const vendorDir = path.join(dir, "dist", name, "bin", "vendor", "mcp-bridge-native")
+    const vendorDir = path.join(dir, "dist", name, "vendor", "mcp-bridge-native")
     await fs.promises.mkdir(vendorDir, { recursive: true })
     await fs.promises.copyFile(path.join(mcpCache, "package.json"), path.join(vendorDir, "package.json"))
     await fs.promises.copyFile(cachedNode, path.join(vendorDir, "napi_bridge.node"))
@@ -348,7 +342,7 @@ for (const item of targets) {
   if (rgInfo) {
     const cachePath = path.join(rgCacheDir, rgKey, rgInfo.binary)
     if (fs.existsSync(cachePath)) {
-      const vendorDir = path.join(dir, "dist", name, "bin", "vendor", "ripgrep")
+      const vendorDir = path.join(dir, "dist", name, "vendor", "ripgrep")
       await fs.promises.mkdir(vendorDir, { recursive: true })
       const rgBinaryName = item.os === "win32" ? "rg.exe" : "rg"
       const rgDest = path.join(vendorDir, rgBinaryName)
@@ -377,6 +371,7 @@ for (const item of targets) {
         cpu: [item.arch],
         files: [
           "bin/**/*",
+          "vendor/**/*",
           "README.md",
         ],
         ...(item.abi ? { libc: [item.abi] } : {}),
@@ -391,9 +386,9 @@ for (const item of targets) {
 if (Script.release) {
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
-      await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}/bin`)
+      await $`tar -czf ../../${key}.tar.gz *`.cwd(`dist/${key}`)
     } else {
-      await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
+      await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}`)
     }
   }
   await $`gh release upload v${Script.version} ./dist/*.zip ./dist/*.tar.gz --clobber --repo ${process.env.GH_REPO}`

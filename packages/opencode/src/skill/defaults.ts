@@ -1,5 +1,6 @@
 import path from "path"
 import fs from "fs/promises"
+import { fileURLToPath } from "url"
 import { Effect } from "effect"
 import type { FSUtil } from "@opencode-ai/core/fs-util"
 import { Global } from "@opencode-ai/core/global"
@@ -7,6 +8,37 @@ import { Global } from "@opencode-ai/core/global"
 type EmbeddedSkillFile = string | { encoding: "base64"; content: string }
 
 declare const DEVECO_DEFAULT_SKILLS: Record<string, Record<string, EmbeddedSkillFile>> | undefined
+
+/**
+ * Dev-mode fallback: read skills from resources/skills/ on disk when the
+ * compile-time DEVECO_DEFAULT_SKILLS constant is not injected (i.e. bun dev).
+ */
+async function loadSkillsFromDisk(): Promise<Record<string, Record<string, string>>> {
+  const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..")
+  const skillsDir = path.join(packageRoot, "resources", "skills")
+  const result: Record<string, Record<string, string>> = {}
+  try {
+    for (const entry of await fs.readdir(skillsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      const files: Record<string, string> = {}
+      const skillPath = path.join(skillsDir, entry.name)
+      await walk(skillPath, skillPath, files)
+      result[entry.name] = files
+    }
+  } catch {
+    // resources/skills/ may not exist in some installations
+  }
+  return result
+}
+
+async function walk(root: string, current: string, result: Record<string, string>): Promise<void> {
+  for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+    if (entry.isSymbolicLink() || entry.name === ".DS_Store") continue
+    const full = path.join(current, entry.name)
+    if (entry.isDirectory()) await walk(root, full, result)
+    else result[path.relative(root, full).replaceAll("\\", "/")] = await fs.readFile(full, "utf-8")
+  }
+}
 
 export namespace Defaults {
   export const ensure = Effect.fn("Skill.Defaults.ensure")(function* (version: string, fsys: FSUtil.Interface) {
@@ -53,7 +85,9 @@ export namespace Defaults {
     )
 
     // Clean up built-in skill subdirectories only, preserving user skills
-    const data = typeof DEVECO_DEFAULT_SKILLS !== "undefined" ? DEVECO_DEFAULT_SKILLS : {}
+    const data = typeof DEVECO_DEFAULT_SKILLS !== "undefined"
+      ? DEVECO_DEFAULT_SKILLS
+      : yield* Effect.promise(() => loadSkillsFromDisk())
 
     yield* Effect.tryPromise(() =>
       fs.readdir(dir, { withFileTypes: true }),

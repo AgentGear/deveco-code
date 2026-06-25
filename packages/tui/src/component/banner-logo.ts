@@ -192,7 +192,7 @@ export const SCAN_COVER_ROW_BLOCKS: readonly string[] = [
   "\u2583",
 ]
 
-function isLogoBlockChar(ch: string): boolean {
+export function isLogoBlockChar(ch: string): boolean {
   return ch >= "\u2582" && ch <= "\u2586"
 }
 
