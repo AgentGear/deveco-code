@@ -69,8 +69,7 @@ import { QuestionPrompt } from "./question"
 import { DialogExportOptions } from "../../ui/dialog-export-options"
 import * as Model from "../../util/model"
 import { formatTranscript } from "../../util/transcript"
-import { bannerLogoPalette, formatBannerLogoAnsiLines, wordFullSmall } from '../../component/banner-logo';
-import { sessionEpilogue } from "../../util/presentation"
+import { buildSessionEpilogue } from "../../util/presentation"
 import { setPreLayoutSiblingMargin } from "../../util/layout"
 import { useTuiConfig } from "../../config"
 import { useClipboard } from "../../context/clipboard"
@@ -177,6 +176,7 @@ function use() {
 
 export function Session() {
   const setEpilogue = useEpilogue()
+  const renderer = useRenderer()
   const clipboard = useClipboard()
   const writeExport = async (file: string, content: string) => {
     await mkdir(path.dirname(file), { recursive: true })
@@ -191,13 +191,14 @@ export function Session() {
   const paths = useTuiPaths()
   const tuiConfig = useTuiConfig()
   const kv = useKV()
-  const { theme, mode } = useTheme()
+  const { theme } = useTheme()
   const promptRef = usePromptRef()
   const session = createMemo(() => sync.session.get(route.sessionID))
 
   createEffect(() => {
     const title = Locale.truncate(session()?.title ?? "", 50)
-    setEpilogue(sessionEpilogue({ title, sessionID: session()?.id }))
+    const sessionID = session()?.id
+    setEpilogue(buildSessionEpilogue(renderer, { title, sessionID }))
   })
   onCleanup(() => setEpilogue())
   const children = createMemo(() => {
@@ -341,7 +342,6 @@ export function Session() {
   }
   const keymap = useOpencodeKeymap()
   const dialog = useDialog()
-  const renderer = useRenderer()
 
   event.on("session.status", (evt) => {
     if (evt.properties.sessionID !== route.sessionID) return
@@ -361,31 +361,6 @@ export function Session() {
       if (dontShowAgain) kv.set(keys.dontShow, true)
       kv.set(keys.lastSeenAt, Date.now())
     })
-  })
-
-  createEffect(() => {
-    const title = Locale.truncate(session()?.title ?? "", 50)
-    const pad = (text: string) => text.padEnd(10, " ")
-    // ANSI style codes (inlined to avoid importing `UI` from `deveco/cli/ui`,
-    // which would reintroduce the deveco↔TUI workspace cycle).
-    const DIM = "\x1b[90m"
-    const NORMAL = "\x1b[0m"
-    const NORMAL_BOLD = "\x1b[1m"
-    const weak = (text: string) => DIM + pad(text) + NORMAL
-    const logo = formatBannerLogoAnsiLines(dimensions().width, bannerLogoPalette(mode() === 'light', theme), {
-      rows: wordFullSmall,
-      align: 'start',
-    });
-    setEpilogue(
-      [
-        '',
-        ...logo,
-        '',
-        `  ${weak('Session')}${NORMAL_BOLD}${title}${NORMAL}`,
-        `  ${weak('Continue')}${NORMAL_BOLD}deveco -s ${session()?.id}${NORMAL}`,
-        '',
-      ].join('\n'),
-    );
   })
 
   // Helper: Find next visible message boundary in direction

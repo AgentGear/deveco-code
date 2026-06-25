@@ -1,49 +1,51 @@
 /**
  * Terminal scrollback presentation helpers.
  *
- * `sessionEpilogue()` is emitted to stderr when the active session changes
- * (title + continue command). The wordmark is the DevECode lettermark
- * rendered by `@opencode-ai/tui/component/banner-logo` so DevEco's CLI and
- * TUI share a single source of truth for the logo.
+ * `buildSessionEpilogue()` is emitted to stdout when the TUI exits.
  */
-import {
-  bannerLogoPalette,
-  formatBannerLogoAnsiLines,
-  wordDevecoSmall,
-} from "../component/banner-logo"
+import type { CliRenderer } from '@opentui/core';
+import { cliHelpBannerLogoPalette, formatBannerLogoAnsiLines, wordFullSmall } from '../component/banner-logo';
 
-const reset = "\x1b[0m"
-const bold = "\x1b[1m"
-const dim = "\x1b[90m"
-
-/**
- * Render the DevEco lettermark as ANSI truecolor lines for scrollback.
- *
- * Uses `wordDevecoSmall` (5-row `▂▃▄▅▆` "DEVECO" block mark) with a
- * dark-mode palette. The palette is fixed because scrollback is emitted
- * outside the TUI and cannot read the user's theme; dark terminals are the
- * dominant case for CLI users.
- */
-function wordmark(pad = ""): string[] {
-  const palette = bannerLogoPalette(false, {
-    text: { r: 1, g: 1, b: 1, a: 1 } as never,
-    textMuted: { r: 0.5, g: 0.5, b: 0.5, a: 1 } as never,
-    border: { r: 0.2, g: 0.2, b: 0.2, a: 1 } as never,
-    background: { r: 0, g: 0, b: 0, a: 1 } as never,
-  })
-  return formatBannerLogoAnsiLines(80, palette, {
-    rows: wordDevecoSmall,
-    align: "start",
-  }).map((line) => `${pad}${line}`)
+function ansiFg(r: number, g: number, b: number): string {
+  return `\x1b[38;2;${r};${g};${b}m`;
 }
 
-export function sessionEpilogue(input: { title: string; sessionID?: string }) {
-  const weak = (text: string) => `${dim}${text.padEnd(10, " ")}${reset}`
+export function buildSessionEpilogue(
+  renderer: CliRenderer,
+  input: { title: string; sessionID?: string },
+): string {
+  const palette = cliHelpBannerLogoPalette();
+  const reset = '\x1b[0m';
+  const logoFg = palette.logoFg;
+  const mutedFg = palette.base;
+  const weak = (text: string) =>
+    `${ansiFg(Math.round(mutedFg.r * 255), Math.round(mutedFg.g * 255), Math.round(mutedFg.b * 255))}\x1b[2m${text.padEnd(10, ' ')}${reset}`;
+  const bold = (text: string) =>
+    `${ansiFg(Math.round(logoFg.r * 255), Math.round(logoFg.g * 255), Math.round(logoFg.b * 255))}\x1b[1m${text}${reset}`;
+  const continueCommand = input.sessionID ? `deveco -s ${input.sessionID}` : '';
+
   return [
-    ...wordmark("  "),
-    "",
-    `  ${weak("Session")}${bold}${input.title}${reset}`,
-    `  ${weak("Continue")}${bold}deveco -s ${input.sessionID}${reset}`,
-    "",
-  ].join("\n")
+    ...formatBannerLogoAnsiLines(renderer.terminalWidth, palette, {
+      rows: wordFullSmall,
+      align: 'start',
+    }).map((line) => ` ${line}`),
+    '',
+    `  ${weak('Session')}${bold(input.title)}`,
+    input.sessionID ? `  ${weak('Continue')}${bold(continueCommand)}` : '',
+    '',
+  ].join('\n');
+}
+
+/** @deprecated Use `buildSessionEpilogue(renderer, input)`. */
+export function sessionEpilogue(input: { title: string; sessionID?: string }) {
+  const reset = '\x1b[0m';
+  const bold = '\x1b[1m';
+  const dim = '\x1b[90m';
+  const weak = (text: string) => `${dim}${text.padEnd(10, ' ')}${reset}`;
+  return [
+    '',
+    `  ${weak('Session')}${bold}${input.title}${reset}`,
+    `  ${weak('Continue')}${bold}deveco -s ${input.sessionID}${reset}`,
+    '',
+  ].join('\n');
 }
