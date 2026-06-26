@@ -53,10 +53,6 @@ for (const filepath of new Bun.Glob("*/package.json").scanSync({ cwd: "./dist" }
     console.log(`  Skipping ${distPkg.name} (${platform})`)
     continue
   }
-  if (distPkg.name.includes("-baseline")) {
-    console.log(`  Skipping ${distPkg.name} (baseline)`)
-    continue
-  }
   binaries[distPkg.name] = { version: distPkg.version, dir: path.dirname(filepath) }
 }
 console.log("  binaries:", Object.fromEntries(Object.entries(binaries).map(([k, v]) => [k, v.version])))

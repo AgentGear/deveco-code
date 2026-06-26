@@ -372,7 +372,7 @@ for (const item of targets) {
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name: `@deveco/deveco-code-${item.os === "win32" ? "windows" : item.os}-${item.arch}`,
+        name: `@deveco/deveco-code-${item.os === "win32" ? "windows" : item.os}-${item.arch}${item.avx2 === false ? "-baseline" : ""}`,
         version: Script.version,
         preferUnplugged: true,
         os: [item.os],
