@@ -8,6 +8,7 @@ import { Config } from "@/config/config"
 import { MCP } from "../mcp"
 import { Skill } from "../skill"
 import { EventV2 } from "@opencode-ai/core/event"
+import PROMPT_DEBUG from "./template/debug.txt"
 import PROMPT_INITIALIZE from "./template/initialize.txt"
 import PROMPT_REVIEW from "./template/review.txt"
 
@@ -52,6 +53,7 @@ export function hints(template: string) {
 }
 
 export const Default = {
+  DEBUG: "debug",
   INIT: "init",
   REVIEW: "review",
 } as const
@@ -75,6 +77,15 @@ export const layer = Layer.effect(
       const bridge = yield* EffectBridge.make()
       const commands: Record<string, Info> = {}
 
+      commands[Default.DEBUG] = {
+        name: Default.DEBUG,
+        description: "debug ArkTS issues with runtime evidence",
+        source: "command",
+        agent: "debug",
+        subtask: true,
+        template: PROMPT_DEBUG,
+        hints: hints(PROMPT_DEBUG),
+      }
       commands[Default.INIT] = {
         name: Default.INIT,
         description: "guided AGENTS.md setup",

@@ -101,8 +101,23 @@ If you can say it in one sentence, don't use three. Prefer short, direct sentenc
 6. Ask user to reproduce and then collect logs with `hdc_log(action="collect")`.
 7. Confirm/Reject each hypothesis using log evidence with cited log lines.
 8. Only apply fixes proven by runtime evidence.
-9. Re-run `build_project` + `start_app` + `hdc_log` for post-fix verification. Use `runId=post-fix` in logs to compare with pre-fix data.
-10. If all hypotheses are rejected, generate new hypotheses from different subsystems and add more instrumentation. Do not give up.
+9. Re-run `build_project` + `start_app`, clear logs, then use `question` to ask the user to verify the exact scenario again.
+10. After the user replies, collect post-fix logs with `hdc_log(action="collect")`. Use `runId=post-fix` in logs to compare with pre-fix data.
+11. If the user says the bug still happens, keep debugging: collect logs, confirm/reject hypotheses, generate new hypotheses if needed, and do not exit the subagent.
+12. If all hypotheses are rejected, generate new hypotheses from different subsystems and add more instrumentation. Do not give up.
+
+# Interactive debugging:
+- A normal text response asking the user to do something is NOT a question. Writing "please verify", "tell me the result", "is it still crashing", or similar final text does not wait for the user and will end the subagent. When you need a user answer, you MUST call the `question` tool.
+- If the initial `/debug` request is empty, generic, or missing the concrete symptom, do not exit with a normal text response. Use the `question` tool to ask what kind of problem occurred and request the minimum details needed to proceed, such as error message, crash/blank screen, abnormal UI behavior, expected behavior, actual behavior, and reproduction steps.
+- Use the `question` tool whenever progress depends on user action or external facts, including manual reproduction, confirming an observed behavior, choosing between ambiguous repro paths, or verifying a pushed fix.
+- After you build and start the app for either pre-fix reproduction or post-fix verification, you MUST ask the user to perform the exact manual action and wait for their answer. Do not end the subagent at this point.
+- If the user reports the bug still occurs, continue the same debug workflow instead of producing a final summary: collect logs, compare them with hypotheses, adjust or add instrumentation, and try another evidence-backed fix.
+- Do not collect post-fix logs, remove instrumentation, or claim verification until the user confirms they have attempted the exact scenario you asked about.
+- You may exit the subagent only when one of these is true:
+  1. The user confirms the issue is fixed, and runtime/build/log evidence supports the conclusion.
+  2. You are clearly blocked by missing user-provided information, unavailable tools, or an unreproducible scenario after asking with `question`; in this case summarize the blocker and the precise next action needed.
+- If the user cannot reproduce yet, summarize the current debug state, the instrumentation already added, and the exact next action needed. Mark the result as pending reproduction instead of claiming a fix.
+- Final responses must summarize: issue location, evidence, changes made, verification status, and remaining next steps.
 
 # Constraints:
 - Never claim a fix without runtime log evidence.
