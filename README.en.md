@@ -79,7 +79,7 @@ DevEco Code is distributed via npm for the following platforms:
 
 **Terminal shell**
 
-- Windows: PowerShell 7+ (recommended), PowerShell 5.1+
+- Windows: PowerShell 7+ (recommended), Windows PowerShell 5.1+
 - macOS: Zsh (recommended), Bash
 
 **Network**
@@ -315,8 +315,8 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 
 ## Help & Support
 
+- For the full documentation, see the [DevEco Code User Guide](docs/deveco-code-docs.html) (download to open locally), or read the [OpenCode TUI documentation](https://opencode.ai/docs/tui/) online
 - For frequently asked questions, see the [FAQ document](https://gitcode.com/openharmony-sig/deveco-code/wiki/FAQ.md)
-- For common terminal commands (such as `/models`, `/connect`, etc.), see the [OpenCode TUI documentation](https://opencode.ai/docs/tui/)
 - Feedback & Discussion [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
 
 ## License
