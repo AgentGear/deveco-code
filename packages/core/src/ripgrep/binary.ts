@@ -95,6 +95,11 @@ export namespace RipgrepBinary {
             const system = yield* Effect.sync(() => which(process.platform === "win32" ? "rg.exe" : "rg"))
             if (system && (yield* fs.isFile(system).pipe(Effect.orDie))) return system
 
+            // Check bundled vendor binary (relative to compiled binary location)
+            const binDir = path.dirname(process.execPath)
+            const vendorRg = path.join(binDir, "..", "vendor", "ripgrep", process.platform === "win32" ? "rg.exe" : "rg")
+            if (yield* fs.isFile(vendorRg).pipe(Effect.orDie)) return vendorRg
+
             const target = path.join(Global.Path.bin, `rg${process.platform === "win32" ? ".exe" : ""}`)
             if (yield* fs.isFile(target).pipe(Effect.orDie)) return target
 

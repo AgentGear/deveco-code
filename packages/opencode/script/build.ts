@@ -322,26 +322,32 @@ for (const item of targets) {
 
   await $`rm -rf ./dist/${name}/bin/tui`
 
-  // Copy mcp-bridge-native from cache (when available for this platform)
+  // Copy mcp-bridge-native from cache
   const mcpKey = `${item.os}-${item.arch}`
   const mcpCache = path.join(mcpCacheDir, mcpKey)
   const cachedNode = path.join(mcpCache, "napi_bridge.node")
-  if (fs.existsSync(cachedNode)) {
+  if (!fs.existsSync(cachedNode)) {
+    console.error(`  ERROR: mcp-bridge cache not found for ${mcpKey}. Run "bun install" first to download vendored binaries.`)
+    process.exit(1)
+  }
+  {
     const vendorDir = path.join(dir, "dist", name, "vendor", "mcp-bridge-native")
     await fs.promises.mkdir(vendorDir, { recursive: true })
     await fs.promises.copyFile(path.join(mcpCache, "package.json"), path.join(vendorDir, "package.json"))
     await fs.promises.copyFile(cachedNode, path.join(vendorDir, "napi_bridge.node"))
     console.log(`  Bundled mcp-bridge for ${mcpKey}`)
-  } else {
-    console.log(`  Skipped mcp-bridge for ${mcpKey} (not in .build-cache/)`)
   }
 
-  // Copy ripgrep from cache (when available for this platform)
+  // Copy ripgrep from cache
   const rgKey = `${item.os}-${item.arch}`
   const rgInfo = rgArchiveMap[rgKey]
   if (rgInfo) {
     const cachePath = path.join(rgCacheDir, rgKey, rgInfo.binary)
-    if (fs.existsSync(cachePath)) {
+    if (!fs.existsSync(cachePath)) {
+      console.error(`  ERROR: ripgrep cache not found for ${rgKey}. Run "bun install" first to download vendored binaries.`)
+      process.exit(1)
+    }
+    {
       const vendorDir = path.join(dir, "dist", name, "vendor", "ripgrep")
       await fs.promises.mkdir(vendorDir, { recursive: true })
       const rgBinaryName = item.os === "win32" ? "rg.exe" : "rg"
@@ -351,10 +357,12 @@ for (const item of targets) {
         await fs.promises.chmod(rgDest, 0o755)
       }
       console.log(`  Bundled ripgrep for ${rgKey}`)
-    } else {
-      console.log(`  Skipped ripgrep for ${rgKey} (not in .build-cache/)`)
     }
   }
+
+  await $`rm -rf ./dist/${name}/bin/tui`
+  await $`mkdir -p ./dist/${name}/assets/readme`
+  await $`cp ../../assets/readme/readme-screenshot.png ./dist/${name}/assets/readme/readme-screenshot.png`
 
   await fs.promises.copyFile(
     path.join(dir, "README.md"),
@@ -364,7 +372,7 @@ for (const item of targets) {
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name,
+        name: `@deveco/deveco-code-${item.os === "win32" ? "windows" : item.os}-${item.arch}`,
         version: Script.version,
         preferUnplugged: true,
         os: [item.os],
@@ -372,6 +380,7 @@ for (const item of targets) {
         files: [
           "bin/**/*",
           "vendor/**/*",
+          "assets/**/*",
           "README.md",
         ],
         ...(item.abi ? { libc: [item.abi] } : {}),
@@ -381,6 +390,7 @@ for (const item of targets) {
     ),
   )
   binaries[name] = Script.version
+  await $`cp ${path.join(dir, "../../README.md")} dist/${name}/README.md`
 }
 
 if (Script.release) {

@@ -19,6 +19,7 @@ import { callHarmonyNapiTool, resolveUIVerifyParams } from '../tool/lib/harmony_
 import { getSessionCwd } from '../tool/lib/session-cwd';
 import emulatorTools from '../tool/lib/emulator_tools.json' with { type: "json" }
 import { Schema, Exit, Cause } from "effect"
+import { z } from "zod"
 import path from 'node:path'
 import fs from 'node:fs'
 
@@ -303,17 +304,97 @@ function buildProxiedToolDescription(name: string, description: string | undefin
   return description?.trim() ?? `HarmonyOS N-API tool: ${name}.`;
 }
 
-function buildToolJsonSchema(inputSchema: unknown): Record<string, unknown> | undefined {
-  if (!inputSchema || typeof inputSchema !== 'object' || Array.isArray(inputSchema)) return undefined;
+/**
+ * Converts a JSON Schema property to a Zod schema.
+ */
+function jsonSchemaPropertyToZod(prop: Record<string, unknown>): z.ZodTypeAny {
+  const type = prop.type as string | undefined;
+  const description = prop.description as string | undefined;
+  const nullable = prop.nullable as boolean | undefined;
+
+  let zodType: z.ZodTypeAny;
+
+  switch (type) {
+    case 'string': {
+      let s = z.string();
+      const enumValues = prop.enum as string[] | undefined;
+      if (enumValues && Array.isArray(enumValues)) {
+        s = z.enum(enumValues as [string, ...string[]]);
+      }
+      zodType = s;
+      break;
+    }
+    case 'boolean':
+      zodType = z.boolean();
+      break;
+    case 'number':
+    case 'integer': {
+      let n = z.number();
+      const minimum = prop.minimum as number | undefined;
+      const maximum = prop.maximum as number | undefined;
+      if (minimum !== undefined) n = n.min(minimum);
+      if (maximum !== undefined) n = n.max(maximum);
+      zodType = n;
+      break;
+    }
+    case 'array': {
+      const items = prop.items as Record<string, unknown> | undefined;
+      zodType = items && typeof items === 'object'
+        ? z.array(jsonSchemaPropertyToZod(items))
+        : z.array(z.unknown());
+      break;
+    }
+    case 'object': {
+      const properties = prop.properties as Record<string, Record<string, unknown>> | undefined;
+      if (properties && typeof properties === 'object') {
+        const shape: Record<string, z.ZodTypeAny> = {};
+        for (const [key, value] of Object.entries(properties)) {
+          shape[key] = jsonSchemaPropertyToZod(value);
+        }
+        zodType = z.object(shape);
+      } else {
+        zodType = z.record(z.unknown());
+      }
+      break;
+    }
+    default:
+      zodType = z.unknown();
+  }
+
+  if (description) {
+    zodType = zodType.describe(description);
+  }
+
+  return nullable ? zodType.nullable().optional() : zodType.optional();
+}
+
+/**
+ * Converts a JSON Schema inputSchema to Zod args for the plugin tool() API.
+ */
+function inputSchemaToZodArgs(inputSchema: unknown): Record<string, z.ZodTypeAny> {
+  if (!inputSchema || typeof inputSchema !== 'object' || Array.isArray(inputSchema)) return {};
   const schema = inputSchema as Record<string, unknown>;
-  return {
-    ...schema,
-    type: "object",
-    properties:
-      schema.properties && typeof schema.properties === 'object' && !Array.isArray(schema.properties)
-        ? schema.properties
-        : {},
-  };
+  if (schema.type !== 'object') return {};
+  const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
+  if (!properties || typeof properties !== 'object') return {};
+
+  const required = schema.required as string[] | undefined;
+  const args: Record<string, z.ZodTypeAny> = {};
+
+  for (const [key, prop] of Object.entries(properties)) {
+    if (typeof prop !== 'object' || Array.isArray(prop)) continue;
+    let zodType = jsonSchemaPropertyToZod(prop);
+    const isRequired = required?.includes(key);
+    // jsonSchemaPropertyToZod always returns .optional() — unwrap if required
+    if (isRequired) {
+      if (zodType instanceof z.ZodOptional) {
+        zodType = zodType.unwrap();
+      }
+    }
+    args[key] = zodType;
+  }
+
+  return args;
 }
 
 
@@ -340,8 +421,7 @@ const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
     listed.map(({ name, description, inputSchema }) => {
       const t = tool({
         description: buildProxiedToolDescription(name, description),
-        args: {},
-        jsonSchema: buildToolJsonSchema(inputSchema),
+        args: inputSchemaToZodArgs(inputSchema),
         async execute(args, ctx) {
           if (!process.env.DEVECO_HOME?.trim()) throw new Error('DEVECO_HOME environment variable is not configured. PLEASE set your DEVECO_HOME path manually and restart.');
           const worktree = resolveWorktree(ctx as { sessionID?: string; directory?: string; worktree?: string });
