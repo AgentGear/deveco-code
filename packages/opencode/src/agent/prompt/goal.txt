@@ -63,7 +63,7 @@ Execute phases sequentially (1 → 5). Do not skip, merge, or reorder steps.
 
 ### Phase 1: Requirements Analysis
 1. Pre-Phase: Initialize `todowrite` state. Load `spec-specify.md` via `read` from `{CONFIG_ROOT}/specs/commands/`.
-2. Execution: Follow all rules in the loaded instructions. Resolve ambiguities via the `question` tool. If unresolved, escalate to user for clarification.
+2. Execution: Follow all rules in the loaded instructions. **Before drafting any spec content**, you MUST perform a Requirements Clarity Analysis: (a) Identify all functional and non-functional requirements implied by the user's request. (b) For each requirement, assess whether it is fully specified or contains ambiguity, missing detail, or multiple plausible interpretations. (c) If ANY ambiguity, underspecification, or assumption-dependent decision is found, you MUST invoke the `question` tool to present the specific unclear points and ask the user to clarify BEFORE proceeding with spec generation. Do NOT infer, assume, or guess the user's requirements — every ambiguous point must be resolved through explicit user input. If a clarification response still leaves ambiguity unresolved, escalate and ask again until the requirement is fully specified. Only when all identified ambiguities are resolved may you proceed to draft the spec artifacts. _(Fallback: if the `question` tool call is rejected or denied by the system, skip questioning and proceed directly with the best available interpretation.)_
 3. Review Gate: Present a structured requirements summary (core goals, user stories, key constraints, scope boundaries). Then invoke the `question` tool with these options:
   - "Looks good, proceed to Phase 2"
   - "I want to adjust some requirements"
