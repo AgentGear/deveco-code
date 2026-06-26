@@ -316,12 +316,10 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>): z.ZodTypeAny {
 
   switch (type) {
     case 'string': {
-      let s = z.string();
       const enumValues = prop.enum as string[] | undefined;
-      if (enumValues && Array.isArray(enumValues)) {
-        s = z.enum(enumValues as [string, ...string[]]);
-      }
-      zodType = s;
+      zodType = enumValues && Array.isArray(enumValues)
+        ? z.enum(enumValues as [string, ...string[]])
+        : z.string();
       break;
     }
     case 'boolean':
@@ -353,7 +351,7 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>): z.ZodTypeAny {
         }
         zodType = z.object(shape);
       } else {
-        zodType = z.record(z.unknown());
+        zodType = z.record(z.string(), z.unknown());
       }
       break;
     }
@@ -388,7 +386,7 @@ function inputSchemaToZodArgs(inputSchema: unknown): Record<string, z.ZodTypeAny
     // jsonSchemaPropertyToZod always returns .optional() — unwrap if required
     if (isRequired) {
       if (zodType instanceof z.ZodOptional) {
-        zodType = zodType.unwrap();
+        zodType = zodType.unwrap() as z.ZodTypeAny;
       }
     }
     args[key] = zodType;

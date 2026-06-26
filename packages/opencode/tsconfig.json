@@ -10,8 +10,9 @@
     "customConditions": ["browser"],
     "paths": {
       "@/*": ["./src/*"],
-      "@test/*": ["./test/*"]
-},
+      "@test/*": ["./test/*"],
+      "@tui/*": ["../tui/src/*"]
+    },
     "plugins": [
       {
         "name": "@effect/language-service",
