@@ -16,6 +16,14 @@ Valid types are `feat`, `fix`, `docs`, `chore`, `refactor`, and `test`. Scopes a
 
 Examples: `fix(tui): simplify thinking toggle styling`, `docs: update contributing guide`, `chore(sdk): regenerate types`.
 
+### Sign-off
+
+Every commit **must** include a `Signed-off-by` trailer. Read the name and email from git config (`git config user.name`, `git config user.email`). Do **not** add `Co-Authored-By` trailers.
+
+```
+Signed-off-by: <git config user.name> <git config user.email>
+```
+
 ## Style Guide
 
 ### General Principles

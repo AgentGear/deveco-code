@@ -8,10 +8,10 @@ import { SessionID, MessageID } from "../../src/session/schema"
 import { Agent } from "../../src/agent/agent"
 import { Truncate } from "@/tool/truncate"
 import { LSP } from "@/lsp/lsp"
-import { AppFileSystem } from "@opencode-ai/core/filesystem"
-import { Bus } from "../../src/bus"
 import { Format } from "../../src/format"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
+import { FSUtil } from "@opencode-ai/core/fs-util"
+import { EventV2Bridge } from "../../src/event-v2-bridge"
 import { testEffect } from "../lib/effect"
 import { TestInstance, disposeAllInstances } from "../fixture/fixture"
 
@@ -33,8 +33,8 @@ afterEach(async () => {
 const it = testEffect(
   Layer.mergeAll(
     LSP.defaultLayer,
-    AppFileSystem.defaultLayer,
-    Bus.layer,
+    FSUtil.defaultLayer,
+    EventV2Bridge.defaultLayer,
     Format.defaultLayer,
     CrossSpawnSpawner.defaultLayer,
     Truncate.defaultLayer,
