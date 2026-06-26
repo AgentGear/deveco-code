@@ -76,7 +76,7 @@ export const DEVECO_DEFAULTS = {
   provider: makeProviderInfo(defaultModels),
   taskDefaultModelMap: {
     small_model: "glm-5",
-    ui_verification: "Qwen2.5-VL-72B",
+    ui_verification: "Qwen3_VL_235B_A22B_Instruct",
     blacklist: "Qwen2.5-VL-72B",
   } as Record<string, string>,
 }
