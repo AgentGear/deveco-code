@@ -149,7 +149,7 @@ deveco auth logout
 
 登录后可使用 DevEco Code 提供的免费模型通道。
 
-在 DevEco Code 中输入 `/models` 可进入模型配置界面。当前免费提供 `GLM-5.1` 模型，单账号默认每分钟 50 次请求。也可以通过 `Ctrl+A` 进入 Provider 选择界面，配置支持的第三方模型。
+在 DevEco Code 中输入 `/models` 可进入模型配置界面。当前免费提供 `GLM-5.1` 模型，单账号默认每分钟 50 次请求。也可以通过 `/connect` 进入 Provider 选择界面，配置支持的第三方模型。
 
 也可以通过 `deveco.jsonc` 配置模型：
 

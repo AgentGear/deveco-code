@@ -149,7 +149,7 @@ deveco auth logout
 
 After signing in, you can use the free model channels provided by DevEco Code.
 
-Type `/models` in DevEco Code to open the model configuration UI. The `GLM-5.1` model is currently available for free, with a default limit of 50 requests per minute per account. Press `Ctrl+A` to open the Provider selection UI and configure supported third-party models.
+Type `/models` in DevEco Code to open the model configuration UI. The `GLM-5.1` model is currently available for free, with a default limit of 50 requests per minute per account. Press `/connect` to open the Provider selection UI and configure supported third-party models.
 
 You can also configure models in `deveco.jsonc`:
 
