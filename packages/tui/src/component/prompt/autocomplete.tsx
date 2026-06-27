@@ -436,12 +436,12 @@ export function Autocomplete(props: {
       ),
   )
 
-  const commandDescOverrides: Record<string, string> = {
-    init: t("command.cmd_init_desc"),
-    review: t("command.cmd_review_desc"),
-  }
-
   const commands = createMemo((): AutocompleteOption[] => {
+    const commandDescOverrides: Record<string, string> = {
+      init: t("command.cmd_init_desc"),
+      review: t("command.cmd_review_desc"),
+    }
+
     const results: AutocompleteOption[] = [...slashes()]
 
     for (const serverCommand of sync.data.command) {
