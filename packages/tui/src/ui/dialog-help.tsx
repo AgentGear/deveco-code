@@ -2,16 +2,18 @@ import { TextAttributes } from "@opentui/core"
 import { useTheme } from "../context/theme"
 import { useDialog } from "./dialog"
 import { useBindings, useCommandShortcut } from "../keymap"
+import { useI18n } from "../i18n"
 
 export function DialogHelp() {
   const dialog = useDialog()
   const { theme } = useTheme()
+  const { t } = useI18n()
   const commandShortcut = useCommandShortcut("command.palette.show")
 
   useBindings(() => ({
     bindings: [
-      { key: "return", desc: "Close help", group: "Dialog", cmd: () => dialog.clear() },
-      { key: "escape", desc: "Close help", group: "Dialog", cmd: () => dialog.clear() },
+      { key: "return", desc: t("dialog.close_help"), group: "Dialog", cmd: () => dialog.clear() },
+      { key: "escape", desc: t("dialog.close_help"), group: "Dialog", cmd: () => dialog.clear() },
     ],
   }))
 

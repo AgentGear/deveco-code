@@ -36,6 +36,9 @@ export function copy(renderer: Renderer, toast: Toast, clipboard: ClipboardServi
 
   clipboard
     ?.write?.(clipboardText)
+    // TODO(i18n): "Copied to clipboard" should be translated via t("toast.copied_to_clipboard").
+    // This is a utility function, not a component, so useI18n() is unavailable here.
+    // The calling component (app.tsx, dialog.tsx) should pass the translated string in.
     .then(() => toast.show({ message: "Copied to clipboard", variant: "info" }))
     .catch(toast.error)
 

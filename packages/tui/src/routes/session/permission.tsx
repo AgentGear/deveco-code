@@ -16,10 +16,12 @@ import { getScrollAcceleration } from "../../util/scroll"
 import { useTuiConfig } from "../../config"
 import { DEVECO_BASE_MODE, useBindings, useCommandShortcut } from "../../keymap"
 import { usePathFormatter } from "../../context/path-format"
+import { useI18n } from "../../i18n"
 
 type PermissionStage = "permission" | "always" | "reject"
 
 function EditBody(props: { request: PermissionRequest }) {
+  const { t } = useI18n()
   const themeState = useTheme()
   const theme = themeState.theme
   const syntax = themeState.syntax
@@ -80,7 +82,7 @@ function EditBody(props: { request: PermissionRequest }) {
       </Show>
       <Show when={!diff()}>
         <box paddingLeft={1}>
-          <text fg={theme.textMuted}>No diff provided</text>
+          <text fg={theme.textMuted}>{t("permission.no_diff")}</text>
         </box>
       </Show>
     </box>
@@ -109,6 +111,7 @@ function TextBody(props: { title: string; description?: string; icon?: string })
 }
 
 export function PermissionPrompt(props: { request: PermissionRequest; directory?: string }) {
+  const { t } = useI18n()
   const sdk = useSDK()
   const project = useProject()
   const sync = useSync()
@@ -160,7 +163,7 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               </Match>
             </Switch>
           }
-          options={{ confirm: "Confirm", cancel: "Cancel" }}
+          options={{ confirm: t("dialog.confirm"), cancel: t("dialog.cancel") }}
           escapeKey="cancel"
           onSelect={(option) => {
             setStore("stage", "permission")
@@ -349,7 +352,7 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
                 body: (
                   <Show when={patterns.length > 0}>
                     <box paddingLeft={1} gap={1}>
-                      <text fg={theme.textMuted}>Patterns</text>
+                      <text fg={theme.textMuted}>{t("permission.patterns")}</text>
                       <box>
                         <For each={patterns}>{(p) => <text fg={theme.text}>{"- " + p}</text>}</For>
                       </box>
@@ -362,10 +365,10 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
             if (permission === "doom_loop") {
               return {
                 icon: "⟳",
-                title: "Continue after repeated failures",
+                title: t("command.continue_after_failures"),
                 body: (
                   <box paddingLeft={1}>
-                    <text fg={theme.textMuted}>This keeps the session running despite repeated failures.</text>
+                    <text fg={theme.textMuted}>{t("permission.keep_session_running")}</text>
                   </box>
                 ),
               }
@@ -388,7 +391,7 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
             <box flexDirection="column" gap={0}>
               <box flexDirection="row" gap={1} flexShrink={0}>
                 <text fg={theme.warning}>{"△"}</text>
-                <text fg={theme.text}>Permission required</text>
+                <text fg={theme.text}>{t("permission.required")}</text>
               </box>
               <box flexDirection="row" gap={1} paddingLeft={2} flexShrink={0}>
                 <text fg={theme.textMuted} flexShrink={0}>
@@ -401,10 +404,10 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
 
           const body = (
             <Prompt
-              title="Permission required"
+              title={t("permission.required")}
               header={header()}
               body={current.body}
-              options={{ once: "Allow once", always: "Allow always", reject: "Reject" }}
+              options={{ once: t("dialog.allow_once"), always: t("dialog.allow_always"), reject: t("dialog.reject") }}
               escapeKey="reject"
               fullscreen
               onSelect={(option) => {
@@ -443,6 +446,7 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
 }
 
 function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: () => void }) {
+  const { t } = useI18n()
   let input: TextareaRenderable
   const { theme } = useTheme()
   const tuiConfig = useTuiConfig()
@@ -453,7 +457,7 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
     commands: [
       {
         name: "app.exit",
-        title: "Cancel permission rejection",
+        title: t("permission.cancel_rejection"),
         category: "Permission",
         run() {
           props.onCancel()
@@ -461,11 +465,11 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
       },
     ],
     bindings: [
-      { key: "escape", desc: "Cancel permission rejection", group: "Permission", cmd: () => props.onCancel() },
+      { key: "escape", desc: t("permission.cancel_rejection"), group: "Permission", cmd: () => props.onCancel() },
       ...tuiConfig.keybinds.get("app.exit"),
       {
         key: "return",
-        desc: "Confirm permission rejection",
+        desc: t("permission.confirm_rejection"),
         group: "Permission",
         cmd: () => props.onConfirm(input.plainText),
       },
@@ -482,10 +486,10 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
       <box gap={1} paddingLeft={1} paddingRight={3} paddingTop={1} paddingBottom={1}>
         <box flexDirection="row" gap={1} paddingLeft={1}>
           <text fg={theme.error}>{"△"}</text>
-          <text fg={theme.text}>Reject permission</text>
+          <text fg={theme.text}>{t("permission.reject_permission")}</text>
         </box>
         <box paddingLeft={1}>
-          <text fg={theme.textMuted}>Tell DevEco Code what to do differently</text>
+          <text fg={theme.textMuted}>{t("permission.tell_differently")}</text>
         </box>
       </box>
       <box
@@ -532,6 +536,7 @@ function Prompt<const T extends Record<string, string>>(props: {
   fullscreen?: boolean
   onSelect: (option: keyof T) => void
 }) {
+  const { t } = useI18n()
   const { theme } = useTheme()
   const tuiConfig = useTuiConfig()
   const dimensions = useTerminalDimensions()
@@ -548,7 +553,7 @@ function Prompt<const T extends Record<string, string>>(props: {
     commands: [
       {
         name: "app.exit",
-        title: "Reject permission",
+        title: t("permission.reject_permission"),
         category: "Permission",
         run() {
           if (!props.escapeKey) return
@@ -557,7 +562,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       },
       {
         name: "permission.prompt.fullscreen",
-        title: "Toggle permission fullscreen",
+        title: t("command.toggle_permission_fullscreen"),
         category: "Permission",
         run() {
           if (!props.fullscreen) return
@@ -568,7 +573,7 @@ function Prompt<const T extends Record<string, string>>(props: {
     bindings: [
       {
         key: "left",
-        desc: "Previous permission option",
+        desc: t("permission.prev_option"),
         group: "Permission",
         cmd: () => {
           const idx = keys.indexOf(store.selected)
@@ -578,7 +583,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       },
       {
         key: "h",
-        desc: "Previous permission option",
+        desc: t("permission.prev_option"),
         group: "Permission",
         cmd: () => {
           const idx = keys.indexOf(store.selected)
@@ -588,7 +593,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       },
       {
         key: "right",
-        desc: "Next permission option",
+        desc: t("permission.next_option"),
         group: "Permission",
         cmd: () => {
           const idx = keys.indexOf(store.selected)
@@ -598,7 +603,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       },
       {
         key: "l",
-        desc: "Next permission option",
+        desc: t("permission.next_option"),
         group: "Permission",
         cmd: () => {
           const idx = keys.indexOf(store.selected)
@@ -608,7 +613,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       },
       {
         key: "return",
-        desc: "Select permission option",
+        desc: t("permission.select_option"),
         group: "Permission",
         cmd: () => props.onSelect(store.selected),
       },
@@ -616,7 +621,7 @@ function Prompt<const T extends Record<string, string>>(props: {
         ? [
             {
               key: "escape",
-              desc: "Reject permission",
+              desc: t("permission.reject_permission"),
               group: "Permission",
               cmd: () => props.onSelect(props.escapeKey!),
             },

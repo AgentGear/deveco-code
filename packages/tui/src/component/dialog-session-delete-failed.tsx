@@ -4,6 +4,7 @@ import { useDialog } from "../ui/dialog"
 import { createStore } from "solid-js/store"
 import { For } from "solid-js"
 import { useBindings } from "../keymap"
+import { useI18n } from "../i18n"
 
 export function DialogSessionDeleteFailed(props: {
   session: string
@@ -13,6 +14,7 @@ export function DialogSessionDeleteFailed(props: {
   onDone?: () => void
 }) {
   const dialog = useDialog()
+  const { t } = useI18n()
   const { theme } = useTheme()
   const [store, setStore] = createStore({
     active: "delete" as "delete" | "restore",
@@ -21,13 +23,13 @@ export function DialogSessionDeleteFailed(props: {
   const options = [
     {
       id: "delete" as const,
-      title: "Delete workspace",
+      title: t("dialog.delete_workspace"),
       description: "Delete the workspace and all sessions attached to it.",
       run: props.onDelete,
     },
     {
       id: "restore" as const,
-      title: "Restore to new workspace",
+      title: t("dialog.restore_new_workspace"),
       description: "Try to restore this session into a new workspace.",
       run: props.onRestore,
     },

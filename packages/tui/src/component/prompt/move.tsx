@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, onCleanup } from "solid-js"
 import path from "path"
 import { useTuiPaths } from "../../context/runtime"
 import { errorMessage } from "../../util/error"
+import { useI18n } from "../../i18n"
 import { useDialog } from "../../ui/dialog"
 import { useSDK } from "../../context/sdk"
 import { useSync } from "../../context/sync"
@@ -16,6 +17,7 @@ function moveReminderText(directory: string) {
 }
 
 export function usePromptMove(input: { projectID: () => string | undefined; sessionID: () => string | undefined }) {
+  const { t } = useI18n()
   const dialog = useDialog()
   const sdk = useSDK()
   const sync = useSync()
@@ -31,7 +33,7 @@ export function usePromptMove(input: { projectID: () => string | undefined; sess
     const projectID = input.projectID()
     if (!projectID) return
     setCreating(true)
-    setProgress("Creating copy")
+    setProgress(t("command.creating_copy"))
     try {
       const generated = await sdk.client.experimental.projectCopy.generateName(
         { projectID, context },
@@ -54,13 +56,13 @@ export function usePromptMove(input: { projectID: () => string | undefined; sess
       // before moving on
       await sdk.client.path.get({ directory }, { throwOnError: true })
 
-      setProgress("Creating session")
+      setProgress(t("command.creating_session"))
       return directory
     } catch (err) {
       homeDestination?.clear()
       setProgress(undefined)
       setCreating(false)
-      toast.show({ title: "Creating workspace failed", message: errorMessage(err), variant: "error" })
+      toast.show({ title: t("command.creating_workspace_failed"), message: errorMessage(err), variant: "error" })
       return
     }
   }
@@ -126,7 +128,7 @@ export function usePromptMove(input: { projectID: () => string | undefined; sess
       dialog.clear()
       return
     }
-    setProgress("Moving session")
+    setProgress(t("command.moving_session"))
     try {
       await sdk.client.experimental.controlPlane.moveSession(
         {
@@ -173,7 +175,7 @@ export function usePromptMove(input: { projectID: () => string | undefined; sess
   }
 
   function startSubmit() {
-    if (progress()) setProgress("Submitting prompt")
+    if (progress()) setProgress(t("command.submitting_prompt"))
   }
 
   function finishSubmit() {

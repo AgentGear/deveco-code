@@ -5,6 +5,7 @@ import { Locale } from "../util/locale"
 import { useTheme } from "../context/theme"
 import { usePromptStash, type StashEntry } from "./prompt/stash"
 import { useCommandShortcut } from "../keymap"
+import { useI18n } from "../i18n"
 
 function getRelativeTime(timestamp: number): string {
   const now = Date.now()
@@ -27,6 +28,7 @@ function getStashPreview(input: string, maxLength: number = 50): string {
 }
 
 export function DialogStash(props: { onSelect: (entry: StashEntry) => void }) {
+  const { t } = useI18n()
   const dialog = useDialog()
   const stash = usePromptStash()
   const { theme } = useTheme()
@@ -71,7 +73,7 @@ export function DialogStash(props: { onSelect: (entry: StashEntry) => void }) {
       actions={[
         {
           command: "stash.delete",
-          title: "delete",
+          title: t("dialog.action_delete"),
           onTrigger: (option) => {
             if (toDelete() === option.value) {
               stash.remove(option.value)

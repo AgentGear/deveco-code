@@ -40,6 +40,7 @@ import { type AutocompleteRef, Autocomplete } from "./autocomplete"
 import { useRenderer, useTerminalDimensions, type JSX } from "@opentui/solid"
 import type { AssistantMessage, FilePart, UserMessage } from "@opencode-ai/sdk/v2"
 import { Locale } from "../../util/locale"
+import { useI18n } from "../../i18n"
 import { errorMessage } from "../../util/error"
 import { formatDuration } from "../../util/format"
 import { createColors, createFrames } from "../../ui/spinner"
@@ -153,6 +154,7 @@ export function Prompt(props: PromptProps) {
   let anchor: BoxRenderable
   const [inputTarget, setInputTarget] = createSignal<TextareaRenderable | undefined>()
 
+  const { t } = useI18n()
   const leader = useLeaderActive()
   const local = useLocal()
   const args = useArgs()
@@ -356,9 +358,9 @@ export function Prompt(props: PromptProps) {
   const promptCommands = createMemo(() =>
     [
       {
-        title: "Clear prompt",
+        title: t("command.clear_prompt"),
         name: "prompt.clear",
-        category: "Prompt",
+        category: t("category.prompt"),
         hidden: true,
         run: () => {
           clearPrompt()
@@ -366,9 +368,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Submit prompt",
+        title: t("command.submit_prompt"),
         name: "prompt.submit",
-        category: "Prompt",
+        category: t("category.prompt"),
         hidden: true,
         run: async () => {
           if (!input.focused) return
@@ -379,9 +381,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Remove editor context",
+        title: t("command.remove_editor_context"),
         name: "prompt.editor_context.clear",
-        category: "Prompt",
+        category: t("category.prompt"),
         enabled: Boolean(editorContext()),
         run: () => {
           dismissEditorContext()
@@ -389,9 +391,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Paste",
+        title: t("command.paste"),
         name: "prompt.paste",
-        category: "Prompt",
+        category: t("category.prompt"),
         hidden: true,
         run: async (ctx: CommandContext<Renderable, KeyEvent>) => {
           ctx.event.preventDefault()
@@ -411,9 +413,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Interrupt session",
+        title: t("command.interrupt_session"),
         name: "session.interrupt",
-        category: "Session",
+        category: t("category.session"),
         hidden: true,
         enabled: status().type !== "idle",
         run: () => {
@@ -442,8 +444,8 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Open editor",
-        category: "Session",
+        title: t("command.open_editor"),
+        category: t("category.session"),
         name: "prompt.editor",
         slashName: "editor",
         run: async () => {
@@ -534,9 +536,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Skills",
+        title: t("command.skills"),
         name: "prompt.skills",
-        category: "Prompt",
+        category: t("category.prompt"),
         slashName: "skills",
         run: () => {
           dialog.replace(() => (
@@ -554,10 +556,10 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Warp",
-        desc: "Change the workspace for the session",
+        title: t("command.warp"),
+        desc: t("command.warp_desc"),
         name: "workspace.set",
-        category: "Session",
+        category: t("category.session"),
         enabled: Flag.DEVECO_EXPERIMENTAL_WORKSPACES,
         slashName: "warp",
         run: () => {
@@ -565,10 +567,10 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Move session",
-        desc: "Move to another project dir",
+        title: t("command.move_session"),
+        desc: t("command.move_desc"),
         name: "session.move",
-        category: "Session",
+        category: t("category.session"),
         slashName: "move",
         run: () => {
           move.open()
@@ -756,9 +758,9 @@ export function Prompt(props: PromptProps) {
   const stashCommands = createMemo(() =>
     [
       {
-        title: "Stash prompt",
+        title: t("command.stash_prompt"),
         name: "prompt.stash",
-        category: "Prompt",
+        category: t("category.prompt"),
         enabled: !!store.prompt.input,
         run: () => {
           if (!store.prompt.input) return
@@ -774,9 +776,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Stash pop",
+        title: t("command.stash_pop"),
         name: "prompt.stash.pop",
-        category: "Prompt",
+        category: t("category.prompt"),
         enabled: stash.list().length > 0,
         run: () => {
           const entry = stash.pop()
@@ -790,9 +792,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: "Stash list",
+        title: t("command.stash_list"),
         name: "prompt.stash.list",
-        category: "Prompt",
+        category: t("category.prompt"),
         enabled: stash.list().length > 0,
         run: () => {
           dialog.replace(() => (
@@ -849,8 +851,8 @@ export function Prompt(props: PromptProps) {
       bindings: [
         {
           key: "!",
-          desc: "Shell mode",
-          group: "Prompt",
+          desc: t("command.shell_mode"),
+          group: t("category.prompt"),
           cmd: () => {
             setStore("placeholder", randomIndex(shell().length))
             setStore("mode", "shell")
@@ -864,7 +866,7 @@ export function Prompt(props: PromptProps) {
     return {
       target: inputTarget,
       enabled: inputTarget() !== undefined && store.mode === "shell",
-      bindings: [{ key: "escape", desc: "Exit shell mode", group: "Prompt", cmd: () => setStore("mode", "normal") }],
+      bindings: [{ key: "escape", desc: t("command.exit_shell_mode"), group: t("category.prompt"), cmd: () => setStore("mode", "normal") }],
     }
   })
 
@@ -875,7 +877,7 @@ export function Prompt(props: PromptProps) {
         cursorVersion()
         return inputTarget() !== undefined && store.mode === "shell" && input?.visualCursor.offset === 0
       })(),
-      bindings: [{ key: "backspace", desc: "Exit shell mode", group: "Prompt", cmd: () => setStore("mode", "normal") }],
+      bindings: [{ key: "backspace", desc: t("command.exit_shell_mode"), group: t("category.prompt"), cmd: () => setStore("mode", "normal") }],
     }
   })
 
@@ -889,8 +891,8 @@ export function Prompt(props: PromptProps) {
       commands: [
         {
           name: "prompt.history.previous",
-          title: "Previous prompt history",
-          category: "Prompt",
+          title: t("command.prev_prompt_history"),
+          category: t("category.prompt"),
           run() {
             if (input.cursorOffset !== 0) {
               if (input.scrollY + input.visualCursor.visualRow === 0) input.cursorOffset = 0
@@ -921,8 +923,8 @@ export function Prompt(props: PromptProps) {
       commands: [
         {
           name: "prompt.history.next",
-          title: "Next prompt history",
-          category: "Prompt",
+          title: t("command.next_prompt_history"),
+          category: t("category.prompt"),
           run() {
             if (input.cursorOffset !== input.plainText.length) {
               if (
@@ -1132,7 +1134,7 @@ export function Prompt(props: PromptProps) {
         )
         .catch((error) => {
           toast.show({
-            title: "Failed to send prompt",
+            title: t("command.failed_send_prompt"),
             message: errorMessage(error),
             variant: "error",
           })
@@ -1389,17 +1391,17 @@ export function Prompt(props: PromptProps) {
               </Match>
               <Match when={true}>
                 <text fg={theme.text}>
-                  {agentShortcut()} <span style={{ fg: theme.textMuted }}>agents</span>
+                  {agentShortcut()} <span style={{ fg: theme.textMuted }}>{t("command.prompt_agents")}</span>
                 </text>
               </Match>
             </Switch>
             <text fg={theme.text}>
-              {paletteShortcut()} <span style={{ fg: theme.textMuted }}>commands</span>
+              {paletteShortcut()} <span style={{ fg: theme.textMuted }}>{t("command.prompt_commands")}</span>
             </text>
           </Match>
           <Match when={store.mode === "shell"}>
             <text fg={theme.text}>
-              esc <span style={{ fg: theme.textMuted }}>exit shell mode</span>
+              esc <span style={{ fg: theme.textMuted }}>{t("command.prompt_exit_shell_mode")}</span>
             </text>
           </Match>
         </Switch>
@@ -1760,7 +1762,7 @@ export function Prompt(props: PromptProps) {
             </Match>
             <Match when={move.pendingNew()}>
               <box paddingLeft={3}>
-                <text fg={theme.accent}>(new working copy)</text>
+                <text fg={theme.accent}>({t("command.new_working_copy")})</text>
               </box>
             </Match>
             <Match when={true}>
