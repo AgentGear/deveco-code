@@ -1,11 +1,14 @@
 import fs from "fs"
 import { LocalCrypto } from "@/security/local-crypto"
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
+
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 import { devecoAuth } from "./auth"
 import { authFilePath, saveAuthToDisk } from "./storage"
 import { ACCESS_TOKEN_EXPIRES_MS } from "./types"
-
-const log = Log.create({ service: "deveco" })
 
 /** Module-level dedup: concurrent callers share a single in-flight refresh. */
 let refreshPromise: Promise<string | null> | null = null
@@ -14,11 +17,11 @@ let lastRefreshFailedAt = 0
 const REFRESH_COOLDOWN_MS = 30_000
 
 async function doRefreshToken(): Promise<string | null> {
-  log.info("ensureValidToken: token expired, refreshing")
+  await log(Effect.logInfo("ensureValidToken: token expired, refreshing", { service: "deveco" }))
   const newTokens = await devecoAuth.refreshToken()
   if (!newTokens) {
     lastRefreshFailedAt = Date.now()
-    log.warn("ensureValidToken: token refresh failed")
+    await log(Effect.logWarning("ensureValidToken: token refresh failed", { service: "deveco" }))
     return null
   }
   lastRefreshFailedAt = 0
@@ -30,7 +33,7 @@ async function doRefreshToken(): Promise<string | null> {
     expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
   })
 
-  log.info("ensureValidToken: token refreshed successfully")
+  await log(Effect.logInfo("ensureValidToken: token refreshed successfully", { service: "deveco" }))
   return newTokens.accessToken
 }
 
@@ -55,7 +58,7 @@ export async function ensureValidToken(): Promise<string | null> {
     }
 
     if (lastRefreshFailedAt && Date.now() - lastRefreshFailedAt < REFRESH_COOLDOWN_MS) {
-      log.warn("ensureValidToken: refresh skipped, in cooldown after recent failure")
+      await log(Effect.logWarning("ensureValidToken: refresh skipped, in cooldown after recent failure", { service: "deveco" }))
       return null
     }
 
@@ -66,7 +69,7 @@ export async function ensureValidToken(): Promise<string | null> {
     }
     return refreshPromise
   } catch (err) {
-    log.warn("ensureValidToken: unexpected error", { error: err instanceof Error ? err.message : String(err) })
+    await log(Effect.logWarning("ensureValidToken: unexpected error", { service: "deveco", error: err instanceof Error ? err.message : String(err) }))
     return null
   }
 }

@@ -3,11 +3,17 @@ import path from "path"
 import { Global } from "../global"
 import { runID } from "./shared"
 
+function formatTimestamp(input: Date | string): string {
+  const date = input instanceof Date ? input : new Date(input)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 function formatter(id: string = runID) {
   return Logger.map(Logger.formatStructured, (output) => {
     const messages = Array.isArray(output.message) ? output.message : [output.message]
     return [
-      ["timestamp", output.timestamp],
+      ["timestamp", formatTimestamp(output.timestamp)],
       ["level", output.level],
       ["run", id],
       ...messages.flatMap((value) => (plain(value) ? flatten(value) : [["message", value] as const])),

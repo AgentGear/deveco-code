@@ -12,7 +12,12 @@ import { Link } from '@opencode-ai/tui/ui/link';
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS, saveAuthToDisk } from '@/plugin/deveco';
 import { useKV } from '@opencode-ai/tui/context/kv';
 import { resolveAgreementConfig, getPrivacyAcceptedKey, getSignPendingKey, type AgreementConfig } from '@/cli/deveco-legal';
-import { Log } from '@opencode-ai/core/util/log';
+import { Effect } from 'effect';
+
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import('@/effect/app-runtime')
+  return AppRuntime.runPromise(effect)
+}
 import { agreementService, AgreementStatus } from '@/cli/deveco-agreement';
 import type { AgreementCheckResult } from '@/cli/deveco-agreement';
 import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH, homeContentPadX } from '@opencode-ai/tui/component/banner';
@@ -21,8 +26,6 @@ declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';
 
 type OnboardingStep = 'privacy' | 'entry' | 'auth' | 'providers' | 'key';
-
-const log = Log.create({ service: "deveco-onboarding" })
 
 const LIST_HELP = 'Use Enter to Select';
 
@@ -400,7 +403,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     } catch (err) {
       console.error('Failed to save pending agreement sign', err)
     }
-    log.info(`agreement sign failed offline (${signResult.error ?? "unknown"}), saved pending for retry`)
+    await log(Effect.logInfo("agreement sign failed offline, saved pending for retry", { service: "deveco-onboarding", error: signResult.error ?? "unknown" }))
     props.onComplete()
   }
 

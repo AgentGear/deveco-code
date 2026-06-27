@@ -2,9 +2,12 @@ import fs from "fs"
 import path from "path"
 import { LocalCrypto } from "@/security/local-crypto"
 import { Global } from "@opencode-ai/core/global"
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
 
-const log = Log.create({ service: "deveco" })
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 
 export function authFilePath() {
   return path.join(Global.Path.data, "auth.json")
@@ -29,7 +32,7 @@ export async function saveAuthToDisk(key: string, info: Record<string, unknown> 
     fs.writeFileSync(tmpPath, JSON.stringify(encrypted, null, 2), { mode: 0o600 })
     fs.renameSync(tmpPath, authFilePath())
   } catch (err) {
-    log.error("failed to save auth to disk", { key, error: err instanceof Error ? err.message : String(err) })
+    await log(Effect.logError("failed to save auth to disk", { service: "deveco", key, error: err instanceof Error ? err.message : String(err) }))
   }
 }
 
@@ -42,8 +45,7 @@ export function loadAccessTokenFromDisk(): string {
     if (deveco?.type === "oauth" && typeof deveco.access === "string") {
       return deveco.access
     }
-  } catch (err) {
-    log.warn("failed to load access token from disk", { error: err instanceof Error ? err.message : String(err) })
+  } catch {
   }
   return ""
 }
@@ -62,8 +64,7 @@ export function hasDevecoOAuthEntry(): boolean {
     return (
       deveco?.type === "oauth" && typeof deveco.access === "string" && deveco.access.length > 0
     )
-  } catch (err) {
-    log.warn("failed to check deveco oauth entry on disk", { error: err instanceof Error ? err.message : String(err) })
+  } catch {
+    return false
   }
-  return false
 }

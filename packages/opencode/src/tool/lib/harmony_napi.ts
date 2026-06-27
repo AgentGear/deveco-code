@@ -18,7 +18,6 @@ import { createRequire } from "node:module"
 import os from "node:os"
 import path from "path"
 import { findDevEcoHome } from "./env"
-import { Log } from "@opencode-ai/core/util/log"
 import { DEVECO_API_URL, getTaskDefaultModelMap } from "@/plugin/deveco-models"
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/deveco"
 
@@ -41,7 +40,6 @@ function addon() {
 }
 
 const bridge = addon()
-const log = Log.create({ service: "harmony-napi" })
 
 let gate: Promise<void> = Promise.resolve()
 let bound = ""
@@ -136,7 +134,9 @@ async function runInit(worktree: string) {
   const logDir = path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share', 'deveco'), 'log', 'deveco-mcp')
   fs.mkdirSync(logDir, { recursive: true })
   const { baseURL, apiKey, modelName } = await resolveUIVerifyParams(worktree)
-  log.info("ui_verification model", { baseURL, modelName })
+  const { Effect } = await import("effect")
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  await AppRuntime.runPromise(Effect.logInfo("ui_verification model", { service: "harmony-napi", baseURL, modelName }))
   await bridge.init(logDir, worktree, devecoHome, baseURL, apiKey, modelName)
 }
 

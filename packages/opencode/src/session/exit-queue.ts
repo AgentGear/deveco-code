@@ -1,5 +1,4 @@
 import { Context, Effect, Layer } from "effect"
-import { Log } from "@opencode-ai/core/util/log"
 import { Global } from "@opencode-ai/core/global"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
 import { LocalCrypto } from "@/security/local-crypto"
@@ -30,8 +29,6 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/ExitQueue") {}
 
-const log = Log.create({ service: "session.exit-queue" })
-
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -55,10 +52,14 @@ export const layer = Layer.effect(
               ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
             },
           }),
-        catch: (e) => {
-          log.error("failed to exit queue", { error: e })
-        },
-      }).pipe(Effect.timeout("5 seconds"), Effect.ignore)
+        catch: (e) => new Error(e instanceof Error ? e.message : String(e)),
+      }).pipe(
+        Effect.timeout("5 seconds"),
+        Effect.catch((error) =>
+          Effect.logError("failed to exit queue", { service: "session.exit-queue", error: String(error) }),
+        ),
+        Effect.ignore,
+      )
     })
 
     return Service.of({ exit })

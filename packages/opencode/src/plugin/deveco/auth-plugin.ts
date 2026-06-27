@@ -4,13 +4,16 @@ import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { OAUTH_DUMMY_KEY } from "@/auth"
 import { Global } from "@opencode-ai/core/global"
 import { GlobalBus } from "@/bus/global"
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
+
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 import { devecoAuth } from "./auth"
 import { sessionChatIdMap } from "./session"
 import { ensureValidToken } from "./token-refresh"
 import { ACCESS_TOKEN_EXPIRES_MS, PROVIDER_ID } from "./types"
-
-const log = Log.create({ service: "deveco" })
 
 export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
   return {
@@ -42,7 +45,7 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
                 if (newToken) {
                   currentAuth.access = newToken
                 } else {
-                  log.error("DevEco Code token refresh failed, user needs to re-login")
+                  await log(Effect.logError("DevEco Code token refresh failed, user needs to re-login", { service: "deveco" }))
                   GlobalBus.emit("event", {
                     directory: "global",
                     payload: {
@@ -112,7 +115,7 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
                   finalInput = url
                 }
               } catch {
-                log.error("Failed to rewrite URL for non-streaming request", { requestInput: String(requestInput) })
+                await log(Effect.logError("Failed to rewrite URL for non-streaming request", { service: "deveco", requestInput: String(requestInput) }))
               }
             }
 

@@ -1,10 +1,13 @@
 import * as prompts from "@clack/prompts"
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
+
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 import { devecoAuth } from "./auth"
 import { saveAuthToDisk } from "./storage"
 import { ACCESS_TOKEN_EXPIRES_MS } from "./types"
-
-const log = Log.create({ service: "deveco" })
 
 export async function requireLogin(): Promise<boolean> {
   if (await devecoAuth.isLoggedIn()) return true
@@ -45,10 +48,10 @@ export async function requireLogin(): Promise<boolean> {
         return false
       }
       if (result.unsupportedRegion) {
-        log.error("login failed: unsupported region")
+        await log(Effect.logError("login failed: unsupported region", { service: "deveco" }))
         prompts.log.error("Sorry, only China site accounts are currently supported")
       } else {
-        log.error("login failed", { error: result.error })
+        await log(Effect.logError("login failed", { service: "deveco", error: result.error }))
         prompts.log.error(result.error || "An error occurred during login")
       }
       prompts.outro("Please try again later")
@@ -75,7 +78,7 @@ export async function requireLogin(): Promise<boolean> {
   } catch (error) {
     spinner.stop("Login failed")
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    log.error("login exception in requireLogin", { error: errorMessage })
+    await log(Effect.logError("login exception in requireLogin", { service: "deveco", error: errorMessage }))
     prompts.log.error(errorMessage)
     prompts.outro("Please try again later")
     return false

@@ -2,10 +2,12 @@ import fs from "fs"
 import path from "path"
 import { LocalCrypto } from "@/security/local-crypto"
 import { Global } from "@opencode-ai/core/global"
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
 
-const log = Log.create({ service: "deveco" })
-
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 export class TokenStorage {
   private tokenFilePath: string
 
@@ -28,7 +30,9 @@ export class TokenStorage {
       return LocalCrypto.decryptForLocalStorage(tokenData)
     } catch (err) {
       void this.clearToken()
-      log.warn("failed to load token, clearing token file", { error: err instanceof Error ? err.message : String(err) })
+      await log(
+        Effect.logWarning("failed to load token, clearing token file", { service: "deveco", error: err instanceof Error ? err.message : String(err) }),
+      )
       return null
     }
   }

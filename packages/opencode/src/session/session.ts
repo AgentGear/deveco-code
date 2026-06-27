@@ -48,6 +48,11 @@ import { ModelV2 } from "@opencode-ai/core/model"
 
 const runtime = makeRuntime(Database.Service, Database.defaultLayer)
 
+function formatLocalTime(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 const parentTitlePrefix = "New session - "
 const childTitlePrefix = "Child session - "
 
@@ -56,7 +61,7 @@ export function isDefaultTitle(title: string): boolean {
   const timestamp = title.startsWith(parentTitlePrefix)
     ? title.slice(parentTitlePrefix.length)
     : title.slice(childTitlePrefix.length)
-  return /^\d{1,4}[\s/\-:,.]+\d/.test(timestamp)
+  return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(timestamp)
 }
 
 type SessionRow = typeof SessionTable.$inferSelect
@@ -562,7 +567,7 @@ export const layer: Layer.Layer<
         path: input.path,
         workspaceID: input.workspaceID,
         parentID: input.parentID,
-        title: input.title ?? (input.parentID ? childTitlePrefix : parentTitlePrefix) + new Date().toLocaleString(),
+        title: input.title ?? (input.parentID ? childTitlePrefix : parentTitlePrefix) + formatLocalTime(),
         agent: input.agent,
         model: input.model,
         metadata: input.metadata,
