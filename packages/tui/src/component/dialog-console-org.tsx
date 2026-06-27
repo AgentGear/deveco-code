@@ -6,6 +6,7 @@ import { useDialog } from "../ui/dialog"
 import { useToast } from "../ui/toast"
 import { useTheme } from "../context/theme"
 import { errorMessage } from "../util/error"
+import { useI18n } from "../i18n"
 import type { ExperimentalConsoleListOrgsResponse } from "@opencode-ai/sdk/v2"
 
 type OrgOption = ExperimentalConsoleListOrgsResponse["orgs"][number]
@@ -22,6 +23,7 @@ const accountLabel = (item: Pick<OrgOption, "accountEmail" | "accountUrl">) =>
   `${item.accountEmail}  ${accountHost(item.accountUrl)}`
 
 export function DialogConsoleOrg() {
+  const { t } = useI18n()
   const sdk = useSDK()
   const dialog = useDialog()
   const toast = useToast()
@@ -51,7 +53,7 @@ export function DialogConsoleOrg() {
     if (listed === undefined) {
       return [
         {
-          title: "Loading orgs...",
+          title: t("dialog.loading_orgs"),
           value: "loading",
           onSelect: () => {},
         },
@@ -61,7 +63,7 @@ export function DialogConsoleOrg() {
     if (listed.length === 0) {
       return [
         {
-          title: "No orgs found",
+          title: t("dialog.no_orgs_found"),
           value: "empty",
           onSelect: () => {},
         },

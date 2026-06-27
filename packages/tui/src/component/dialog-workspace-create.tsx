@@ -6,6 +6,7 @@ import { useProject } from "../context/project"
 import { useRoute } from "../context/route"
 import { createMemo, createSignal, onMount } from "solid-js"
 import { errorMessage } from "../util/error"
+import { useI18n } from "../i18n"
 import { useSDK } from "../context/sdk"
 import { useToast } from "../ui/toast"
 import { DialogAlert } from "../ui/dialog-alert"
@@ -53,6 +54,7 @@ async function loadWorkspaceAdapters(input: {
   sdk: ReturnType<typeof useSDK>
   sync: ReturnType<typeof useSync>
   toast: ReturnType<typeof useToast>
+  t: (key: string) => string
 }) {
   const dir = input.sync.path.directory || input.sdk.directory
   try {
@@ -61,7 +63,7 @@ async function loadWorkspaceAdapters(input: {
     return response.data
   } catch (err) {
     input.toast.show({
-      title: "Failed to load workspace adapters",
+      title: input.t("command.failed_load_adapters"),
       message: errorMessage(err),
       variant: "error",
     })
@@ -75,6 +77,7 @@ export async function openWorkspaceSelect(input: {
   sync: ReturnType<typeof useSync>
   project: ReturnType<typeof useProject>
   toast: ReturnType<typeof useToast>
+  t: (key: string) => string
   onSelect: (selection: WorkspaceSelection) => Promise<void> | void
 }) {
   input.dialog.clear()
@@ -91,6 +94,7 @@ export async function warpWorkspaceSession(input: {
   sync: ReturnType<typeof useSync>
   project: ReturnType<typeof useProject>
   toast: ReturnType<typeof useToast>
+  t: (key: string) => string
   sourceWorkspaceID?: string
   workspaceID: string | null
   sessionID: string
@@ -106,7 +110,7 @@ export async function warpWorkspaceSession(input: {
     })
   } catch (err) {
     input.toast.show({
-      title: "Failed to warp session",
+      title: input.t("command.failed_warp_session"),
       message: errorMessage(err),
       variant: "error",
     })
@@ -123,7 +127,7 @@ export async function warpWorkspaceSession(input: {
     }
 
     input.toast.show({
-      title: "Failed to warp session",
+      title: input.t("command.failed_warp_session"),
       message: errorMessage(result?.error ?? "no response"),
       variant: "error",
     })
@@ -185,6 +189,7 @@ export function DialogWorkspaceSelect(props: {
   const sync = useSync()
   const sdk = useSDK()
   const toast = useToast()
+  const { t } = useI18n()
   const [adapters, setAdapters] = createSignal<Adapter[] | undefined>(props.adapters)
   const omittedWorkspaceID = createMemo(() => (route.data.type === "session" ? project.workspace.current() : undefined))
 
@@ -192,7 +197,7 @@ export function DialogWorkspaceSelect(props: {
     dialog.setSize("medium")
     void (async () => {
       if (adapters()) return
-      const res = await loadWorkspaceAdapters({ sdk, sync, toast })
+      const res = await loadWorkspaceAdapters({ sdk, sync, toast, t })
       if (!res) return
       setAdapters(res)
     })()
@@ -214,7 +219,7 @@ export function DialogWorkspaceSelect(props: {
         category: "New workspace",
       })),
       {
-        title: "None",
+        title: t("command.none"),
         value: { type: "none" as const },
         description: "Use the local project",
         category: "Choose workspace",
@@ -233,7 +238,7 @@ export function DialogWorkspaceSelect(props: {
       ...(hasMore
         ? [
             {
-              title: "View all workspaces",
+              title: t("command.view_all_workspaces"),
               value: { type: "existing-list" as const },
               description: "Choose from all workspaces",
               category: "Choose workspace",

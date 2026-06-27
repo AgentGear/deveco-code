@@ -6,6 +6,8 @@ import { useBindings, useKeymapSelector } from "../../keymap"
 import type { ActiveKey } from "@opentui/keymap"
 import type { TuiPlugin, TuiPluginApi } from "@opencode-ai/plugin/tui"
 import type { BuiltinTuiPlugin } from "../builtins"
+import { onLanguageChange, useI18n } from "../../i18n"
+import i18next from "i18next"
 
 const command = {
   toggle: "which-key.toggle",
@@ -188,6 +190,7 @@ function WhichKeyPanel(props: {
   pendingPreview: () => boolean
   pinned: () => boolean
 }) {
+  const { t } = useI18n()
   const dimensions = useTerminalDimensions()
   const [offset, setOffset] = createSignal(0)
   const [activeGroup, setActiveGroup] = createSignal<string | undefined>()
@@ -289,7 +292,7 @@ function WhichKeyPanel(props: {
     commands: [
       {
         name: command.groupPrevious,
-        title: "Previous key binding group",
+        title: t("command.keybind_previous_group"),
         desc: "Show the previous which-key group",
         category: "System",
         run() {
@@ -298,7 +301,7 @@ function WhichKeyPanel(props: {
       },
       {
         name: command.groupNext,
-        title: "Next key binding group",
+        title: t("command.keybind_next_group"),
         desc: "Show the next which-key group",
         category: "System",
         run() {
@@ -307,7 +310,7 @@ function WhichKeyPanel(props: {
       },
       {
         name: command.scrollUp,
-        title: "Scroll key bindings up",
+        title: t("command.keybind_scroll_up"),
         desc: "Scroll the which-key panel up",
         category: "System",
         run() {
@@ -316,7 +319,7 @@ function WhichKeyPanel(props: {
       },
       {
         name: command.scrollDown,
-        title: "Scroll key bindings down",
+        title: t("command.keybind_scroll_down"),
         desc: "Scroll the which-key panel down",
         category: "System",
         run() {
@@ -325,7 +328,7 @@ function WhichKeyPanel(props: {
       },
       {
         name: command.pageUp,
-        title: "Page key bindings up",
+        title: t("command.keybind_page_up"),
         desc: "Page the which-key panel up",
         category: "System",
         run() {
@@ -334,7 +337,7 @@ function WhichKeyPanel(props: {
       },
       {
         name: command.pageDown,
-        title: "Page key bindings down",
+        title: t("command.keybind_page_down"),
         desc: "Page the which-key panel down",
         category: "System",
         run() {
@@ -343,7 +346,7 @@ function WhichKeyPanel(props: {
       },
       {
         name: command.home,
-        title: "First key binding",
+        title: t("command.keybind_first"),
         desc: "Jump to the first which-key binding",
         category: "System",
         run() {
@@ -352,7 +355,7 @@ function WhichKeyPanel(props: {
       },
       {
         name: command.end,
-        title: "Last key binding",
+        title: t("command.keybind_last"),
         desc: "Jump to the last which-key binding",
         category: "System",
         run() {
@@ -534,45 +537,52 @@ const tui: TuiPlugin = async (api) => {
   const [mode, setMode] = createSignal(layout(api.kv.get(KV_LAYOUT, "dock")))
   const [pendingPreview, setPendingPreview] = createSignal(api.kv.get(KV_PENDING_PREVIEW, false))
 
-  api.keymap.registerLayer({
-    priority: LAYER_PRIORITY,
-    commands: [
-      {
-        name: command.toggle,
-        title: "Show key bindings",
-        desc: "Toggle which-key overlay",
-        category: "System",
-        run() {
-          setPinned((value) => !value)
+  const registerKeymap = () =>
+    api.keymap.registerLayer({
+      priority: LAYER_PRIORITY,
+      commands: [
+        {
+          name: command.toggle,
+          title: i18next.t("command.keybind_show"),
+          desc: "Toggle which-key overlay",
+          category: "System",
+          run() {
+            setPinned((value) => !value)
+          },
         },
-      },
-      {
-        name: command.toggleLayout,
-        title: "Toggle key bindings layout",
-        desc: "Switch which-key between dock and overlay mode",
-        category: "System",
-        run() {
-          setMode((value) => {
-            const next = value === "dock" ? "overlay" : "dock"
-            api.kv.set(KV_LAYOUT, next)
-            return next
-          })
+        {
+          name: command.toggleLayout,
+          title: i18next.t("command.keybind_toggle_layout"),
+          desc: "Switch which-key between dock and overlay mode",
+          category: "System",
+          run() {
+            setMode((value) => {
+              const next = value === "dock" ? "overlay" : "dock"
+              api.kv.set(KV_LAYOUT, next)
+              return next
+            })
+          },
         },
-      },
-      {
-        name: command.togglePending,
-        title: "Toggle pending key preview",
-        desc: "Automatically show which-key for pending key sequences in overlay mode",
-        category: "System",
-        run() {
-          setPendingPreview((value) => {
-            api.kv.set(KV_PENDING_PREVIEW, !value)
-            return !value
-          })
+        {
+          name: command.togglePending,
+          title: i18next.t("command.keybind_toggle_pending"),
+          desc: "Automatically show which-key for pending key sequences in overlay mode",
+          category: "System",
+          run() {
+            setPendingPreview((value) => {
+              api.kv.set(KV_PENDING_PREVIEW, !value)
+              return !value
+            })
+          },
         },
-      },
-    ],
-    bindings: api.tuiConfig.keybinds.gather("which-key.toggle", toggleCommands),
+      ],
+      bindings: api.tuiConfig.keybinds.gather("which-key.toggle", toggleCommands),
+    })
+
+  let unregisterLayer = registerKeymap()
+  onLanguageChange(() => {
+    unregisterLayer()
+    unregisterLayer = registerKeymap()
   })
 
   api.slots.register({

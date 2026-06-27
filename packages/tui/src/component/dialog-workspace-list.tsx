@@ -10,10 +10,12 @@ import { createStore } from "solid-js/store"
 import { errorMessage } from "../util/error"
 import { useSDK } from "../context/sdk"
 import { useToast } from "../ui/toast"
+import { useI18n } from "../i18n"
 
 type WorkspaceOption = { workspace: Workspace }
 
 export function DialogWorkspaceList() {
+  const { t } = useI18n()
   const dialog = useDialog()
   const route = useRoute()
   const sync = useSync()
@@ -71,7 +73,7 @@ export function DialogWorkspaceList() {
       setRemoving(undefined)
       toast.show({
         variant: "error",
-        title: "Failed to delete workspace",
+        title: t("toast.failed_delete_workspace"),
         message: errorMessage(result.error),
       })
       return
@@ -103,7 +105,7 @@ export function DialogWorkspaceList() {
       actions={[
         {
           command: "session.delete",
-          title: "delete",
+          title: t("dialog.action_delete"),
           onTrigger: (option) => void remove(option.value.workspace),
         },
       ]}

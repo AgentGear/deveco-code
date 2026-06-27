@@ -6,12 +6,14 @@ import { useRoute } from "../../context/route"
 import { useClipboard } from "../../context/clipboard"
 import type { PromptInfo } from "../../component/prompt/history"
 import { stripPromptPartIDs as strip } from "../../prompt/part"
+import { useI18n } from "../../i18n"
 
 export function DialogMessage(props: {
   messageID: string
   sessionID: string
   setPrompt?: (prompt: PromptInfo) => void
 }) {
+  const { t } = useI18n()
   const sync = useSync()
   const sdk = useSDK()
   const message = createMemo(() => sync.data.message[props.sessionID]?.find((x) => x.id === props.messageID))
@@ -23,7 +25,7 @@ export function DialogMessage(props: {
       title="Message Actions"
       options={[
         {
-          title: "Revert",
+          title: t("dialog.action_revert"),
           value: "session.revert",
           description: "undo messages and file changes",
           onSelect: (dialog) => {
@@ -54,7 +56,7 @@ export function DialogMessage(props: {
           },
         },
         {
-          title: "Copy",
+          title: t("dialog.action_copy"),
           value: "message.copy",
           description: "message text to clipboard",
           onSelect: async (dialog) => {
@@ -74,7 +76,7 @@ export function DialogMessage(props: {
           },
         },
         {
-          title: "Fork",
+          title: t("dialog.action_fork"),
           value: "session.fork",
           description: "create a new session",
           onSelect: async (dialog) => {

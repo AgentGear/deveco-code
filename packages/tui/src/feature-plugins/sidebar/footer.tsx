@@ -3,11 +3,13 @@ import type { BuiltinTuiPlugin } from "../builtins"
 import { createMemo, Show } from "solid-js"
 import { abbreviateHome } from "../../runtime"
 import { useTuiPaths } from "../../context/runtime"
+import { useI18n } from "../../i18n"
 
 const id = "internal:sidebar-footer"
 
 function View(props: { api: TuiPluginApi; sessionID: string }) {
   const paths = useTuiPaths()
+  const { t } = useI18n()
   const theme = () => props.api.theme.current
   const has = createMemo(() =>
     props.api.state.provider.some(
@@ -70,7 +72,7 @@ function View(props: { api: TuiPluginApi; sessionID: string }) {
       </text>
       <box gap={1}>
         <text>
-          <span style={{ fg: theme().text }}>/help</span> <span style={{ fg: theme().textMuted }}>view docs</span>
+          <span style={{ fg: theme().text }}>{t("command.footer_help")}</span> <span style={{ fg: theme().textMuted }}>{t("command.footer_view_docs")}</span>
         </text>
         <text fg={theme().textMuted} wrapMode="word">
           <span style={{ fg: theme().success }}>•</span> <b>DevEco </b>

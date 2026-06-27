@@ -6,6 +6,7 @@ import { DialogSelect, type DialogSelectRef, type DialogSelectOption } from "../
 import { useTheme } from "../context/theme"
 import { TextAttributes } from "@opentui/core"
 import { useSDK } from "../context/sdk"
+import { useI18n } from "../i18n"
 
 function Status(props: { enabled: boolean; loading: boolean }) {
   const { theme } = useTheme()
@@ -19,6 +20,7 @@ function Status(props: { enabled: boolean; loading: boolean }) {
 }
 
 export function DialogMcp() {
+  const { t } = useI18n()
   const local = useLocal()
   const sync = useSync()
   const sdk = useSDK()
@@ -47,7 +49,7 @@ export function DialogMcp() {
   const actions = createMemo(() => [
     {
       command: "dialog.mcp.toggle",
-      title: "toggle",
+      title: t("command.mcp_toggle"),
       onTrigger: async (option: DialogSelectOption<string>) => {
         // Prevent toggling while an operation is already in progress
         if (loading() !== null) return

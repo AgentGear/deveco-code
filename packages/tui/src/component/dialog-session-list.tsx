@@ -17,8 +17,10 @@ import { Spinner } from "./spinner"
 import { errorMessage } from "../util/error"
 import { DialogSessionDeleteFailed } from "./dialog-session-delete-failed"
 import { useCommandShortcut } from "../keymap"
+import { useI18n } from "../i18n"
 
 export function DialogSessionList() {
+  const { t } = useI18n()
   const dialog = useDialog()
   const route = useRoute()
   const sync = useSync()
@@ -57,7 +59,7 @@ export function DialogSessionList() {
           result = await sdk.client.experimental.workspace.create({ type: selection.workspaceType, branch: null })
         } catch (err) {
           toast.show({
-            title: "Failed to create workspace",
+            title: t("toast.failed_create_workspace"),
             message: errorMessage(err),
             variant: "error",
           })
@@ -66,7 +68,7 @@ export function DialogSessionList() {
         const workspace = result?.data
         if (!workspace) {
           toast.show({
-            title: "Failed to create workspace",
+            title: t("toast.failed_create_workspace"),
             message: errorMessage(result?.error ?? "no response"),
             variant: "error",
           })
@@ -82,6 +84,7 @@ export function DialogSessionList() {
         sync,
         project,
         toast,
+        t,
         sourceWorkspaceID: session.workspaceID,
         workspaceID,
         sessionID: session.id,
@@ -101,7 +104,7 @@ export function DialogSessionList() {
           if (result.error) {
             toast.show({
               variant: "error",
-              title: "Failed to delete workspace",
+              title: t("toast.failed_delete_workspace"),
               message: errorMessage(result.error),
             })
             return false
@@ -121,6 +124,7 @@ export function DialogSessionList() {
             sync,
             project,
             toast,
+            t,
             onSelect: (selection) => {
               void warp(selection)
             },
@@ -148,7 +152,7 @@ export function DialogSessionList() {
   })
   const quickSwitchFooterHints = createMemo(() => {
     const hint = quickSwitchHint()
-    return hint && local.session.slots().length > 0 ? [{ title: "switch", label: hint }] : []
+    return hint && local.session.slots().length > 0 ? [{ title: t("dialog.action_switch"), label: hint }] : []
   })
 
   const options = createMemo(() => {
@@ -233,14 +237,14 @@ export function DialogSessionList() {
       actions={[
         {
           command: "session.pin.toggle",
-          title: "pin/unpin",
+          title: t("dialog.action_pin_unpin"),
           onTrigger: (option: { value: string }) => {
             local.session.togglePin(option.value)
           },
         },
         {
           command: "session.delete",
-          title: "delete",
+          title: t("dialog.action_delete"),
           onTrigger: async (option) => {
             if (toDelete() === option.value) {
               const session = sessions().find((item) => item.id === option.value)
@@ -256,7 +260,7 @@ export function DialogSessionList() {
                   } else {
                     toast.show({
                       variant: "error",
-                      title: "Failed to delete session",
+                      title: t("toast.failed_delete_session"),
                       message: errorMessage(result.error),
                     })
                   }
@@ -269,7 +273,7 @@ export function DialogSessionList() {
                 } else {
                   toast.show({
                     variant: "error",
-                    title: "Failed to delete session",
+                    title: t("toast.failed_delete_session"),
                     message: errorMessage(err),
                   })
                 }
@@ -288,7 +292,7 @@ export function DialogSessionList() {
         },
         {
           command: "session.rename",
-          title: "rename",
+          title: t("dialog.action_rename"),
           onTrigger: async (option) => {
             dialog.replace(() => <DialogSessionRename session={option.value} />)
           },

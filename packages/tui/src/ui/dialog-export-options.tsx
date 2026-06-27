@@ -4,6 +4,7 @@ import { useDialog, type DialogContext } from "./dialog"
 import { createStore } from "solid-js/store"
 import { onMount, Show } from "solid-js"
 import { useBindings } from "../keymap"
+import { useI18n } from "../i18n"
 
 export type DialogExportOptionsProps = {
   defaultFilename: string
@@ -24,6 +25,7 @@ export type DialogExportOptionsProps = {
 export function DialogExportOptions(props: DialogExportOptionsProps) {
   const dialog = useDialog()
   const { theme } = useTheme()
+  const { t } = useI18n()
   let textarea: TextareaRenderable
   const [store, setStore] = createStore({
     thinking: props.defaultThinking,
@@ -37,7 +39,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
     bindings: [
       {
         key: "tab",
-        desc: "Next export option",
+        desc: t("dialog.next_option"),
         group: "Dialog",
         cmd: () => {
           const order: Array<"filename" | "thinking" | "toolDetails" | "assistantMetadata" | "openWithoutSaving"> = [
@@ -60,7 +62,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
     bindings: [
       {
         key: "space",
-        desc: "Toggle export option",
+        desc: t("dialog.next_option"),
         group: "Dialog",
         cmd: () => {
           if (store.active === "thinking") setStore("thinking", !store.thinking)
@@ -93,7 +95,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
       </box>
       <box gap={1}>
         <box>
-          <text fg={theme.text}>Filename:</text>
+          <text fg={theme.text}>{t("dialog.filename")}</text>
         </box>
         <textarea
           onSubmit={() => {
@@ -129,7 +131,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
           <text fg={store.active === "thinking" ? theme.primary : theme.textMuted}>
             {store.thinking ? "[x]" : "[ ]"}
           </text>
-          <text fg={store.active === "thinking" ? theme.primary : theme.text}>Include thinking</text>
+          <text fg={store.active === "thinking" ? theme.primary : theme.text}>{t("dialog.include_thinking")}</text>
         </box>
         <box
           flexDirection="row"
@@ -141,7 +143,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
           <text fg={store.active === "toolDetails" ? theme.primary : theme.textMuted}>
             {store.toolDetails ? "[x]" : "[ ]"}
           </text>
-          <text fg={store.active === "toolDetails" ? theme.primary : theme.text}>Include tool details</text>
+          <text fg={store.active === "toolDetails" ? theme.primary : theme.text}>{t("dialog.include_tool_details")}</text>
         </box>
         <box
           flexDirection="row"
@@ -153,7 +155,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
           <text fg={store.active === "assistantMetadata" ? theme.primary : theme.textMuted}>
             {store.assistantMetadata ? "[x]" : "[ ]"}
           </text>
-          <text fg={store.active === "assistantMetadata" ? theme.primary : theme.text}>Include assistant metadata</text>
+          <text fg={store.active === "assistantMetadata" ? theme.primary : theme.text}>{t("dialog.include_assistant_metadata")}</text>
         </box>
         <box
           flexDirection="row"
@@ -165,7 +167,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
           <text fg={store.active === "openWithoutSaving" ? theme.primary : theme.textMuted}>
             {store.openWithoutSaving ? "[x]" : "[ ]"}
           </text>
-          <text fg={store.active === "openWithoutSaving" ? theme.primary : theme.text}>Open without saving</text>
+          <text fg={store.active === "openWithoutSaving" ? theme.primary : theme.text}>{t("dialog.open_without_saving")}</text>
         </box>
       </box>
       <Show when={store.active !== "filename"}>

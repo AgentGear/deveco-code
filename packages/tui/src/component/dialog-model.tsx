@@ -8,8 +8,10 @@ import { DialogVariant } from "./dialog-variant"
 import * as fuzzysort from "fuzzysort"
 import { useConnected } from "./use-connected"
 import { useSync } from "../context/sync"
+import { useI18n } from "../i18n"
 
 export function DialogModel(props: { providerID?: string }) {
+  const { t } = useI18n()
   const local = useLocal()
   const sync = useSync()
   const dialog = useDialog()
@@ -158,14 +160,14 @@ export function DialogModel(props: { providerID?: string }) {
       actions={[
         {
           command: "model.dialog.provider",
-          title: connected() ? "Connect provider" : "View all providers",
+          title: connected() ? t("dialog.connect_provider") : t("dialog.view_all_providers"),
           onTrigger() {
             dialog.replace(() => <DialogProvider />)
           },
         },
         {
           command: "model.dialog.favorite",
-          title: "Favorite",
+          title: t("dialog.favorite"),
           hidden: !connected(),
           onTrigger: (option) => {
             local.model.toggleFavorite(option.value as { providerID: string; modelID: string })

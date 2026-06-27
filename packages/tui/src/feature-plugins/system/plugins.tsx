@@ -5,6 +5,8 @@ import { fileURLToPath } from "url"
 import { DialogSelect, type DialogSelectOption } from "../../ui/dialog-select"
 import { Show, createEffect, createMemo, createSignal } from "solid-js"
 import { useBindings } from "../../keymap"
+import { onLanguageChange, useI18n } from "../../i18n"
+import i18next from "i18next"
 
 const id = "internal:plugin-manager"
 
@@ -36,6 +38,7 @@ function meta(item: TuiPluginStatus, width: number) {
 }
 
 function Install(props: { api: TuiPluginApi }) {
+  const { t } = useI18n()
   const [global, setGlobal] = createSignal(false)
   const [busy, setBusy] = createSignal(false)
 
@@ -46,7 +49,7 @@ function Install(props: { api: TuiPluginApi }) {
 
   return (
     <props.api.ui.DialogPrompt
-      title="Install plugin"
+      title={t("command.plugin_install")}
       placeholder="npm package name"
       busy={busy()}
       busyText="Installing plugin..."
@@ -148,6 +151,7 @@ function showInstall(api: TuiPluginApi) {
 }
 
 function View(props: { api: TuiPluginApi }) {
+  const { t } = useI18n()
   const size = useTerminalDimensions()
   const [list, setList] = createSignal(props.api.plugins.list())
   const [cur, setCur] = createSignal<string | undefined>()
@@ -200,13 +204,13 @@ function View(props: { api: TuiPluginApi }) {
 
   return (
     <DialogSelect
-      title="Plugins"
+      title={t("command.plugin_list")}
       options={rows()}
       current={cur()}
       onMove={(item) => setCur(item.value)}
       actions={[
         {
-          title: "toggle",
+          title: t("command.plugin_toggle"),
           command: "plugins.toggle",
           hidden: lock(),
           onTrigger: (item) => {
@@ -215,7 +219,7 @@ function View(props: { api: TuiPluginApi }) {
           },
         },
         {
-          title: "install",
+          title: t("command.plugin_install"),
           command: "dialog.plugins.install",
           hidden: lock(),
           onTrigger: () => {
@@ -236,28 +240,35 @@ function show(api: TuiPluginApi) {
 }
 
 const tui: TuiPlugin = async (api) => {
-  api.keymap.registerLayer({
-    commands: [
-      {
-        name: "plugins.list",
-        title: "Plugins",
-        category: "System",
-        namespace: "palette",
-        run() {
-          show(api)
+  const registerKeymap = () =>
+    api.keymap.registerLayer({
+      commands: [
+        {
+          name: "plugins.list",
+          title: i18next.t("command.plugin_list"),
+          category: "System",
+          namespace: "palette",
+          run() {
+            show(api)
+          },
         },
-      },
-      {
-        name: "plugins.install",
-        title: "Install plugin",
-        category: "System",
-        namespace: "palette",
-        run() {
-          showInstall(api)
+        {
+          name: "plugins.install",
+          title: i18next.t("command.plugin_install"),
+          category: "System",
+          namespace: "palette",
+          run() {
+            showInstall(api)
+          },
         },
-      },
-    ],
-    bindings: api.tuiConfig.keybinds.gather("plugins.palette", ["plugins.list", "plugins.install"]),
+      ],
+      bindings: api.tuiConfig.keybinds.gather("plugins.palette", ["plugins.list", "plugins.install"]),
+    })
+
+  let unregisterLayer = registerKeymap()
+  onLanguageChange(() => {
+    unregisterLayer()
+    unregisterLayer = registerKeymap()
   })
 }
 

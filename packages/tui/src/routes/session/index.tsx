@@ -82,6 +82,7 @@ import { DialogRetryAction } from "../../component/dialog-retry-action"
 import { getRevertDiffFiles } from "../../util/revert-diff"
 import { DEVECO_BASE_MODE, useBindings, useCommandShortcut, useOpencodeKeymap } from "../../keymap"
 import { PathFormatterProvider, usePathFormatter } from "../../context/path-format"
+import { useI18n } from "../../i18n"
 
 addDefaultParsers(parsers.parsers)
 
@@ -176,6 +177,7 @@ function use() {
 }
 
 export function Session() {
+  const { t } = useI18n()
   const setEpilogue = useEpilogue()
   const clipboard = useClipboard()
   const writeExport = async (file: string, content: string) => {
@@ -449,7 +451,7 @@ export function Session() {
       sessionID,
     })
     const status = sync.data.session_status[sessionID]
-    if (status?.type === "retry") void DialogAlert.show(dialog, "Retry Error", status.message)
+    if (status?.type === "retry") void DialogAlert.show(dialog, t("dialog.retry_error"), status.message)
   }
 
   function moveFirstChild() {
@@ -478,10 +480,10 @@ export function Session() {
 
   const sessionCommandList = createMemo(() => [
     {
-      title: session()?.share?.url ? "Copy share link" : "Share session",
+      title: session()?.share?.url ? t("command.copy_share_link") : t("command.share_session"),
       value: "session.share",
       suggested: route.type === "session",
-      category: "Session",
+      category: t("category.session"),
       enabled: sync.data.config.share !== "disabled",
       hidden: true,
       slash: {
@@ -491,8 +493,8 @@ export function Session() {
         const copy = (url: string) =>
           clipboard
             .write?.(url)
-            .then(() => toast.show({ message: "Share URL copied to clipboard!", variant: "success" }))
-            .catch(() => toast.show({ message: "Failed to copy URL to clipboard", variant: "error" }))
+            .then(() => toast.show({ message: t("toast.share_url_copied"), variant: "success" }))
+            .catch(() => toast.show({ message: t("toast.share_url_failed"), variant: "error" }))
         const url = session()?.share?.url
         if (url) {
           await copy(url)
@@ -500,7 +502,7 @@ export function Session() {
           return
         }
         if (!kv.get("share_consent", false)) {
-          const ok = await DialogConfirm.show(dialog, "Share Session", "Are you sure you want to share it?")
+          const ok = await DialogConfirm.show(dialog, t("dialog.share_session_title"), t("dialog.share_confirm"))
           if (ok !== true) return
           kv.set("share_consent", true)
         }
@@ -511,7 +513,7 @@ export function Session() {
           .then((res) => copy(res.data!.share!.url))
           .catch((error) => {
             toast.show({
-              message: error instanceof Error ? error.message : "Failed to share session",
+              message: error instanceof Error ? error.message : t("toast.share_failed"),
               variant: "error",
             })
           })
@@ -519,9 +521,9 @@ export function Session() {
       },
     },
     {
-      title: "Rename session",
+      title: t("command.rename_session"),
       value: "session.rename",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "rename",
       },
@@ -530,9 +532,9 @@ export function Session() {
       },
     },
     {
-      title: "Jump to message",
+      title: t("command.jump_to_message"),
       value: "session.timeline",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "timeline",
       },
@@ -552,9 +554,9 @@ export function Session() {
       },
     },
     {
-      title: "Fork session",
+      title: t("command.fork_session"),
       value: "session.fork",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "fork",
       },
@@ -574,9 +576,9 @@ export function Session() {
       },
     },
     {
-      title: "Compact session",
+      title: t("command.compact_session"),
       value: "session.compact",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "compact",
         aliases: ["summarize"],
@@ -600,9 +602,9 @@ export function Session() {
       },
     },
     {
-      title: "Unshare session",
+      title: t("command.unshare_session"),
       value: "session.unshare",
-      category: "Session",
+      category: t("category.session"),
       enabled: !!session()?.share?.url,
       hidden: true,
       slash: {
@@ -613,10 +615,10 @@ export function Session() {
           .unshare({
             sessionID: route.sessionID,
           })
-          .then(() => toast.show({ message: "Session unshared successfully", variant: "success" }))
+          .then(() => toast.show({ message: t("toast.session_unshared"), variant: "success" }))
           .catch((error) => {
             toast.show({
-              message: error instanceof Error ? error.message : "Failed to unshare session",
+              message: error instanceof Error ? error.message : t("toast.unshare_failed"),
               variant: "error",
             })
           })
@@ -624,9 +626,9 @@ export function Session() {
       },
     },
     {
-      title: "Undo previous message",
+      title: t("command.undo_previous_message"),
       value: "session.undo",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "undo",
       },
@@ -661,9 +663,9 @@ export function Session() {
       },
     },
     {
-      title: "Redo",
+      title: t("command.redo"),
       value: "session.redo",
-      category: "Session",
+      category: t("category.session"),
       enabled: !!session()?.revert?.messageID,
       slash: {
         name: "redo",
@@ -687,9 +689,9 @@ export function Session() {
       },
     },
     {
-      title: sidebarVisible() ? "Hide sidebar" : "Show sidebar",
+      title: sidebarVisible() ? t("command.hide_sidebar") : t("command.show_sidebar"),
       value: "session.sidebar.toggle",
-      category: "Session",
+      category: t("category.session"),
       run: () => {
         batch(() => {
           const isVisible = sidebarVisible()
@@ -700,18 +702,18 @@ export function Session() {
       },
     },
     {
-      title: conceal() ? "Disable code concealment" : "Enable code concealment",
+      title: conceal() ? t("command.disable_code_concealment") : t("command.enable_code_concealment"),
       value: "session.toggle.conceal",
-      category: "Session",
+      category: t("category.session"),
       run: () => {
         setConceal((prev) => !prev)
         dialog.clear()
       },
     },
     {
-      title: showTimestamps() ? "Hide timestamps" : "Show timestamps",
+      title: showTimestamps() ? t("command.hide_timestamps") : t("command.show_timestamps"),
       value: "session.toggle.timestamps",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "timestamps",
         aliases: ["toggle-timestamps"],
@@ -724,11 +726,11 @@ export function Session() {
     {
       title: (() => {
         const next = nextThinkingMode(thinkingMode())
-        if (next === "hide") return "Collapse thinking"
-        return "Expand thinking"
+        if (next === "hide") return t("command.collapse_thinking")
+        return t("command.expand_thinking")
       })(),
       value: "session.toggle.thinking",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "thinking",
         aliases: ["toggle-thinking"],
@@ -739,36 +741,36 @@ export function Session() {
       },
     },
     {
-      title: showDetails() ? "Hide tool details" : "Show tool details",
+      title: showDetails() ? t("command.hide_tool_details") : t("command.show_tool_details"),
       value: "session.toggle.actions",
-      category: "Session",
+      category: t("category.session"),
       run: () => {
         setShowDetails((prev) => !prev)
         dialog.clear()
       },
     },
     {
-      title: "Toggle session scrollbar",
+      title: t("command.toggle_session_scrollbar"),
       value: "session.toggle.scrollbar",
-      category: "Session",
+      category: t("category.session"),
       run: () => {
         setShowScrollbar((prev) => !prev)
         dialog.clear()
       },
     },
     {
-      title: showGenericToolOutput() ? "Hide generic tool output" : "Show generic tool output",
+      title: showGenericToolOutput() ? t("command.hide_generic_tool_output") : t("command.show_generic_tool_output"),
       value: "session.toggle.generic_tool_output",
-      category: "Session",
+      category: t("category.session"),
       run: () => {
         setShowGenericToolOutput((prev) => !prev)
         dialog.clear()
       },
     },
     {
-      title: "Page up",
+      title: t("command.messages_page_up"),
       value: "session.page.up",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollBy(-scroll.height / 2)
@@ -776,9 +778,9 @@ export function Session() {
       },
     },
     {
-      title: "Page down",
+      title: t("command.messages_page_down"),
       value: "session.page.down",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollBy(scroll.height / 2)
@@ -786,9 +788,9 @@ export function Session() {
       },
     },
     {
-      title: "Line up",
+      title: t("command.messages_line_up"),
       value: "session.line.up",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollBy(-1)
@@ -796,9 +798,9 @@ export function Session() {
       },
     },
     {
-      title: "Line down",
+      title: t("command.messages_line_down"),
       value: "session.line.down",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollBy(1)
@@ -806,9 +808,9 @@ export function Session() {
       },
     },
     {
-      title: "Half page up",
+      title: t("command.messages_half_page_up"),
       value: "session.half.page.up",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollBy(-scroll.height / 4)
@@ -816,9 +818,9 @@ export function Session() {
       },
     },
     {
-      title: "Half page down",
+      title: t("command.messages_half_page_down"),
       value: "session.half.page.down",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollBy(scroll.height / 4)
@@ -826,9 +828,9 @@ export function Session() {
       },
     },
     {
-      title: "First message",
+      title: t("command.messages_first"),
       value: "session.first",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollTo(0)
@@ -836,9 +838,9 @@ export function Session() {
       },
     },
     {
-      title: "Last message",
+      title: t("command.messages_last"),
       value: "session.last",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         scroll.scrollTo(scroll.scrollHeight)
@@ -846,9 +848,9 @@ export function Session() {
       },
     },
     {
-      title: "Jump to last user message",
+      title: t("command.jump_to_last_user_message"),
       value: "session.messages_last_user",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         const messages = sync.data.message[route.sessionID]
@@ -877,30 +879,30 @@ export function Session() {
       },
     },
     {
-      title: "Next message",
+      title: t("command.messages_next"),
       value: "session.message.next",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => scrollToMessage("next", dialog),
     },
     {
-      title: "Previous message",
+      title: t("command.messages_prev"),
       value: "session.message.previous",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => scrollToMessage("prev", dialog),
     },
     {
-      title: "Copy last assistant message",
+      title: t("command.copy_last_message"),
       value: "messages.copy",
-      category: "Session",
+      category: t("category.session"),
       run: () => {
         const revertID = session()?.revert?.messageID
         const lastAssistantMessage = messages().findLast(
           (msg) => msg.role === "assistant" && (!revertID || msg.id < revertID),
         )
         if (!lastAssistantMessage) {
-          toast.show({ message: "No assistant messages found", variant: "error" })
+          toast.show({ message: t("toast.no_assistant_messages"), variant: "error" })
           dialog.clear()
           return
         }
@@ -908,7 +910,7 @@ export function Session() {
         const parts = sync.data.part[lastAssistantMessage.id] ?? []
         const textParts = parts.filter((part) => part.type === "text")
         if (textParts.length === 0) {
-          toast.show({ message: "No text parts found in last assistant message", variant: "error" })
+          toast.show({ message: t("toast.no_text_parts"), variant: "error" })
           dialog.clear()
           return
         }
@@ -928,15 +930,15 @@ export function Session() {
 
         clipboard
           .write?.(text)
-          .then(() => toast.show({ message: "Message copied to clipboard!", variant: "success" }))
-          .catch(() => toast.show({ message: "Failed to copy to clipboard", variant: "error" }))
+          .then(() => toast.show({ message: t("toast.message_copied"), variant: "success" }))
+          .catch(() => toast.show({ message: t("toast.copy_failed"), variant: "error" }))
         dialog.clear()
       },
     },
     {
-      title: "Copy session transcript",
+      title: t("command.copy_transcript"),
       value: "session.copy",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "copy",
       },
@@ -956,17 +958,17 @@ export function Session() {
             },
           )
           await clipboard.write?.(transcript)
-          toast.show({ message: "Session transcript copied to clipboard!", variant: "success" })
+          toast.show({ message: t("toast.transcript_copied"), variant: "success" })
         } catch {
-          toast.show({ message: "Failed to copy session transcript", variant: "error" })
+          toast.show({ message: t("toast.transcript_copy_failed"), variant: "error" })
         }
         dialog.clear()
       },
     },
     {
-      title: "Export session transcript",
+      title: t("command.export_transcript"),
       value: "session.export",
-      category: "Session",
+      category: t("category.session"),
       slash: {
         name: "export",
       },
@@ -1030,18 +1032,18 @@ export function Session() {
               await writeExport(filepath, result)
             }
 
-            toast.show({ message: `Session exported to ${filename}`, variant: "success" })
+            toast.show({ message: t("toast.session_exported", { filename }), variant: "success" })
           }
         } catch {
-          toast.show({ message: "Failed to export session", variant: "error" })
+          toast.show({ message: t("toast.export_failed"), variant: "error" })
         }
         dialog.clear()
       },
     },
     {
-      title: "Background subagents",
+      title: t("command.background_subagents"),
       value: "session.background",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       enabled: foregroundTasks().length > 0,
       run: () => {
@@ -1053,9 +1055,9 @@ export function Session() {
       },
     },
     {
-      title: "Go to child session",
+      title: t("command.go_to_child_session"),
       value: "session.child.first",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       run: () => {
         dialog.clear()
@@ -1063,9 +1065,9 @@ export function Session() {
       },
     },
     {
-      title: "Go to parent session",
+      title: t("command.go_to_parent_session"),
       value: "session.parent",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       enabled: !!session()?.parentID,
       run: childSessionHandler(() => {
@@ -1080,9 +1082,9 @@ export function Session() {
       }),
     },
     {
-      title: "Next child session",
+      title: t("command.next_child_session"),
       value: "session.child.next",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       enabled: !!session()?.parentID,
       run: childSessionHandler(() => {
@@ -1091,9 +1093,9 @@ export function Session() {
       }),
     },
     {
-      title: "Previous child session",
+      title: t("command.previous_child_session"),
       value: "session.child.previous",
-      category: "Session",
+      category: t("category.session"),
       hidden: true,
       enabled: !!session()?.parentID,
       run: childSessionHandler(() => {
@@ -1219,8 +1221,8 @@ export function Session() {
                           const handleUnrevert = async () => {
                             const confirmed = await DialogConfirm.show(
                               dialog,
-                              "Confirm Redo",
-                              "Are you sure you want to restore the reverted messages?",
+                              t("dialog.confirm_redo"),
+                              t("dialog.confirm_redo_message"),
                             )
                             if (confirmed) {
                               keymap.dispatchCommand("session.redo")
@@ -1878,6 +1880,7 @@ type ToolProps = {
   part: ToolPart
 }
 function GenericTool(props: ToolProps) {
+  const { t } = useI18n()
   const { theme } = useTheme()
   const ctx = use()
   const output = createMemo(() => props.output?.trim() ?? "")
@@ -1894,7 +1897,7 @@ function GenericTool(props: ToolProps) {
     <Show
       when={props.output && ctx.showGenericToolOutput()}
       fallback={
-        <InlineTool icon="⚙" pending="Writing command..." complete={true} part={props.part}>
+        <InlineTool icon="⚙" pending={t("tool.writing_command")} complete={true} part={props.part}>
           {props.tool} {input(props.input)}
         </InlineTool>
       }
@@ -2122,6 +2125,7 @@ function BlockTool(props: {
 }
 
 function Shell(props: ToolProps) {
+  const { t } = useI18n()
   const { theme } = useTheme()
   const pathFormatter = usePathFormatter()
   const ctx = use()
@@ -2171,7 +2175,7 @@ function Shell(props: ToolProps) {
         </BlockTool>
       </Match>
       <Match when={true}>
-        <InlineTool icon="$" pending="Writing command..." complete={stringValue(props.input.command)} part={props.part}>
+        <InlineTool icon="$" pending={t("tool.writing_command")} complete={stringValue(props.input.command)} part={props.part}>
           {stringValue(props.input.command)}
         </InlineTool>
       </Match>
@@ -2180,6 +2184,7 @@ function Shell(props: ToolProps) {
 }
 
 function Write(props: ToolProps) {
+  const { t } = useI18n()
   const { theme, syntax } = useTheme()
   const pathFormatter = usePathFormatter()
   const code = createMemo(() => {
@@ -2205,7 +2210,7 @@ function Write(props: ToolProps) {
       <Match when={true}>
         <InlineTool
           icon="←"
-          pending="Preparing write..."
+          pending={t("tool.preparing_write")}
           complete={stringValue(props.input.filePath)}
           part={props.part}
         >
@@ -2217,9 +2222,10 @@ function Write(props: ToolProps) {
 }
 
 function Glob(props: ToolProps) {
+  const { t } = useI18n()
   const pathFormatter = usePathFormatter()
   return (
-    <InlineTool icon="✱" pending="Finding files..." complete={stringValue(props.input.pattern)} part={props.part}>
+    <InlineTool icon="✱" pending={t("tool.finding_files")} complete={stringValue(props.input.pattern)} part={props.part}>
       Glob "{stringValue(props.input.pattern)}"{" "}
       <Show when={stringValue(props.input.path)}>in {pathFormatter.format(stringValue(props.input.path))} </Show>
       <Show when={numberValue(props.metadata.count)}>
@@ -2230,6 +2236,7 @@ function Glob(props: ToolProps) {
 }
 
 function Read(props: ToolProps) {
+  const { t } = useI18n()
   const { theme } = useTheme()
   const pathFormatter = usePathFormatter()
   const isRunning = createMemo(() => props.part.state.status === "running")
@@ -2244,7 +2251,7 @@ function Read(props: ToolProps) {
     <>
       <InlineTool
         icon="→"
-        pending="Reading file..."
+        pending={t("tool.reading_file")}
         complete={stringValue(props.input.filePath)}
         spinner={isRunning()}
         part={props.part}
@@ -2265,9 +2272,10 @@ function Read(props: ToolProps) {
 }
 
 function Grep(props: ToolProps) {
+  const { t } = useI18n()
   const pathFormatter = usePathFormatter()
   return (
-    <InlineTool icon="✱" pending="Searching content..." complete={stringValue(props.input.pattern)} part={props.part}>
+    <InlineTool icon="✱" pending={t("tool.searching_content")} complete={stringValue(props.input.pattern)} part={props.part}>
       Grep "{stringValue(props.input.pattern)}"{" "}
       <Show when={stringValue(props.input.path)}>in {pathFormatter.format(stringValue(props.input.path))} </Show>
       <Show when={numberValue(props.metadata.matches)}>
@@ -2278,16 +2286,18 @@ function Grep(props: ToolProps) {
 }
 
 function WebFetch(props: ToolProps) {
+  const { t } = useI18n()
   return (
-    <InlineTool icon="%" pending="Fetching from the web..." complete={stringValue(props.input.url)} part={props.part}>
+    <InlineTool icon="%" pending={t("tool.fetching_web")} complete={stringValue(props.input.url)} part={props.part}>
       WebFetch {stringValue(props.input.url)}
     </InlineTool>
   )
 }
 
 function WebSearch(props: ToolProps) {
+  const { t } = useI18n()
   return (
-    <InlineTool icon="◈" pending="Searching web..." complete={stringValue(props.input.query)} part={props.part}>
+    <InlineTool icon="◈" pending={t("tool.searching_web")} complete={stringValue(props.input.query)} part={props.part}>
       {webSearchProviderLabel(props.metadata.provider)} "{stringValue(props.input.query)}"{" "}
       <Show when={numberValue(props.metadata.numResults)}>({numberValue(props.metadata.numResults)} results)</Show>
     </InlineTool>
@@ -2295,6 +2305,7 @@ function WebSearch(props: ToolProps) {
 }
 
 function Task(props: ToolProps) {
+  const { t } = useI18n()
   const { theme } = useTheme()
   const { navigate } = useRoute()
   const sync = useSync()
@@ -2377,14 +2388,14 @@ function Task(props: ToolProps) {
       color={retry() ? theme.error : undefined}
       spinner={isRunning()}
       complete={stringValue(props.input.description)}
-      pending="Delegating..."
+      pending={t("tool.delegating")}
       part={props.part}
       onClick={() => {
         if (sessionID()) {
           navigate({ type: "session", sessionID: sessionID()! })
         }
         const status = retry()
-        if (status) void DialogAlert.show(dialog, "Retry Error", status.message)
+        if (status) void DialogAlert.show(dialog, t("dialog.retry_error"), status.message)
       }}
     >
       {content()}
@@ -2410,6 +2421,7 @@ export function formatCompletedSubagentDetail(toolcalls: number, duration: strin
 }
 
 function Edit(props: ToolProps) {
+  const { t } = useI18n()
   const ctx = use()
   const { theme, syntax } = useTheme()
   const pathFormatter = usePathFormatter()
@@ -2454,7 +2466,7 @@ function Edit(props: ToolProps) {
         </BlockTool>
       </Match>
       <Match when={true}>
-        <InlineTool icon="←" pending="Preparing edit..." complete={stringValue(props.input.filePath)} part={props.part}>
+        <InlineTool icon="←" pending={t("tool.preparing_edit")} complete={stringValue(props.input.filePath)} part={props.part}>
           Edit {pathFormatter.format(stringValue(props.input.filePath))} {input({ replaceAll: props.input.replaceAll })}
         </InlineTool>
       </Match>
@@ -2463,6 +2475,7 @@ function Edit(props: ToolProps) {
 }
 
 function ApplyPatch(props: ToolProps) {
+  const { t } = useI18n()
   const ctx = use()
   const { theme, syntax } = useTheme()
   const pathFormatter = usePathFormatter()
@@ -2530,7 +2543,7 @@ function ApplyPatch(props: ToolProps) {
         </For>
       </Match>
       <Match when={true}>
-        <InlineTool icon="%" pending="Preparing patch..." failure="Patch failed" complete={false} part={props.part}>
+        <InlineTool icon="%" pending={t("tool.preparing_patch")} failure="Patch failed" complete={false} part={props.part}>
           Patch
         </InlineTool>
       </Match>
@@ -2539,6 +2552,7 @@ function ApplyPatch(props: ToolProps) {
 }
 
 function TodoWrite(props: ToolProps) {
+  const { t } = useI18n()
   const todos = createMemo(() => parseTodos(props.input.todos))
   return (
     <Switch>
@@ -2552,12 +2566,12 @@ function TodoWrite(props: ToolProps) {
       <Match when={true}>
         <InlineTool
           icon="⚙"
-          pending="Updating todos..."
+          pending={t("tool.updating_todos")}
           failure="Todo update failed"
           complete={false}
           part={props.part}
         >
-          Updating todos...
+          {t("tool.updating_todos")}
         </InlineTool>
       </Match>
     </Switch>
@@ -2601,8 +2615,9 @@ function Question(props: ToolProps) {
 }
 
 function Skill(props: ToolProps) {
+  const { t } = useI18n()
   return (
-    <InlineTool icon="→" pending="Loading skill..." complete={stringValue(props.input.name)} part={props.part}>
+    <InlineTool icon="→" pending={t("tool.loading_skill")} complete={stringValue(props.input.name)} part={props.part}>
       Skill "{stringValue(props.input.name)}"
     </InlineTool>
   )

@@ -11,6 +11,8 @@ import {
 import { LANGUAGE_EXTENSIONS } from "../../util/filetype"
 import { useBindings, useCommandShortcut } from "../../keymap"
 import { useTheme } from "../../context/theme"
+import { onLanguageChange, useI18n } from "../../i18n"
+import i18next from "i18next"
 import { useTerminalDimensions } from "@opentui/solid"
 import path from "path"
 import { createEffect, createMemo, createResource, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js"
@@ -85,6 +87,7 @@ function storedView(value: unknown): DiffView | undefined {
 function DiffViewer(props: { api: TuiPluginApi }) {
   const dimensions = useTerminalDimensions()
   const themeState = useTheme()
+  const { t } = useI18n()
   const theme = () => props.api.theme.current
   const params = () =>
     ("params" in props.api.route.current ? props.api.route.current.params : undefined) as
@@ -427,7 +430,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   const commands = [
     {
       name: "diff.close",
-      title: "Close diff viewer",
+      title: t("command.diff_close"),
       category: "VCS",
       run() {
         const returnRoute = params()?.returnRoute
@@ -441,7 +444,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.down",
-      title: "Move diff viewer down",
+      title: t("command.diff_move_down"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -455,7 +458,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.up",
-      title: "Move diff viewer up",
+      title: t("command.diff_move_up"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -469,7 +472,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.page.down",
-      title: "Page diff viewer down",
+      title: t("command.diff_page_down"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -483,7 +486,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.page.up",
-      title: "Page diff viewer up",
+      title: t("command.diff_page_up"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -497,7 +500,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.toggle",
-      title: "Toggle diff viewer item",
+      title: t("command.diff_toggle"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -508,7 +511,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.expand",
-      title: "Expand diff viewer item",
+      title: t("command.diff_expand"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -526,7 +529,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.expand_all",
-      title: "Expand all diff viewer folders",
+      title: t("command.diff_expand_all"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -537,7 +540,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.collapse",
-      title: "Collapse diff viewer item",
+      title: t("command.diff_collapse"),
       category: "VCS",
       run: focusRunner({
         files() {
@@ -556,7 +559,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.next_hunk",
-      title: "Jump to next diff hunk",
+      title: t("command.diff_next_hunk"),
       category: "VCS",
       run() {
         jumpRelativeHunk(1)
@@ -564,7 +567,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.previous_hunk",
-      title: "Jump to previous diff hunk",
+      title: t("command.diff_previous_hunk"),
       category: "VCS",
       run() {
         jumpRelativeHunk(-1)
@@ -572,7 +575,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.next_file",
-      title: "Jump to next diff file",
+      title: t("command.diff_next_file"),
       category: "VCS",
       run() {
         jumpRelativePatchFile(1)
@@ -580,7 +583,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.previous_file",
-      title: "Jump to previous diff file",
+      title: t("command.diff_previous_file"),
       category: "VCS",
       run() {
         jumpRelativePatchFile(-1)
@@ -588,7 +591,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.mark_reviewed",
-      title: "Toggle selected diff file reviewed",
+      title: t("command.diff_mark_reviewed"),
       category: "VCS",
       run() {
         toggleSelectedFileReviewed()
@@ -596,7 +599,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.switch_focus",
-      title: "Switch diff viewer focus",
+      title: t("command.diff_switch_focus"),
       category: "VCS",
       run() {
         if (!showFileTree()) return
@@ -609,7 +612,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.toggle_file_tree",
-      title: "Toggle diff viewer file tree",
+      title: t("command.diff_toggle_file_tree"),
       category: "VCS",
       run() {
         const next = !fileTreeEnabled()
@@ -620,7 +623,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.single_patch",
-      title: "Toggle single patch view",
+      title: t("command.diff_single_patch"),
       category: "VCS",
       run() {
         setSelectedHunk(undefined)
@@ -647,7 +650,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.switch_source",
-      title: "Switch diff viewer source",
+      title: t("command.diff_switch_source"),
       category: "VCS",
       run() {
         openSwitchDiffDialog()
@@ -655,7 +658,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.toggle_view",
-      title: "Toggle diff viewer split or unified view",
+      title: t("command.diff_toggle_view"),
       category: "VCS",
       run() {
         if (!splitAvailable()) return
@@ -667,7 +670,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
     },
     {
       name: "diff.help",
-      title: "Show more diff viewer shortcuts",
+      title: t("command.diff_help"),
       category: "VCS",
       run() {
         openHelpDialog()
@@ -677,12 +680,12 @@ function DiffViewer(props: { api: TuiPluginApi }) {
 
   const switchDiffOptions = createMemo(() => [
     {
-      title: "Working tree",
+      title: t("command.diff_working_tree"),
       value: "git" as const,
       description: "Show current git changes",
     },
     {
-      title: "Last turn",
+      title: t("command.diff_last_turn"),
       value: "last-turn" as const,
       description: "Show changes from the last assistant turn",
     },
@@ -691,7 +694,7 @@ function DiffViewer(props: { api: TuiPluginApi }) {
   const openSwitchDiffDialog = () => {
     props.api.ui.dialog.replace(() => (
       <DialogSelect
-        title="Switch source"
+        title={t("command.diff_switch_source")}
         skipFilter={true}
         renderFilter={false}
         current={mode()}
@@ -1032,24 +1035,31 @@ const tui: TuiPlugin = async (api) => {
     },
   ])
 
-  api.keymap.registerLayer({
-    commands: [
-      {
-        name: "diff.open",
-        title: "Open diff viewer",
-        slashName: "diff",
-        category: "VCS",
-        namespace: "palette",
-        run() {
-          api.route.navigate(ROUTE, {
-            mode: "git",
-            sessionID: "params" in api.route.current ? api.route.current.params?.sessionID : undefined,
-            returnRoute: api.route.current,
-          })
-          api.ui.dialog.clear()
+  const registerKeymap = () =>
+    api.keymap.registerLayer({
+      commands: [
+        {
+          name: "diff.open",
+          title: i18next.t("command.diff_open"),
+          slashName: "diff",
+          category: "VCS",
+          namespace: "palette",
+          run() {
+            api.route.navigate(ROUTE, {
+              mode: "git",
+              sessionID: "params" in api.route.current ? api.route.current.params?.sessionID : undefined,
+              returnRoute: api.route.current,
+            })
+            api.ui.dialog.clear()
+          },
         },
-      },
-    ],
+      ],
+    })
+
+  let unregisterLayer = registerKeymap()
+  onLanguageChange(() => {
+    unregisterLayer()
+    unregisterLayer = registerKeymap()
   })
 }
 

@@ -5,6 +5,7 @@ import { Show, createEffect, createSignal, onMount, type JSX } from "solid-js"
 import { Spinner } from "../component/spinner"
 import { useTuiConfig } from "../config"
 import { useBindings, useCommandShortcut } from "../keymap"
+import { useI18n } from "../i18n"
 
 export type DialogPromptProps = {
   title: string
@@ -20,6 +21,7 @@ export type DialogPromptProps = {
 export function DialogPrompt(props: DialogPromptProps) {
   const dialog = useDialog()
   const { theme } = useTheme()
+  const { t } = useI18n()
   const tuiConfig = useTuiConfig()
   const submitShortcut = useCommandShortcut("dialog.prompt.submit")
   const [textareaTarget, setTextareaTarget] = createSignal<TextareaRenderable>()
@@ -38,7 +40,7 @@ export function DialogPrompt(props: DialogPromptProps) {
     commands: [
       {
         name: "dialog.prompt.submit",
-        title: "Submit dialog prompt",
+        title: t("dialog.submit_prompt"),
         category: "Dialog",
         run: confirm,
       },

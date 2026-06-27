@@ -15,6 +15,7 @@ import { isConsoleManagedProvider } from "../util/provider-origin"
 import { useConnected } from "./use-connected"
 import { useBindings } from "../keymap"
 import { useClipboard } from "../context/clipboard"
+import { useI18n } from "../i18n"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
   "alibaba-cn": 0,
@@ -44,7 +45,7 @@ type ProviderOption =
       type: "custom"
     })
 
-export function providerOptions(list: { id: string; name: string }[]): ProviderOption[] {
+export function providerOptions(list: { id: string; name: string }[], t?: (key: string) => string): ProviderOption[] {
   return [
     ...pipe(
       list,
@@ -70,7 +71,7 @@ export function providerOptions(list: { id: string; name: string }[]): ProviderO
     ),
     {
       type: "custom",
-      title: "Other",
+      title: t ? t("dialog.other") : "Other",
       value: CUSTOM_PROVIDER_OPTION_VALUE,
       description: "Custom provider",
       category: "Providers",
@@ -85,6 +86,7 @@ export function normalizeCustomProviderID(value: string) {
 }
 
 export function createDialogProviderOptions() {
+  const { t } = useI18n()
   const sync = useSync()
   const dialog = useDialog()
   const sdk = useSDK()
@@ -93,7 +95,7 @@ export function createDialogProviderOptions() {
   const onboarded = useConnected()
 
   async function promptCustomProviderID(): Promise<string | undefined> {
-    const value = await DialogPrompt.show(dialog, "Other", {
+    const value = await DialogPrompt.show(dialog, t("dialog.other"), {
       placeholder: "Provider id",
       description: () => (
         <text fg={theme.textMuted}>
@@ -116,11 +118,11 @@ export function createDialogProviderOptions() {
 
   const options = createMemo(() => {
     return pipe(
-      providerOptions(sync.data.provider_next.all),
+      providerOptions(sync.data.provider_next.all, t),
       map((provider) => {
         if (provider.type === "custom") {
           return {
-            title: provider.title,
+            title: t("dialog.other"),
             value: provider.value,
             description: provider.description,
             category: provider.category,
@@ -238,6 +240,7 @@ interface AutoMethodProps {
   authorization: ProviderAuthAuthorization
 }
 function AutoMethod(props: AutoMethodProps) {
+  const { t } = useI18n()
   const { theme } = useTheme()
   const sdk = useSDK()
   const dialog = useDialog()
@@ -256,7 +259,7 @@ function AutoMethod(props: AutoMethodProps) {
             props.authorization.instructions.match(/[A-Z0-9]{4}-[A-Z0-9]{4,5}/)?.[0] ?? props.authorization.url
           clipboard
             .write?.(code)
-            .then(() => toast.show({ message: "Copied to clipboard", variant: "info" }))
+            .then(() => toast.show({ message: t("toast.copied_to_clipboard"), variant: "info" }))
             .catch(toast.error)
         },
       },

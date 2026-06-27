@@ -18,6 +18,7 @@ import { Spinner } from "./spinner"
 import { DialogWorkspaceFileChanges } from "./dialog-workspace-file-changes"
 import type { ProjectDirectories } from "@opencode-ai/sdk/v2"
 import { useRoute } from "../context/route"
+import { useI18n } from "../i18n"
 
 export type MoveSessionSelection = { type: "directory"; directory: string; subdirectory: boolean } | { type: "new" }
 type ProjectDirectory = ProjectDirectories[number]
@@ -32,6 +33,7 @@ type DialogMoveSessionProps = {
 }
 
 export function DialogMoveSession(props: DialogMoveSessionProps) {
+  const { t } = useI18n()
   const dialog = useDialog()
   const sdk = useSDK()
   const dimensions = useTerminalDimensions()
@@ -113,7 +115,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
     if (showError()) return []
     const data = directoryData()
     const current = currentRoot()?.directory
-    if (directories.loading && !data && !current) return [{ title: "Loading project directories...", value: undefined }]
+    if (directories.loading && !data && !current) return [{ title: t("command.loading_project_dirs"), value: undefined }]
     const roots = [...(data ?? [])]
     if (current && !roots.some((item) => item.directory === current)) roots.unshift({ directory: current })
     roots.sort((a, b) => {
@@ -123,7 +125,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
       if (!a.strategy && !b.strategy) return a.directory.length - b.directory.length
       return 0
     })
-    if (roots.length === 0) return [{ title: "No project directories found", value: undefined }]
+    if (roots.length === 0) return [{ title: t("command.no_project_dirs"), value: undefined }]
 
     const subdirectories = sync.data.session
       .filter((session) => session.projectID === props.projectID && session.path && ![".", "/"].includes(session.path))
@@ -235,7 +237,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
       if ("data" in result.error && result.error.data.forceRequired) {
         const status = await sdk.client.vcs.status({ directory: selected.directory }).catch(() => undefined)
         const choice = await DialogWorkspaceFileChanges.show(dialog, status?.data ?? [], {
-          title: "Delete working copy?",
+          title: t("dialog.delete_working_copy"),
           message: "This working copy has file changes. Do you want to delete it anyway?",
         })
         if (choice !== "yes") {
@@ -254,7 +256,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
         if (forced.error) {
           toast.show({
             variant: "error",
-            title: "Failed to delete project copy",
+            title: t("toast.failed_delete_copy"),
             message: errorMessage(forced.error),
           })
           reopen()
@@ -268,7 +270,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
       }
       toast.show({
         variant: "error",
-        title: "Failed to delete project copy",
+        title: t("toast.failed_delete_copy"),
         message: errorMessage(result.error),
       })
       return
@@ -321,12 +323,12 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
             : [
                 {
                   command: "dialog.move_session.new",
-                  title: "new",
+                  title: t("dialog.action_new"),
                   onTrigger: () => props.onSelect({ type: "new" }),
                 },
                 {
                   command: "dialog.move_session.delete",
-                  title: "delete",
+                  title: t("dialog.action_delete"),
                   disabled: (option) => {
                     const value = option?.value
                     if (!value || value.type !== "directory" || value.subdirectory) return true
@@ -336,7 +338,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
                 },
                 {
                   command: "dialog.move_session.refresh",
-                  title: "refresh",
+                  title: t("dialog.action_refresh"),
                   onTrigger: () => void refetch(),
                 },
               ]

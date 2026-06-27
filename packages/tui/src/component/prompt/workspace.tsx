@@ -5,6 +5,7 @@ import { useProject } from "../../context/project"
 import { useSync } from "../../context/sync"
 import { useToast } from "../../ui/toast"
 import { errorMessage } from "../../util/error"
+import { useI18n } from "../../i18n"
 import {
   confirmWorkspaceFileChanges,
   openWorkspaceSelect,
@@ -14,6 +15,7 @@ import {
 import type { WorkspaceStatus } from "../workspace-label"
 
 export function usePromptWorkspace(sessionID?: string) {
+  const { t } = useI18n()
   const dialog = useDialog()
   const sdk = useSDK()
   const project = useProject()
@@ -32,14 +34,14 @@ export function usePromptWorkspace(sessionID?: string) {
     } catch (err) {
       setSelection(undefined)
       setCreating(false)
-      toast.show({ title: "Creating workspace failed", message: errorMessage(err), variant: "error" })
+      toast.show({ title: t("command.creating_workspace_failed"), message: errorMessage(err), variant: "error" })
       return
     }
     if (result.error || !result.data) {
       setSelection(undefined)
       setCreating(false)
       toast.show({
-        title: "Creating workspace failed",
+        title: t("command.creating_workspace_failed"),
         message: errorMessage(result.error ?? "no response"),
         variant: "error",
       })
@@ -85,6 +87,7 @@ export function usePromptWorkspace(sessionID?: string) {
       sync,
       project,
       toast,
+      t,
       sourceWorkspaceID,
       workspaceID: workspace.id,
       sessionID,
@@ -94,7 +97,7 @@ export function usePromptWorkspace(sessionID?: string) {
   }
 
   function showNotice(name: string) {
-    setNotice(`Warped to ${name}`)
+    setNotice(t("command.warped_to", { name }))
     setTimeout(() => setNotice(undefined), 4000)
   }
 
@@ -103,7 +106,7 @@ export function usePromptWorkspace(sessionID?: string) {
   }
 
   function open() {
-    void openWorkspaceSelect({ dialog, sdk, sync, project, toast, onSelect: warp })
+    void openWorkspaceSelect({ dialog, sdk, sync, project, toast, t, onSelect: warp })
   }
 
   createEffect(() => {

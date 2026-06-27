@@ -21,6 +21,7 @@ import type { PromptInfo } from "../../prompt/history"
 import { useFrecency } from "../../prompt/frecency"
 import { useBindings, useCommandSlashes, useOpencodeModeStack } from "../../keymap"
 import { displayCharAt, mentionTriggerIndex } from "../../prompt/display"
+import { useI18n } from "../../i18n"
 
 function removeLineRange(input: string) {
   const hashIndex = input.lastIndexOf("#")
@@ -83,6 +84,7 @@ export function Autocomplete(props: {
   promptPartTypeId: () => number
 }) {
   const editor = useEditorContext()
+  const { t } = useI18n()
   const sdk = useSDK()
   const sync = useSync()
   const data = useData()
@@ -434,6 +436,11 @@ export function Autocomplete(props: {
       ),
   )
 
+  const commandDescOverrides: Record<string, string> = {
+    init: t("command.cmd_init_desc"),
+    review: t("command.cmd_review_desc"),
+  }
+
   const commands = createMemo((): AutocompleteOption[] => {
     const results: AutocompleteOption[] = [...slashes()]
 
@@ -442,7 +449,7 @@ export function Autocomplete(props: {
       const label = serverCommand.source === "mcp" ? ":mcp" : ""
       results.push({
         display: "/" + serverCommand.name + label,
-        description: serverCommand.description,
+        description: commandDescOverrides[serverCommand.name] ?? serverCommand.description,
         onSelect: () => {
           const newText = "/" + serverCommand.name + " "
           const cursor = props.input().logicalCursor
@@ -573,7 +580,7 @@ export function Autocomplete(props: {
     commands: [
       {
         name: "prompt.autocomplete.prev",
-        title: "Previous autocomplete item",
+        title: t("command.prev_autocomplete"),
         category: "Autocomplete",
         run() {
           setStore("input", "keyboard")
@@ -582,7 +589,7 @@ export function Autocomplete(props: {
       },
       {
         name: "prompt.autocomplete.next",
-        title: "Next autocomplete item",
+        title: t("command.next_autocomplete"),
         category: "Autocomplete",
         run() {
           setStore("input", "keyboard")
@@ -591,7 +598,7 @@ export function Autocomplete(props: {
       },
       {
         name: "prompt.autocomplete.hide",
-        title: "Hide autocomplete",
+        title: t("command.hide_autocomplete"),
         category: "Autocomplete",
         run() {
           hide()
@@ -599,7 +606,7 @@ export function Autocomplete(props: {
       },
       {
         name: "prompt.autocomplete.select",
-        title: "Select autocomplete item",
+        title: t("command.select_autocomplete"),
         category: "Autocomplete",
         run() {
           select()
@@ -607,7 +614,7 @@ export function Autocomplete(props: {
       },
       {
         name: "prompt.autocomplete.complete",
-        title: "Complete autocomplete item",
+        title: t("command.complete_autocomplete"),
         category: "Autocomplete",
         run() {
           const selected = options()[store.selected]
