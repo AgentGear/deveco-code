@@ -94,7 +94,7 @@ Required sections (adjust depth to task complexity):
 | **Design** | Recommended approach with rationale; call out ArkTS-specific decisions (lifecycle hooks, state mechanism, permissions, resources) |
 | **Key Files** | Concrete file paths with markdown links |
 | **Execution Sequence** | Ordered steps for `build` agent to follow |
-| **Verification** | A matrix — at minimum: compilation check, and any applicable UI/integration/manual verification. Note if `build` agent should use `check_ets_files` |
+| **Verification** | A matrix — at minimum: compilation check, and any applicable UI/integration/manual verification. Note if `build` agent should use `arkts_check` |
 | **Risks And Compatibility** | SDK version, permission, backward compat, or migration risks |
 | **Rollback** | How to revert code and configuration if the change fails |
 

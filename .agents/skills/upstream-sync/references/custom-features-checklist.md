@@ -28,7 +28,7 @@
 文件：`packages/opencode/src/agent/agent.ts`
 
 - [ ] **build agent**: `plan_enter: "ask"`, `plan_write: "deny"`（上游默认 `"allow"` / 缺失）
-- [ ] **plan agent**: `plan_exit: "ask"`, `plan_write: "allow"`, `edit: "deny"`, 以及 9 个 HarmonyOS 工具 deny 规则：`bash`, `build_project`, `check_ets_files`, `perform_ui_action`, `get_app_ui_tree`, `start_app`, `hdc_log`, `switch_cwd`, `arkts_knowledge_search`
+- [ ] **plan agent**: `plan_exit: "ask"`, `plan_write: "allow"`, `edit: "deny"`, 以及 9 个 HarmonyOS 工具 deny 规则：`bash`, `build_project`, `arkts_check`, `perform_ui_action`, `get_app_ui_tree`, `start_app`, `hdc_log`, `switch_cwd`, `arkts_knowledge_search`
 
 ## 3. package.json — 自定义依赖
 
