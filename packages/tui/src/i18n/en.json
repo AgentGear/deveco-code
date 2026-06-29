@@ -300,7 +300,16 @@
     "tell_differently": "Tell DevEco Code what to do differently",
     "prev_option": "Previous permission option",
     "next_option": "Next permission option",
-    "select_option": "Select permission option"
+    "select_option": "Select permission option",
+    "always_allow": "Always allow",
+    "shell_command": "Shell command",
+    "task_suffix": "Task",
+    "access_external_dir": "Access external directory {{dir}}",
+    "fullscreen": "fullscreen",
+    "minimize": "minimize",
+    "select": "select",
+    "confirm": "confirm",
+    "cancel": "cancel"
   },
   "question": {
     "cancel_edit": "Cancel answer edit",
@@ -313,7 +322,14 @@
     "next_answer": "Next answer",
     "select_answer": "Select answer",
     "confirm": "Confirm",
-    "review": "Review"
+    "review": "Review",
+    "select_all_apply": " (select all that apply)",
+    "type_own_answer": "Type your own answer",
+    "not_answered": "(not answered)",
+    "select": "select",
+    "submit": "submit",
+    "toggle": "toggle",
+    "dismiss": "dismiss"
   },
   "tool": {
     "writing_command": "Writing command...",

@@ -359,7 +359,7 @@ export function QuestionPrompt(props: { request: QuestionRequest; directory?: st
             <box>
               <text fg={theme.text}>
                 {question()?.question}
-                {multi() ? " (select all that apply)" : ""}
+                {multi() ? t("question.select_all_apply") : ""}
               </text>
             </box>
             <box>
@@ -416,7 +416,7 @@ export function QuestionPrompt(props: { request: QuestionRequest; directory?: st
                     </box>
                     <box backgroundColor={other() ? theme.backgroundElement : undefined}>
                       <text fg={other() ? theme.secondary : customPicked() ? theme.success : theme.text}>
-                        {multi() ? `[${customPicked() ? "✓" : " "}] Type your own answer` : "Type your own answer"}
+                        {multi() ? `[${customPicked() ? "✓" : " "}] ${t("question.type_own_answer")}` : t("question.type_own_answer")}
                       </text>
                     </box>
 
@@ -436,7 +436,7 @@ export function QuestionPrompt(props: { request: QuestionRequest; directory?: st
                           })
                         }}
                         initialValue={input()}
-                        placeholder="Type your own answer"
+                        placeholder={t("question.type_own_answer")}
                         placeholderColor={theme.textMuted}
                         minHeight={1}
                         maxHeight={6}
@@ -470,7 +470,7 @@ export function QuestionPrompt(props: { request: QuestionRequest; directory?: st
                   <text>
                     <span style={{ fg: theme.textMuted }}>{q.header}:</span>{" "}
                     <span style={{ fg: answered() ? theme.text : theme.error }}>
-                      {answered() ? value() : "(not answered)"}
+                      {answered() ? value() : t("question.not_answered")}
                     </span>
                   </text>
                 </box>
@@ -496,18 +496,18 @@ export function QuestionPrompt(props: { request: QuestionRequest; directory?: st
           </Show>
           <Show when={!confirm()}>
             <text fg={theme.text}>
-              {"↑↓"} <span style={{ fg: theme.textMuted }}>select</span>
+              {"↑↓"} <span style={{ fg: theme.textMuted }}>{t("question.select")}</span>
             </text>
           </Show>
           <text fg={theme.text}>
             enter{" "}
             <span style={{ fg: theme.textMuted }}>
-              {confirm() ? "submit" : multi() ? "toggle" : single() ? "submit" : "confirm"}
+              {confirm() ? t("question.submit") : multi() ? t("question.toggle") : single() ? t("question.submit") : t("question.confirm")}
             </span>
           </text>
 
           <text fg={theme.text}>
-            esc <span style={{ fg: theme.textMuted }}>dismiss</span>
+            esc <span style={{ fg: theme.textMuted }}>{t("question.dismiss")}</span>
           </text>
         </box>
       </box>

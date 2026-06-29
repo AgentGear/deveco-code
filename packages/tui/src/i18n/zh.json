@@ -300,7 +300,16 @@
     "tell_differently": "告诉 DevEco Code 换种方式处理",
     "prev_option": "上一个授权选项",
     "next_option": "下一个授权选项",
-    "select_option": "选择授权选项"
+    "select_option": "选择授权选项",
+    "always_allow": "始终允许",
+    "shell_command": "Shell 命令",
+    "task_suffix": "任务",
+    "access_external_dir": "访问外部目录 {{dir}}",
+    "fullscreen": "全屏",
+    "minimize": "最小化",
+    "select": "选择",
+    "confirm": "确认",
+    "cancel": "取消"
   },
   "question": {
     "cancel_edit": "取消编辑回答",
@@ -313,7 +322,14 @@
     "next_answer": "下一个回答",
     "select_answer": "选择回答",
     "confirm": "确认",
-    "review": "审查"
+    "review": "审查",
+    "select_all_apply": "（选择所有适用的）",
+    "type_own_answer": "输入你自己的回答",
+    "not_answered": "（未回答）",
+    "select": "选择",
+    "submit": "提交",
+    "toggle": "切换",
+    "dismiss": "关闭"
   },
   "tool": {
     "writing_command": "正在写入命令…",
