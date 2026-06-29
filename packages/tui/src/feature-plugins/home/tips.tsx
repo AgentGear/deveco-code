@@ -3,16 +3,18 @@ import type { BuiltinTuiPlugin } from "../builtins"
 import { createMemo, Show } from "solid-js"
 import { Tips } from "./tips-view"
 import { useBindings } from "../../keymap"
+import { useI18n } from "../../i18n"
 
 const id = 'internal:home-tips';
 
 function View(props: { api: TuiPluginApi; hidden: boolean; show: boolean; connected: boolean }) {
+  const { t } = useI18n();
   useBindings(() => ({
     commands: [
       {
         name: 'tips.toggle',
-        title: props.hidden ? 'Show tips' : 'Hide tips',
-        category: 'System',
+        title: props.hidden ? t('command.show_tips') : t('command.hide_tips'),
+        category: t('category.system'),
         namespace: 'palette',
         run() {
           props.api.kv.set('tips_hidden', !props.api.kv.get('tips_hidden', false));

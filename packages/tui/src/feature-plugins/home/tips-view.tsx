@@ -170,19 +170,19 @@ const TIPS: Tip[] = [
   "tip.4",
   "tip.5",
   (shortcuts, t) => press(shortcuts.inputPaste(), t, "tip.6"),
-  (shortcuts, t) => `Use ${commandText("/editor", shortcuts.editorOpen(), t, "tip.7")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/editor", shortcuts.editorOpen(), t, "tip.7")}`,
   "tip.8",
-  (shortcuts, t) => `Use ${commandText("/models", shortcuts.modelList(), t, "tip.9")}`,
-  (shortcuts, t) => `Use ${commandText("/themes", shortcuts.themeList(), t, "tip.10")}`,
-  (shortcuts, t) => `Use ${commandText("/new", shortcuts.sessionNew(), t, "tip.11")}`,
-  (shortcuts, t) => `Use ${commandText("/sessions", shortcuts.sessionList(), t, "tip.12")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/models", shortcuts.modelList(), t, "tip.9")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/themes", shortcuts.themeList(), t, "tip.10")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/new", shortcuts.sessionNew(), t, "tip.11")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/sessions", shortcuts.sessionList(), t, "tip.12")}`,
   (shortcuts, t) => press(shortcuts.sessionPinToggle(), t, "tip.13"),
   (shortcuts, t) =>
     shortcuts.sessionQuickSwitch1() && shortcuts.sessionQuickSwitch9()
       ? t("tip.14", { first: shortcuts.sessionQuickSwitch1(), last: shortcuts.sessionQuickSwitch9() })
       : undefined,
   "tip.15",
-  (shortcuts, t) => `Use ${commandText("/export", shortcuts.sessionExport(), t, "tip.16")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/export", shortcuts.sessionExport(), t, "tip.16")}`,
   (shortcuts, t) => press(shortcuts.messagesCopy(), t, "tip.17"),
   (shortcuts, t) => press(shortcuts.commandList(), t, "tip.18"),
   "tip.19",
@@ -191,7 +191,7 @@ const TIPS: Tip[] = [
   (shortcuts, t) => press(shortcuts.sessionSidebarToggle(), t, "tip.22"),
   (shortcuts, t) =>
     shortcuts.messagesPageUp() && shortcuts.messagesPageDown()
-      ? `Use ${shortcutText(shortcuts.messagesPageUp())}/${shortcutText(shortcuts.messagesPageDown())} ${t("tip.23")}`
+      ? `${t("tip.use")} ${shortcutText(shortcuts.messagesPageUp())}/${shortcutText(shortcuts.messagesPageDown())} ${t("tip.23")}`
       : undefined,
   (shortcuts, t) => press(shortcuts.messagesFirst(), t, "tip.24"),
   (shortcuts, t) => press(shortcuts.messagesLast(), t, "tip.25"),
@@ -208,7 +208,7 @@ const TIPS: Tip[] = [
       shortcuts.childNext(),
     ].filter(Boolean)
     if (!items.length) return undefined
-    return `Use ${items.map(shortcutText).join(" / ")} ${t("tip.31")}`
+    return `${t("tip.use")} ${items.map(shortcutText).join(" / ")} ${t("tip.31")}`
   },
   "tip.32",
   "tip.33",
@@ -259,9 +259,9 @@ const TIPS: Tip[] = [
   "tip.78",
   "tip.79",
   "tip.80",
-  (shortcuts, t) => `Use ${commandText("/timeline", shortcuts.sessionTimeline(), t, "tip.81")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/timeline", shortcuts.sessionTimeline(), t, "tip.81")}`,
   (shortcuts, t) => press(shortcuts.messagesToggleConceal(), t, "tip.82"),
-  (shortcuts, t) => `Use ${commandText("/status", shortcuts.statusView(), t, "tip.83")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/status", shortcuts.statusView(), t, "tip.83")}`,
   "tip.84",
   (shortcuts, t) =>
     shortcuts.commandList()
@@ -270,7 +270,7 @@ const TIPS: Tip[] = [
   "tip.86",
   "tip.87",
   "tip.88",
-  (shortcuts, t) => `Use ${commandText("/help", shortcuts.helpOpen(), t, "tip.89")}`,
+  (shortcuts, t) => `${t("tip.use")} ${commandText("/help", shortcuts.helpOpen(), t, "tip.89")}`,
   "tip.90",
 ]
 

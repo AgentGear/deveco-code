@@ -207,7 +207,10 @@
     "warped_to": "已传送到 {{name}}",
     "new_working_copy": "新工作副本",
     "cmd_init_desc": "初始化 AGENTS.md",
-    "cmd_review_desc": "审查变更 [commit|branch|pr]，默认审查未提交的变更"
+    "cmd_review_desc": "审查变更 [commit|branch|pr]，默认审查未提交的变更",
+    "show_tips": "显示提示",
+    "hide_tips": "隐藏提示",
+    "commands": "命令"
   },
   "dialog": {
     "search": "搜索",
@@ -338,12 +341,14 @@
     "dialog": "对话框",
     "settings": "设置",
     "question": "问答",
-    "prompt": "提示"
+    "prompt": "提示",
+    "suggested": "推荐"
   },
   "tip": {
     "label": "● 提示",
     "press": "按 ",
     "or": " 或 ",
+    "use": "使用",
     "no_models": "运行 {highlight}/connect{/highlight} 添加 AI 提供商并开始编码",
     "0": "输入 {highlight}@{/highlight} 加文件名可模糊搜索并添加文件",
     "1": "以 {highlight}!{/highlight} 开头的消息可直接运行 shell 命令（例如 {highlight}!ls -la{/highlight}）",

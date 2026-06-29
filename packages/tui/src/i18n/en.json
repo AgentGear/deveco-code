@@ -207,7 +207,10 @@
     "warped_to": "Warped to {{name}}",
     "new_working_copy": "new working copy",
     "cmd_init_desc": "guided AGENTS.md setup",
-    "cmd_review_desc": "review changes [commit|branch|pr], defaults to uncommitted"
+    "cmd_review_desc": "review changes [commit|branch|pr], defaults to uncommitted",
+    "show_tips": "Show tips",
+    "hide_tips": "Hide tips",
+    "commands": "Commands"
   },
   "dialog": {
     "search": "Search",
@@ -338,12 +341,14 @@
     "dialog": "Dialog",
     "settings": "Settings",
     "question": "Question",
-    "prompt": "Prompt"
+    "prompt": "Prompt",
+    "suggested": "Suggested"
   },
   "tip": {
     "label": "● Tip",
     "press": "Press ",
     "or": " or ",
+    "use": "Use",
     "no_models": "Run {highlight}/connect{/highlight} to add an AI provider and start coding",
     "0": "Type {highlight}@{/highlight} followed by a filename to fuzzy search and attach files",
     "1": "Start a message with {highlight}!{/highlight} to run shell commands directly (e.g., {highlight}!ls -la{/highlight})",
