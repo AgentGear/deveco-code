@@ -1,10 +1,13 @@
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
+
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 import { loginService } from "./login-service"
 import { tokenStorage } from "./token-storage"
 import { loadAccessTokenFromDisk } from "./storage"
 import type { DevEcoSession, LoginResult } from "./types"
-
-const log = Log.create({ service: "deveco" })
 
 export class DevEcoAuth {
   async isLoggedIn(): Promise<boolean> {
@@ -43,9 +46,10 @@ export class DevEcoAuth {
         }
       } catch (err) {
         // ignore parse errors — session may not be available from disk token
-        log.warn("failed to parse jwtToken when restoring session from disk", {
+        await log(Effect.logWarning("failed to parse jwtToken when restoring session from disk", {
+          service: "deveco",
           error: err instanceof Error ? err.message : String(err),
-        })
+        }))
       }
     }
     return null
@@ -106,7 +110,7 @@ export class DevEcoAuth {
       const parsed = loginService.parseJwt(jwtToken)
       return parsed.userId || null
     } catch (err) {
-      log.warn("failed to parse jwtToken for userId", { error: err instanceof Error ? err.message : String(err) })
+      await log(Effect.logWarning("failed to parse jwtToken for userId", { service: "deveco", error: err instanceof Error ? err.message : String(err) }))
       return null
     }
   }

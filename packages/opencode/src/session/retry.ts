@@ -1,12 +1,9 @@
 import type { NamedError } from "@opencode-ai/core/util/error"
-import { Log } from "@opencode-ai/core/util/log"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Cause, Clock, Duration, Effect, Schedule } from "effect"
 import { MessageV2 } from "./message-v2"
 import { iife } from "@/util/iife"
 import { isRecord } from "@/util/record"
-
-const log = Log.create({ service: "session.retry" })
 
 export type Err = ReturnType<NamedError["toObject"]>
 
@@ -77,12 +74,10 @@ export function retryable(error: Err, provider: string) {
   if (SessionV1.ContextOverflowError.isInstance(error)) return undefined
   // Queue error detection
   if (SessionV1.QueueError.isInstance(error)) {
-    log.error("queue error matched", { position: error.data.position, message: error.data.message })
     return { message: error.data.message }
   }
   // ModelServiceRateLimit error detection
   if (SessionV1.ModelServiceRateLimitError.isInstance(error)) {
-    log.error("ModelServiceRateLimit error matched", { provider, message: error.data.message })
     return {
       message: error.data.message,
       maxAttempts: 3,
@@ -258,6 +253,13 @@ export function policy(opts: {
           ? (retry.delays[effectiveAttempt - 1] ?? retry.delays[retry.delays.length - 1]!)
           : delay(effectiveAttempt, SessionV1.APIError.isInstance(error) ? error : undefined, isQueue)
         const now = yield* Clock.currentTimeMillis
+        yield* Effect.logError("retryable error matched", {
+          service: "session.retry",
+          provider: opts.provider,
+          category,
+          attempt: meta.attempt,
+          message: retry.message,
+        })
         yield* opts.set({
           attempt: meta.attempt,
           message: retry.message,

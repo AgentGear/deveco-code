@@ -1,6 +1,5 @@
 import { Hono } from "hono"
 import type { UpgradeWebSocket } from "hono/ws"
-import { Log } from "@opencode-ai/core/util/log"
 import * as Fence from "./shared/fence"
 import type { WorkspaceV2 } from "@opencode-ai/core/workspace"
 import { Workspace } from "@/control-plane/workspace"
@@ -63,8 +62,6 @@ const app = (upgrade: UpgradeWebSocket) =>
     }),
   )
 
-const log = Log.create({ service: "server-proxy" })
-
 function statusText(response: unknown) {
   return (response as { source?: Response }).source?.statusText
 }
@@ -109,10 +106,13 @@ export function httpEffect(url: string | URL, extra: HeadersInit | undefined, re
     })
   }).pipe(
     Effect.provide(FetchHttpClient.layer),
-    Effect.catch((err) => {
-      Log.create({ service: "default" }).error("Proxy request failed", { url: String(url), error: err instanceof Error ? err.message : String(err) })
-      return Effect.succeed(new Response(null, { status: 500 }))
-    }),
+    Effect.catch((err) =>
+      Effect.logError("Proxy request failed", {
+        service: "server-proxy",
+        url: String(url),
+        error: err instanceof Error ? err.message : String(err),
+      }).pipe(Effect.as(new Response(null, { status: 500 }))),
+    ),
   )
 }
 
@@ -135,10 +135,13 @@ export function websocket(
   for (const [key, value] of new Headers(extra).entries()) {
     next.set(key, value)
   }
-  log.info("proxy websocket", {
-    request: req.url,
-    target: String(target),
-  })
+  void AppRuntime.runPromise(
+    Effect.logInfo("proxy websocket", {
+      service: "server-proxy",
+      request: req.url,
+      target: String(target),
+    }),
+  )
   return app(upgrade).fetch(
     new Request(proxy, {
       method: req.method,

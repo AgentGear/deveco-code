@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { validateDocumentSimple } from "@/tool/document-validation/document-validate-tool"
+import { Effect } from "effect"
 import * as fs from "fs"
 import * as path from "path"
 import * as os from "os"
@@ -40,7 +41,7 @@ assumptions
 questions
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toBe("")
     })
   })
@@ -62,7 +63,7 @@ questions
 ## Open Questions
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toBe("")
     })
   })
@@ -80,7 +81,7 @@ questions
 ## Success Criteria
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Assumptions")
       expect(result).toContain("Open Questions")
@@ -102,7 +103,7 @@ questions
 ## Open Questions
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Feature Specification:")
     })
@@ -143,7 +144,7 @@ contracts
 quick
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toBe("")
     })
   })
@@ -157,7 +158,7 @@ quick
 ## Technical Context
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Project Structure")
       expect(result).toContain("Research & Decisions")
@@ -203,7 +204,7 @@ strategy
 notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
   })
@@ -245,7 +246,7 @@ notes
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
   })
@@ -269,7 +270,7 @@ notes
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
   })
@@ -281,7 +282,7 @@ notes
 order
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Tasks:")
     })
@@ -304,7 +305,7 @@ order
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Dependencies & Execution Order")
     })
@@ -328,7 +329,7 @@ describe("validateDocumentSimple: spec missing individual sections", () => {
     test("fails when missing Overview", () => {
       const md = `# Feature Specification: Auth${base}`
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Overview")
     })
@@ -347,7 +348,7 @@ describe("validateDocumentSimple: spec missing individual sections", () => {
 ## Open Questions
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("User Scenarios & Testing")
     })
@@ -368,7 +369,7 @@ describe("validateDocumentSimple: spec missing individual sections", () => {
 ## Open Questions
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Requirements")
     })
@@ -387,7 +388,7 @@ describe("validateDocumentSimple: spec missing individual sections", () => {
 ## Open Questions
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Success Criteria")
     })
@@ -413,7 +414,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
     test("fails when missing Summary", () => {
       const md = `# Implementation Plan: Auth${base}`
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Summary")
     })
@@ -434,7 +435,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
 ## Quickstart
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Technical Context")
     })
@@ -457,7 +458,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
 ## Quickstart
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Project Structure")
     })
@@ -478,7 +479,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
 ## Quickstart
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Research & Decisions")
     })
@@ -501,7 +502,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
 ## Quickstart
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Data Model")
     })
@@ -522,7 +523,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
 ## Quickstart
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Contracts & Interfaces")
     })
@@ -545,7 +546,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
 ## Contracts & Interfaces
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Quickstart")
     })
@@ -570,7 +571,7 @@ describe("validateDocumentSimple: design missing individual sections", () => {
 ## Quickstart
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toBe("")
     })
   })
@@ -595,7 +596,7 @@ describe("validateDocumentSimple: tasks missing individual sections", () => {
     test("fails when missing Format", () => {
       const md = `# Tasks: Auth${base}`
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Format")
     })
@@ -616,7 +617,7 @@ describe("validateDocumentSimple: tasks missing individual sections", () => {
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Path Conventions")
     })
@@ -639,7 +640,7 @@ describe("validateDocumentSimple: tasks missing individual sections", () => {
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Dependencies & Execution Order")
     })
@@ -660,7 +661,7 @@ describe("validateDocumentSimple: tasks missing individual sections", () => {
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Parallel Example")
     })
@@ -683,7 +684,7 @@ describe("validateDocumentSimple: tasks missing individual sections", () => {
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Implementation Strategy")
     })
@@ -704,7 +705,7 @@ describe("validateDocumentSimple: tasks missing individual sections", () => {
 ## Implementation Strategy
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Notes")
     })
@@ -729,7 +730,7 @@ describe("validateDocumentSimple: aliases", () => {
 ## 开放问题
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toBe("")
     })
 
@@ -751,7 +752,7 @@ describe("validateDocumentSimple: aliases", () => {
 ## 快速开始
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toBe("")
     })
   })
@@ -775,7 +776,7 @@ describe("validateDocumentSimple: aliases", () => {
 ## 备注
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
   })
@@ -807,7 +808,7 @@ describe("validateDocumentSimple: extra sections", () => {
 content
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Extra sections")
       expect(result).toContain("Extra One")
       expect(result).toContain("Extra Two")
@@ -836,7 +837,7 @@ content
 ## Requirements
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "spec")
+      const result = Effect.runSync(validateDocumentSimple(p, "spec"))
       expect(result).toContain("Duplicate sections")
       expect(result).toContain("Overview")
       expect(result).toContain("Requirements")
@@ -868,7 +869,7 @@ describe("validateDocumentSimple: design extra & duplicate", () => {
 ## Another Extra
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Extra sections")
       expect(result).toContain("Random Section")
       expect(result).toContain("Another Extra")
@@ -898,7 +899,7 @@ describe("validateDocumentSimple: design extra & duplicate", () => {
 ## Changelog
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toBe("")
     })
   })
@@ -910,7 +911,7 @@ describe("validateDocumentSimple: design extra & duplicate", () => {
 ## Technical Context
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Implementation Plan:")
     })
@@ -937,7 +938,7 @@ describe("validateDocumentSimple: design extra & duplicate", () => {
 ## Data Model
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "design")
+      const result = Effect.runSync(validateDocumentSimple(p, "design"))
       expect(result).toContain("Duplicate sections")
       expect(result).toContain("Summary")
       expect(result).toContain("Data Model")
@@ -971,7 +972,7 @@ describe("validateDocumentSimple: tasks optional sections", () => {
 graph
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
 
@@ -983,7 +984,7 @@ graph
 guide
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
   })
@@ -1009,7 +1010,7 @@ example
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
 
@@ -1033,7 +1034,7 @@ examples
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toBe("")
     })
   })
@@ -1061,7 +1062,7 @@ describe("validateDocumentSimple: tasks extra & duplicate", () => {
 ## Random Extra
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Extra sections")
       expect(result).toContain("Random Extra")
     })
@@ -1092,7 +1093,7 @@ describe("validateDocumentSimple: tasks extra & duplicate", () => {
 ## Notes
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Duplicate sections")
       expect(result).toContain("Format")
       expect(result).toContain("Notes")
@@ -1108,7 +1109,7 @@ describe("validateDocumentSimple: tasks extra & duplicate", () => {
 ## Path Conventions
 `
       const p = tempFile(md)
-      const result = validateDocumentSimple(p, "tasks")
+      const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
       expect(result).toContain("Missing required sections")
       expect(result).toContain("Dependencies & Execution Order")
       expect(result).toContain("Parallel Example")
@@ -1139,7 +1140,7 @@ describe("validateDocumentSimple: tasks Phase boundary", () => {
 ## Phase
 ${base}`
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "tasks")
+    const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
     expect(result).toContain("Extra sections")
     expect(result).toContain("Phase")
   })
@@ -1150,7 +1151,7 @@ ${base}`
 ## Phase X: Setup
 ${base}`
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "tasks")
+    const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
     expect(result).toBe("")
   })
 
@@ -1160,7 +1161,7 @@ ${base}`
 ## Phase1: Setup
 ${base}`
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "tasks")
+    const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
     expect(result).toContain("Extra sections")
     expect(result).toContain("Phase1")
   })
@@ -1183,7 +1184,7 @@ ${base}`
 ## Notes
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "tasks")
+    const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
     expect(result).toBe("")
   })
 
@@ -1205,7 +1206,7 @@ ${base}`
 ## Notes
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "tasks")
+    const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
     expect(result).toBe("")
   })
 })
@@ -1227,7 +1228,7 @@ describe("validateDocumentSimple: spec missing Assumptions and Open Questions", 
 ## Open Questions
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Missing required sections")
     expect(result).toContain("Assumptions")
   })
@@ -1238,7 +1239,7 @@ describe("validateDocumentSimple: spec missing Assumptions and Open Questions", 
 ## Assumptions
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Missing required sections")
     expect(result).toContain("Open Questions")
   })
@@ -1247,19 +1248,19 @@ describe("validateDocumentSimple: spec missing Assumptions and Open Questions", 
 describe("validateDocumentSimple: empty and minimal documents", () => {
   test("fails for empty document", () => {
     const p = tempFile("")
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Missing required sections")
   })
 
   test("fails for document with only newlines", () => {
     const p = tempFile("\n\n\n")
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Missing required sections")
   })
 
   test("fails for document with only plain text", () => {
     const p = tempFile("just some plain text without headers")
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Missing required sections")
   })
 })
@@ -1285,7 +1286,7 @@ describe("validateDocumentSimple: combined errors", () => {
 ## Extra Two
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Missing required sections")
     expect(result).toContain("Open Questions")
     expect(result).toContain("Duplicate sections")
@@ -1313,7 +1314,7 @@ describe("validateDocumentSimple: combined errors", () => {
 ## Bonus Two
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Missing required sections")
     expect(result).toContain("Open Questions")
     expect(result).toContain("Too many level-2 sections")
@@ -1343,7 +1344,7 @@ describe("validateDocumentSimple: maxSectionLevel2", () => {
 ## Bonus Two
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toContain("Too many level-2 sections")
   })
 
@@ -1364,7 +1365,7 @@ describe("validateDocumentSimple: maxSectionLevel2", () => {
     const body = sections.map((s) => `## ${s}\n\ncontent`).join("\n\n")
     const md = `# Implementation Plan: Auth\n\n${body}`
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "design")
+    const result = Effect.runSync(validateDocumentSimple(p, "design"))
     expect(result).toContain("Too many level-2 sections")
   })
 
@@ -1381,7 +1382,7 @@ describe("validateDocumentSimple: maxSectionLevel2", () => {
     const all = [...required.map((s) => `## ${s}\n\ncontent`), ...phases]
     const md = `# Tasks: Auth\n\n${all.join("\n\n")}`
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "tasks")
+    const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
     expect(result).toBe("")
   })
 
@@ -1398,7 +1399,7 @@ describe("validateDocumentSimple: maxSectionLevel2", () => {
     const all = [...required.map((s) => `## ${s}\n\ncontent`), ...phases]
     const md = `# Tasks: Auth\n\n${all.join("\n\n")}`
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "tasks")
+    const result = Effect.runSync(validateDocumentSimple(p, "tasks"))
     expect(result).toContain("Too many level-2 sections")
   })
 })
@@ -1422,7 +1423,7 @@ describe("validateDocumentSimple: level-3+ sections are ignored", () => {
 ## Open Questions
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toBe("")
   })
 })
@@ -1444,7 +1445,7 @@ describe("validateDocumentSimple: case-insensitive H1", () => {
 ## Open Questions
 `
     const p = tempFile(md)
-    const result = validateDocumentSimple(p, "spec")
+    const result = Effect.runSync(validateDocumentSimple(p, "spec"))
     expect(result).toBe("")
   })
 })

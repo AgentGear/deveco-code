@@ -1,7 +1,12 @@
 import { Schema } from "effect"
+import { Effect } from "effect"
+
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
 import * as ModelsDev from "@opencode-ai/core/models-dev"
-import { Log } from "@opencode-ai/core/util/log"
 
 type ModelsMap = Record<string, ModelsDev.Model>
 
@@ -9,8 +14,6 @@ const DEVECO_BASE_URL = "https://cn.devecostudio.huawei.com"
 const DEVECO_PROVIDER_ID = "deveco"
 export const DEVECO_API_URL = `${DEVECO_BASE_URL}/sse/codeGenie/maas/v2`
 const DEVECO_NPM = "@ai-sdk/openai-compatible"
-
-const log = Log.create({ service: "deveco-models" })
 
 function makeModel(modelId: string, opts: {
   reasoning?: boolean
@@ -185,7 +188,7 @@ async function fetchModelsFromAPI(accessToken: string): Promise<{ models: Models
     }
   }
 
-  log.info("Fetched models config", { models, taskDefaultModelMap })
+  await log(Effect.logInfo("Fetched models config", { service: "deveco-models", models, taskDefaultModelMap }))
 
   return { models, taskDefaultModelMap }
 }
@@ -208,7 +211,7 @@ export async function getDevecoProviderConfig(accessToken: string): Promise<Mode
     const { models, taskDefaultModelMap } = await fetchModelsFromAPI(accessToken)
 
     if (!models || Object.keys(models).length === 0) {
-      log.warn("API returned empty models, using defaults")
+      await log(Effect.logWarning("API returned empty models, using defaults", { service: "deveco-models" }))
       return filterBlacklist(DEVECO_DEFAULTS.provider.models, defaultBlacklist)
     }
 
@@ -216,7 +219,7 @@ export async function getDevecoProviderConfig(accessToken: string): Promise<Mode
     cachedTaskDefaultModelMap = taskDefaultModelMap ?? DEVECO_DEFAULTS.taskDefaultModelMap
     return cachedConfig
   } catch (err) {
-    log.warn("Failed to fetch models, using defaults", { error: String(err) })
+    await log(Effect.logWarning("Failed to fetch models, using defaults", { service: "deveco-models", error: String(err) }))
     return filterBlacklist(DEVECO_DEFAULTS.provider.models, defaultBlacklist)
   }
 }

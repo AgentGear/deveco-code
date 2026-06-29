@@ -39,7 +39,7 @@ export const SpecWriteTool = Tool.define(
 
           const basename = path.basename(filepath)
           const docType = DOC_TYPE_MAP[basename]
-          const validationResult = docType ? validateDocumentSimple(filepath, docType) : ""
+          const validationResult = docType ? (yield* validateDocumentSimple(filepath, docType)) : ""
 
           return {
             title: "Spec Artifact Written",

@@ -1,10 +1,8 @@
 import { readFileSync } from "fs"
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
 import { SddMarkdownParser } from "./markdown-parser"
 import { FORMAT_RULES } from "./config"
 import type { Section } from "./models"
-
-const log = Log.create({ service: "document-validation" })
 
 const SECTION_ALIASES: Record<string, string[]> = {
   "Feature Specification:": ["功能规格:", "特性规格:", "Feature Specification"],
@@ -113,7 +111,6 @@ function findMissingSections(allSections: Section[], rules: (typeof FORMAT_RULES
     )
     if (!found) {
       missing.push(req.standardTitle)
-      log.warn(`[validateDocumentSimple] missing required section: level=${req.level}, title=${req.standardTitle}`)
     }
   }
   return missing
@@ -125,7 +122,6 @@ function findExtraSections(allSections: Section[], documentType: string, rules: 
   for (const s of level2Sections) {
     if (!isAllowedLevel2Section(s.normalizedTitle, documentType, rules.allowedSections)) {
       extra.push(s.title)
-      log.warn(`[validateDocumentSimple] extra section: ## ${s.title}`)
     }
   }
   return extra
@@ -179,29 +175,52 @@ function formatValidationReport(
   return result
 }
 
-export function validateDocumentSimple(filePath: string, documentType: "spec" | "design" | "tasks"): string {
-  log.info(`[validateDocumentSimple] start: file=${filePath}, type=${documentType}`)
+export function validateDocumentSimple(
+  filePath: string,
+  documentType: "spec" | "design" | "tasks",
+): Effect.Effect<string> {
+  return Effect.gen(function* () {
+    yield* Effect.logInfo("validateDocumentSimple start", {
+      service: "document-validation",
+      file: filePath,
+      type: documentType,
+    })
 
-  const content = readFileSync(filePath, "utf-8")
-  const parser = new SddMarkdownParser(content)
-  const sections = parser.parseSections()
-  const allSections = flattenSections(sections)
-  const rules = FORMAT_RULES[documentType]
+    const content = readFileSync(filePath, "utf-8")
+    const parser = new SddMarkdownParser(content)
+    const sections = parser.parseSections()
+    const allSections = flattenSections(sections)
+    const rules = FORMAT_RULES[documentType]
 
-  log.info(`[validateDocumentSimple] parsed ${allSections.length} sections`)
+    yield* Effect.logInfo("validateDocumentSimple parsed sections", {
+      service: "document-validation",
+      count: allSections.length,
+    })
 
-  const missing = findMissingSections(allSections, rules)
-  const extra = findExtraSections(allSections, documentType, rules)
-  const duplicates = findDuplicateSections(allSections)
-  const tooManyLevel2 = findTooManyLevel2Sections(allSections, rules.maxSectionLevel2)
+    const missing = findMissingSections(allSections, rules)
+    const extra = findExtraSections(allSections, documentType, rules)
+    const duplicates = findDuplicateSections(allSections)
+    const tooManyLevel2 = findTooManyLevel2Sections(allSections, rules.maxSectionLevel2)
 
-  if (missing.length === 0 && extra.length === 0 && duplicates.length === 0 && tooManyLevel2.length === 0) {
-    log.info(`[validateDocumentSimple] passed: no issues found`)
-    return ""
-  }
+    for (const m of missing) {
+      yield* Effect.logWarning("missing required section", { service: "document-validation", title: m })
+    }
+    for (const e of extra) {
+      yield* Effect.logWarning("extra section", { service: "document-validation", title: e })
+    }
 
-  log.info(
-    `[validateDocumentSimple] failed: missing=${missing.length}, extra=${extra.length}, duplicates=${duplicates.length}, tooManyLevel2=${tooManyLevel2.length}`,
-  )
-  return formatValidationReport(missing, extra, duplicates, tooManyLevel2)
+    if (missing.length === 0 && extra.length === 0 && duplicates.length === 0 && tooManyLevel2.length === 0) {
+      yield* Effect.logInfo("validateDocumentSimple passed", { service: "document-validation" })
+      return ""
+    }
+
+    yield* Effect.logInfo("validateDocumentSimple failed", {
+      service: "document-validation",
+      missing: missing.length,
+      extra: extra.length,
+      duplicates: duplicates.length,
+      tooManyLevel2: tooManyLevel2.length,
+    })
+    return formatValidationReport(missing, extra, duplicates, tooManyLevel2)
+  })
 }

@@ -1,7 +1,12 @@
 import { exec } from "child_process"
 import { promisify } from "util"
 import crypto from "crypto"
-import { Log } from "@opencode-ai/core/util/log"
+import { Effect } from "effect"
+
+async function log(effect: Effect.Effect<void>) {
+  const { AppRuntime } = await import("@/effect/app-runtime")
+  return AppRuntime.runPromise(effect)
+}
 import { LoginCancelledError, UnsupportedRegionError } from "./errors"
 import { httpClient } from "./http-client"
 import { LocalAuthServer } from "./local-auth-server"
@@ -11,7 +16,6 @@ import type { JwtPayload, LoginConfig, LoginResult, TokenCheckResponse, UserInfo
 import { DEFAULT_CONFIG } from "./types"
 
 const execAsync = promisify(exec)
-const log = Log.create({ service: "deveco" })
 
 export class LoginService {
   private config: LoginConfig
@@ -60,7 +64,7 @@ export class LoginService {
       }
     } catch (err) {
       if (err instanceof LoginCancelledError) {
-        log.info("login cancelled by user")
+        await log(Effect.logInfo("login cancelled by user", { service: "deveco" }))
         return {
           success: false,
           cancelled: true,
@@ -68,14 +72,14 @@ export class LoginService {
         }
       }
       if (err instanceof UnsupportedRegionError) {
-        log.error("login failed: unsupported region", { error: err.message })
+        await log(Effect.logError("login failed: unsupported region", { service: "deveco", error: err.message }))
         return {
           success: false,
           unsupportedRegion: true,
           error: "Sorry, only China site accounts are currently supported",
         }
       }
-      log.error("login failed", { error: err instanceof Error ? err.message : String(err) })
+      await log(Effect.logError("login failed", { service: "deveco", error: err instanceof Error ? err.message : String(err) }))
       return {
         success: false,
         error: err instanceof Error ? err.message : "Unknown error",
@@ -112,7 +116,7 @@ export class LoginService {
     try {
       await saveAuthToDisk("deveco", null)
     } catch (err) {
-      log.warn("failed to clear auth.json deveco entry during logout", { error: err })
+      await log(Effect.logWarning("failed to clear auth.json deveco entry during logout", { service: "deveco", error: String(err) }))
     }
   }
 
@@ -139,10 +143,11 @@ export class LoginService {
     try {
       await execAsync(command)
     } catch (err) {
-      log.error("failed to open login page in browser", {
+      await log(Effect.logError("failed to open login page in browser", {
+        service: "deveco",
         command,
         error: err instanceof Error ? err.message : String(err),
-      })
+      }))
       throw new Error("Failed to open login page", { cause: err })
     }
   }
@@ -161,14 +166,14 @@ export class LoginService {
     const response = await httpClient.get(url, { params })
 
     if (response.statusCode !== 200) {
-      log.error("failed to get jwtToken", { statusCode: response.statusCode })
+      await log(Effect.logError("failed to get jwtToken", { service: "deveco", statusCode: response.statusCode }))
       throw new Error(`Failed to get jwtToken: ${response.statusCode}`)
     }
 
     const jwtToken = response.data.trim()
 
     if (jwtToken.split(".").length !== 3) {
-      log.error("invalid jwtToken format received", { tokenLength: jwtToken.length })
+      await log(Effect.logError("invalid jwtToken format received", { service: "deveco", tokenLength: jwtToken.length }))
       throw new Error(`Invalid jwtToken format`)
     }
 
@@ -179,7 +184,7 @@ export class LoginService {
     const tokenInfo = await this.checkJwtToken(jwtToken)
 
     if (!tokenInfo.status || !tokenInfo.userInfo) {
-      log.error("invalid jwtToken: missing userInfo", { status: tokenInfo.status })
+      await log(Effect.logError("invalid jwtToken: missing userInfo", { service: "deveco", status: tokenInfo.status }))
       throw new Error("Invalid jwtToken: missing userInfo")
     }
 
@@ -209,7 +214,7 @@ export class LoginService {
     const response = await httpClient.get(url, { headers })
 
     if (response.statusCode !== 200) {
-      log.error("failed to check jwtToken", { statusCode: response.statusCode })
+      await log(Effect.logError("failed to check jwtToken", { service: "deveco", statusCode: response.statusCode }))
       throw new Error(`Failed to check jwtToken: ${response.statusCode}`)
     }
 
@@ -253,17 +258,18 @@ export class LoginService {
       const response = await httpClient.get(url, { headers })
 
       if (response.statusCode !== 200) {
-        log.error(`refreshToken failed: HTTP ${response.statusCode}`, { url })
+        await log(Effect.logError(`refreshToken failed: HTTP ${response.statusCode}`, { service: "deveco", url }))
         return null
       }
 
       const result = httpClient.parseJson(response)
       if (!result.status || !result.userInfo) {
-        log.error(`refreshToken failed: invalid response`, {
+        await log(Effect.logError(`refreshToken failed: invalid response`, {
+          service: "deveco",
           status: result.status,
           hasUserInfo: !!result.userInfo,
           url,
-        })
+        }))
         return null
       }
 
@@ -272,7 +278,7 @@ export class LoginService {
         refreshToken: result.userInfo.refreshToken ?? "",
       }
     } catch (err) {
-      log.error(`refreshToken error: ${err}`, { url })
+      await log(Effect.logError(`refreshToken error: ${err}`, { service: "deveco", url }))
       return null
     }
   }

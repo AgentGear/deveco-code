@@ -10,7 +10,6 @@ import { InstanceStore } from "@/project/instance-store"
 import { context } from "@/project/instance-context"
 import { Session } from "@/session/session"
 import { Effect } from "effect"
-import { Log } from "@opencode-ai/core/util/log"
 import { ServerProxy } from "./proxy"
 import { getWorkspaceRouteSessionID, isLocalWorkspaceRoute, workspaceProxyURL } from "./shared/workspace-routing"
 
@@ -25,8 +24,6 @@ async function getSessionWorkspace(url: URL) {
 }
 
 export function WorkspaceRouterMiddleware(upgrade: UpgradeWebSocket): MiddlewareHandler {
-  const log = Log.create({ service: "workspace-router" })
-
   return async (c, next) => {
     const url = new URL(c.req.url)
 
@@ -71,12 +68,15 @@ export function WorkspaceRouterMiddleware(upgrade: UpgradeWebSocket): Middleware
 
     const proxyURL = workspaceProxyURL(target.url, url)
 
-    log.info("workspace proxy forwarding", {
-      workspaceID,
-      request: url.toString(),
-      target: String(target.url),
-      proxy: proxyURL.toString(),
-    })
+    await AppRuntime.runPromise(
+      Effect.logInfo("workspace proxy forwarding", {
+        service: "workspace-router",
+        workspaceID,
+        request: url.toString(),
+        target: String(target.url),
+        proxy: proxyURL.toString(),
+      }),
+    )
 
     if (c.req.header("upgrade")?.toLowerCase() === "websocket") {
       return ServerProxy.websocket(upgrade, proxyURL, target.headers, c.req.raw, c.env)
