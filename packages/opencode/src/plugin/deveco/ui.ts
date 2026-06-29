@@ -64,14 +64,18 @@ export async function requireLogin(): Promise<boolean> {
     // Save tokens to Auth using oauth type with expiration
     const accessToken = result.userInfo?.accessToken || ""
     const refreshToken = result.userInfo?.refreshToken || ""
-    if (accessToken) {
-      await saveAuthToDisk("deveco", {
-        type: "oauth",
-        access: accessToken,
-        refresh: refreshToken,
-        expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
-      })
+    if (!accessToken) {
+      await log(Effect.logError("login succeeded but no access token received", { service: "deveco" }))
+      prompts.log.error("Login succeeded but no access token was received. Please try again.")
+      prompts.outro("Please try again later")
+      return false
     }
+    await saveAuthToDisk("deveco", {
+      type: "oauth",
+      access: accessToken,
+      refresh: refreshToken,
+      expires: Date.now() + ACCESS_TOKEN_EXPIRES_MS,
+    })
 
     prompts.outro("Welcome to DevEco Code!")
     return true

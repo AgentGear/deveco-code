@@ -19,7 +19,7 @@ const REFRESH_COOLDOWN_MS = 30_000
 async function doRefreshToken(): Promise<string | null> {
   await log(Effect.logInfo("ensureValidToken: token expired, refreshing", { service: "deveco" }))
   const newTokens = await devecoAuth.refreshToken()
-  if (!newTokens) {
+  if (!newTokens?.accessToken) {
     lastRefreshFailedAt = Date.now()
     await log(Effect.logWarning("ensureValidToken: token refresh failed", { service: "deveco" }))
     return null

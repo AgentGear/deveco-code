@@ -183,8 +183,8 @@ export class LoginService {
   private async getUserInfoFromJwt(jwtToken: string): Promise<UserInfo> {
     const tokenInfo = await this.checkJwtToken(jwtToken)
 
-    if (!tokenInfo.status || !tokenInfo.userInfo) {
-      await log(Effect.logError("invalid jwtToken: missing userInfo", { service: "deveco", status: tokenInfo.status }))
+    if (!tokenInfo.status || !tokenInfo.userInfo || !tokenInfo.userInfo.accessToken) {
+      await log(Effect.logError("invalid jwtToken: missing userInfo or accessToken", { service: "deveco", status: tokenInfo.status }))
       throw new Error("Invalid jwtToken: missing userInfo")
     }
 
@@ -263,7 +263,7 @@ export class LoginService {
       }
 
       const result = httpClient.parseJson(response)
-      if (!result.status || !result.userInfo) {
+      if (!result.status || !result.userInfo || !result.userInfo.accessToken) {
         await log(Effect.logError(`refreshToken failed: invalid response`, {
           service: "deveco",
           status: result.status,

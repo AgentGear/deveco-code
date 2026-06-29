@@ -151,6 +151,10 @@ export async function DevEcoAuthPlugin(_input: PluginInput): Promise<Hooks> {
                 const access = result.userInfo?.accessToken || ""
                 const refresh = result.userInfo?.refreshToken || ""
 
+                if (!access) {
+                  return { type: "failed" as const, error: "Login succeeded but no access token received" }
+                }
+
                 return {
                   type: "success" as const,
                   provider: PROVIDER_ID,
