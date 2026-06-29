@@ -206,6 +206,7 @@
     "submitting_prompt": "正在提交提示",
     "warped_to": "已传送到 {{name}}",
     "new_working_copy": "新工作副本",
+    "cmd_debug_desc": "用日志排查 ArkTS 问题",
     "cmd_init_desc": "初始化 AGENTS.md",
     "cmd_review_desc": "审查变更 [commit|branch|pr]，默认审查未提交的变更"
   },

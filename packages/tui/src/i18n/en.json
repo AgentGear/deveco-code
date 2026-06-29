@@ -206,6 +206,7 @@
     "submitting_prompt": "Submitting prompt",
     "warped_to": "Warped to {{name}}",
     "new_working_copy": "new working copy",
+    "cmd_debug_desc": "debug ArkTS issues with runtime evidence",
     "cmd_init_desc": "guided AGENTS.md setup",
     "cmd_review_desc": "review changes [commit|branch|pr], defaults to uncommitted"
   },
