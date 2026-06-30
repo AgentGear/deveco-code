@@ -680,6 +680,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
   const {
     flat: atFlat,
+    filter: atFilter,
     active: atActive,
     setActive: setAtActive,
     onInput: atOnInput,
@@ -1499,6 +1500,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         popover={store.popover}
         setSlashPopoverRef={(el) => (slashPopoverRef = el)}
         atFlat={atFlat()}
+        atFilter={atFilter()}
         atActive={atActive() ?? undefined}
         atKey={atKey}
         setAtActive={setAtActive}

@@ -361,6 +361,12 @@
     "prompt": "Prompt",
     "suggested": "Suggested"
   },
+  "prompt": {
+    "popover": {
+      "typeToFilter": "Type to filter agents, files & resources",
+      "noMatchingItems": "No matching items"
+    }
+  },
   "tip": {
     "label": "● Tip",
     "press": "Press ",

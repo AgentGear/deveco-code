@@ -271,6 +271,7 @@ export const dict = {
 
   "prompt.popover.emptyResults": "No matching results",
   "prompt.popover.emptyCommands": "No matching commands",
+  "prompt.popover.typeToFilter": "Type to filter agents, files & resources",
   "prompt.dropzone.label": "Drop images, PDFs, or text files here",
   "prompt.dropzone.file.label": "Drop to @mention file",
   "prompt.slash.badge.custom": "custom",
