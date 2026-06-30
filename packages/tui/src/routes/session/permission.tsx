@@ -204,7 +204,7 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               const filepath = typeof raw === "string" ? raw : ""
               return {
                 icon: "→",
-                title: `Edit ${pathFormatter.format(filepath)}`,
+                title: t("permission.action_edit", { path: pathFormatter.format(filepath) }),
                 body: <EditBody request={props.request} />,
               }
             }
@@ -214,11 +214,11 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               const filePath = typeof raw === "string" ? raw : ""
               return {
                 icon: "→",
-                title: `Read ${pathFormatter.format(filePath)}`,
+                title: t("permission.action_read", { path: pathFormatter.format(filePath) }),
                 body: (
                   <Show when={filePath}>
                     <box paddingLeft={1}>
-                      <text fg={theme.textMuted}>{"Path: " + pathFormatter.format(filePath)}</text>
+                      <text fg={theme.textMuted}>{t("permission.path_label", { path: pathFormatter.format(filePath) })}</text>
                     </box>
                   </Show>
                 ),
@@ -229,11 +229,11 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               const pattern = typeof data.pattern === "string" ? data.pattern : ""
               return {
                 icon: "✱",
-                title: `Glob "${pattern}"`,
+                title: t("permission.action_glob", { pattern }),
                 body: (
                   <Show when={pattern}>
                     <box paddingLeft={1}>
-                      <text fg={theme.textMuted}>{"Pattern: " + pattern}</text>
+                      <text fg={theme.textMuted}>{t("permission.pattern_label", { pattern })}</text>
                     </box>
                   </Show>
                 ),
@@ -244,11 +244,11 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               const pattern = typeof data.pattern === "string" ? data.pattern : ""
               return {
                 icon: "✱",
-                title: `Grep "${pattern}"`,
+                title: t("permission.action_grep", { pattern }),
                 body: (
                   <Show when={pattern}>
                     <box paddingLeft={1}>
-                      <text fg={theme.textMuted}>{"Pattern: " + pattern}</text>
+                      <text fg={theme.textMuted}>{t("permission.pattern_label", { pattern })}</text>
                     </box>
                   </Show>
                 ),
@@ -260,11 +260,11 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               const dir = typeof raw === "string" ? raw : ""
               return {
                 icon: "→",
-                title: `List ${pathFormatter.format(dir)}`,
+                title: t("permission.action_list", { path: pathFormatter.format(dir) }),
                 body: (
                   <Show when={dir}>
                     <box paddingLeft={1}>
-                      <text fg={theme.textMuted}>{"Path: " + pathFormatter.format(dir)}</text>
+                      <text fg={theme.textMuted}>{t("permission.path_label", { path: pathFormatter.format(dir) })}</text>
                     </box>
                   </Show>
                 ),
@@ -289,7 +289,7 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
             }
 
             if (permission === "task") {
-              const type = typeof data.subagent_type === "string" ? data.subagent_type : "Unknown"
+              const type = typeof data.subagent_type === "string" ? data.subagent_type : t("dialog.unknown")
               const desc = typeof data.description === "string" ? data.description : ""
               return {
                 icon: "#",
@@ -308,11 +308,11 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               const url = typeof data.url === "string" ? data.url : ""
               return {
                 icon: "%",
-                title: `WebFetch ${url}`,
+                title: t("permission.action_webfetch", { url }),
                 body: (
                   <Show when={url}>
                     <box paddingLeft={1}>
-                      <text fg={theme.textMuted}>{"URL: " + url}</text>
+                      <text fg={theme.textMuted}>{t("permission.url_label", { url })}</text>
                     </box>
                   </Show>
                 ),
@@ -323,11 +323,11 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
               const query = typeof data.query === "string" ? data.query : ""
               return {
                 icon: "◈",
-                title: `${webSearchProviderLabel(data.provider)} "${query}"`,
+                title: t("permission.action_websearch", { provider: webSearchProviderLabel(data.provider), query }),
                 body: (
                   <Show when={query}>
                     <box paddingLeft={1}>
-                      <text fg={theme.textMuted}>{"Query: " + query}</text>
+                      <text fg={theme.textMuted}>{t("permission.query_label", { query })}</text>
                     </box>
                   </Show>
                 ),
@@ -376,10 +376,10 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
 
             return {
               icon: "⚙",
-              title: `Call tool ${permission}`,
+              title: t("permission.action_call_tool", { name: permission }),
               body: (
                 <box paddingLeft={1}>
-                  <text fg={theme.textMuted}>{"Tool: " + permission}</text>
+                  <text fg={theme.textMuted}>{t("permission.tool_label", { name: permission })}</text>
                 </box>
               ),
             }
@@ -458,19 +458,19 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
       {
         name: "app.exit",
         title: t("permission.cancel_rejection"),
-        category: "Permission",
+        category: t("category.permission"),
         run() {
           props.onCancel()
         },
       },
     ],
     bindings: [
-      { key: "escape", desc: t("permission.cancel_rejection"), group: "Permission", cmd: () => props.onCancel() },
+      { key: "escape", desc: t("permission.cancel_rejection"), group: t("category.permission"), cmd: () => props.onCancel() },
       ...tuiConfig.keybinds.get("app.exit"),
       {
         key: "return",
         desc: t("permission.confirm_rejection"),
-        group: "Permission",
+        group: t("category.permission"),
         cmd: () => props.onConfirm(input.plainText),
       },
     ],
@@ -554,7 +554,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       {
         name: "app.exit",
         title: t("permission.reject_permission"),
-        category: "Permission",
+        category: t("category.permission"),
         run() {
           if (!props.escapeKey) return
           props.onSelect(props.escapeKey)
@@ -563,7 +563,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       {
         name: "permission.prompt.fullscreen",
         title: t("command.toggle_permission_fullscreen"),
-        category: "Permission",
+        category: t("category.permission"),
         run() {
           if (!props.fullscreen) return
           setStore("expanded", (v) => !v)
@@ -574,7 +574,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       {
         key: "left",
         desc: t("permission.prev_option"),
-        group: "Permission",
+        group: t("category.permission"),
         cmd: () => {
           const idx = keys.indexOf(store.selected)
           const next = keys[(idx - 1 + keys.length) % keys.length]
@@ -584,7 +584,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       {
         key: "h",
         desc: t("permission.prev_option"),
-        group: "Permission",
+        group: t("category.permission"),
         cmd: () => {
           const idx = keys.indexOf(store.selected)
           const next = keys[(idx - 1 + keys.length) % keys.length]
@@ -594,7 +594,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       {
         key: "right",
         desc: t("permission.next_option"),
-        group: "Permission",
+        group: t("category.permission"),
         cmd: () => {
           const idx = keys.indexOf(store.selected)
           const next = keys[(idx + 1) % keys.length]
@@ -604,7 +604,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       {
         key: "l",
         desc: t("permission.next_option"),
-        group: "Permission",
+        group: t("category.permission"),
         cmd: () => {
           const idx = keys.indexOf(store.selected)
           const next = keys[(idx + 1) % keys.length]
@@ -614,7 +614,7 @@ function Prompt<const T extends Record<string, string>>(props: {
       {
         key: "return",
         desc: t("permission.select_option"),
-        group: "Permission",
+        group: t("category.permission"),
         cmd: () => props.onSelect(store.selected),
       },
       ...(props.escapeKey
@@ -622,7 +622,7 @@ function Prompt<const T extends Record<string, string>>(props: {
             {
               key: "escape",
               desc: t("permission.reject_permission"),
-              group: "Permission",
+              group: t("category.permission"),
               cmd: () => props.onSelect(props.escapeKey!),
             },
           ]

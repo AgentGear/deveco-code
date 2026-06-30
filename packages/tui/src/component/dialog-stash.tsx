@@ -7,7 +7,7 @@ import { usePromptStash, type StashEntry } from "./prompt/stash"
 import { useCommandShortcut } from "../keymap"
 import { useI18n } from "../i18n"
 
-function getRelativeTime(timestamp: number): string {
+function getRelativeTime(t: (key: string, params?: Record<string, unknown>) => string, timestamp: number): string {
   const now = Date.now()
   const diff = now - timestamp
   const seconds = Math.floor(diff / 1000)
@@ -15,10 +15,10 @@ function getRelativeTime(timestamp: number): string {
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
 
-  if (seconds < 60) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
+  if (seconds < 60) return t("time.just_now")
+  if (minutes < 60) return t("time.minutes_ago", { count: minutes })
+  if (hours < 24) return t("time.hours_ago", { count: hours })
+  if (days < 7) return t("time.days_ago", { count: days })
   return Locale.datetime(timestamp)
 }
 
@@ -44,11 +44,11 @@ export function DialogStash(props: { onSelect: (entry: StashEntry) => void }) {
         const isDeleting = toDelete() === index
         const lineCount = (entry.input.match(/\n/g)?.length ?? 0) + 1
         return {
-          title: isDeleting ? `Press ${deleteHint()} again to confirm` : getStashPreview(entry.input),
+          title: isDeleting ? t("dialog.press_again_to_confirm", { key: deleteHint() }) : getStashPreview(entry.input),
           bg: isDeleting ? theme.error : undefined,
           value: index,
-          description: getRelativeTime(entry.timestamp),
-          footer: lineCount > 1 ? `~${lineCount} lines` : undefined,
+          description: getRelativeTime(t, entry.timestamp),
+          footer: lineCount > 1 ? t("dialog.stash_line_count", { count: lineCount }) : undefined,
         }
       })
       .toReversed()
@@ -56,7 +56,7 @@ export function DialogStash(props: { onSelect: (entry: StashEntry) => void }) {
 
   return (
     <DialogSelect
-      title="Stash"
+      title={t("dialog.title_stash")}
       options={options()}
       onMove={() => {
         setToDelete(undefined)

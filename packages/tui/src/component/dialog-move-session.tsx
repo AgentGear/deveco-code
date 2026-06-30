@@ -163,9 +163,9 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
       return {
         title,
         titleView: isRemoving ? (
-          <span style={{ fg: theme.error }}>Deleting {item.location}</span>
+          <span style={{ fg: theme.error }}>{t("dialog.deleting_path", { path: item.location })}</span>
         ) : deleting ? (
-          <span style={{ fg: theme.text }}>Press {deleteHint()} again to confirm</span>
+          <span style={{ fg: theme.text }}>{t("dialog.press_again_to_confirm", { key: deleteHint() })}</span>
         ) : suffix ? (
           <>
             {visible.slice(0, split)}
@@ -178,7 +178,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
           directory: item.location,
           subdirectory: item.location !== item.root.directory,
         } as const,
-        category: item.root.directory === current ? "Current" : "Other",
+        category: item.root.directory === current ? t("dialog.current") : t("dialog.other"),
         titleWidth,
         truncateTitle: "left" as const,
       }
@@ -238,7 +238,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
         const status = await sdk.client.vcs.status({ directory: selected.directory }).catch(() => undefined)
         const choice = await DialogWorkspaceFileChanges.show(dialog, status?.data ?? [], {
           title: t("dialog.delete_working_copy"),
-          message: "This working copy has file changes. Do you want to delete it anyway?",
+          message: t("dialog.delete_working_copy_message"),
         })
         if (choice !== "yes") {
           reopen()
@@ -288,11 +288,11 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
   return (
     <box minHeight={showError() ? 5 : fullHeight()}>
       <DialogSelect
-        title="Move session"
+        title={t("dialog.title_move_session")}
         titleView={
           <box flexDirection="row" gap={1}>
             <text fg={theme.text} attributes={TextAttributes.BOLD}>
-              Move session
+              {t("dialog.title_move_session")}
             </text>
             <Show when={working() || directories.loading || loadedProject.loading}>
               <Spinner />
@@ -305,7 +305,7 @@ export function DialogMoveSession(props: DialogMoveSessionProps) {
           showError() ? (
             <box paddingLeft={4} paddingRight={4}>
               <text fg={theme.error} attributes={TextAttributes.BOLD}>
-                Could not load project directories
+                {t("dialog.could_not_load_project_dirs")}
               </text>
               <text fg={theme.textMuted}>{errorMessage(loadError())}</text>
             </box>

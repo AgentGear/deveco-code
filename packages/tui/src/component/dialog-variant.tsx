@@ -33,7 +33,7 @@ export function DialogVariant() {
   return (
     <DialogSelect<string>
       options={options()}
-      title={"Select variant"}
+      title={t("dialog.select_variant")}
       current={local.model.variant.selected()}
       flat={true}
     />

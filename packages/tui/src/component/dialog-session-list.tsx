@@ -148,7 +148,7 @@ export function DialogSessionList() {
     const first = quickSwitch1()
     const last = quickSwitch9()
     if (!first || !last) return undefined
-    return quickSwitchRange(first, last)
+    return quickSwitchRange(t, first, last)
   })
   const quickSwitchFooterHints = createMemo(() => {
     const hint = quickSwitchHint()
@@ -191,7 +191,7 @@ export function DialogSessionList() {
           ? () => <text fg={theme.accent}>{slot}</text>
           : undefined
       return {
-        title: isDeleting ? `Press ${deleteHint()} again to confirm` : x.title,
+        title: isDeleting ? t("dialog.press_again_to_confirm", { key: deleteHint() }) : x.title,
         bg: isDeleting ? theme.error : undefined,
         value: x.id,
         category,
@@ -206,11 +206,11 @@ export function DialogSessionList() {
         const x = sessionMap.get(id)
         if (!x) return undefined
         const label = new Date(x.time.updated).toDateString()
-        return buildOption(id, label === today ? "Today" : label)
+        return buildOption(id, label === today ? t("dialog.today") : label)
       })
       .filter((x) => x !== undefined)
 
-    return [...pinned.map((id) => buildOption(id, "Pinned")).filter((x) => x !== undefined), ...remaining]
+    return [...pinned.map((id) => buildOption(id, t("dialog.pinned"))).filter((x) => x !== undefined), ...remaining]
   })
 
   onMount(() => {
@@ -219,7 +219,7 @@ export function DialogSessionList() {
 
   return (
     <DialogSelect
-      title="Sessions"
+      title={t("dialog.title_sessions")}
       options={options()}
       skipFilter={true}
       current={currentSessionID()}
@@ -303,8 +303,8 @@ export function DialogSessionList() {
   )
 }
 
-function quickSwitchRange(first: string, last: string) {
+function quickSwitchRange(t: (key: string, params?: Record<string, unknown>) => string, first: string, last: string) {
   const prefix = first.slice(0, -1)
   if (first.endsWith("1") && last === `${prefix}9`) return `${prefix}1-9`
-  return `${first} through ${last}`
+  return t("dialog.switch_range_through", { first, last })
 }

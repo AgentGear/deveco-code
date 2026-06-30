@@ -952,7 +952,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
               dialog.clear()
               return
             }
-            await DialogAlert.show(dialog, "Complain Unavailable", result.message)
+            await DialogAlert.show(dialog, t("dialog.title_complain_unavailable"), result.message)
           })().catch((error) => {
             toast.show({
               message: errorMessage(error),

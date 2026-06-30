@@ -305,7 +305,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         {
           name: "dialog.select.prev",
           title: t("dialog.previous_item"),
-          category: "Dialog",
+          category: t("category.dialog"),
           run() {
             setStore("input", "keyboard")
             move(-1)
@@ -314,7 +314,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         {
           name: "dialog.select.next",
           title: t("dialog.next_item"),
-          category: "Dialog",
+          category: t("category.dialog"),
           run() {
             setStore("input", "keyboard")
             move(1)
@@ -323,7 +323,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         {
           name: "dialog.select.page_up",
           title: t("dialog.page_up"),
-          category: "Dialog",
+          category: t("category.dialog"),
           run() {
             setStore("input", "keyboard")
             move(-10)
@@ -332,7 +332,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         {
           name: "dialog.select.page_down",
           title: t("dialog.page_down"),
-          category: "Dialog",
+          category: t("category.dialog"),
           run() {
             setStore("input", "keyboard")
             move(10)
@@ -341,7 +341,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         {
           name: "dialog.select.home",
           title: t("dialog.first_item"),
-          category: "Dialog",
+          category: t("category.dialog"),
           run() {
             if (props.locked) return
             setStore("input", "keyboard")
@@ -351,7 +351,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         {
           name: "dialog.select.end",
           title: t("dialog.last_item"),
-          category: "Dialog",
+          category: t("category.dialog"),
           run() {
             if (props.locked) return
             setStore("input", "keyboard")
@@ -361,13 +361,13 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
         {
           name: "dialog.select.submit",
           title: t("dialog.select_item"),
-          category: "Dialog",
+          category: t("category.dialog"),
           run: submit,
         },
         ...visible.map((item) => ({
           name: item.command,
           title: item.title,
-          category: "Dialog",
+          category: t("category.dialog"),
           run() {
             if (props.locked) return
             if (isActionDisabled(item)) return
@@ -394,13 +394,13 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
               {
                 key: "tab",
                 desc: t("dialog.next_action"),
-                group: "Dialog",
+                group: t("category.dialog"),
                 cmd: () => moveAction(1),
               },
               {
                 key: "shift+tab",
                 desc: t("dialog.previous_action"),
-                group: "Dialog",
+                group: t("category.dialog"),
                 cmd: () => moveAction(-1),
               },
             ]
@@ -495,7 +495,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
             </text>
           )}
           <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
-            esc
+            {t("dialog.esc")}
           </text>
         </box>
         <Show when={props.renderFilter !== false}>

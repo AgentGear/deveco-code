@@ -41,9 +41,9 @@ export function DialogWorkspaceList() {
         return {
           title:
             removing() === workspace.id
-              ? "Deleting..."
+              ? t("dialog.deleting")
               : deleting() === workspace.id
-                ? `Delete ${workspace.name}? Press delete again`
+                ? t("dialog.delete_press_again", { name: workspace.name })
                 : workspace.name,
           value: { workspace },
           footer: workspace.type,
@@ -96,7 +96,7 @@ export function DialogWorkspaceList() {
 
   return (
     <DialogSelect
-      title="Workspaces"
+      title={t("dialog.title_workspaces")}
       options={options()}
       onMove={(option) => {
         setDeleting(undefined)

@@ -33,7 +33,7 @@ export function DialogConfirm(props: DialogConfirmProps) {
       {
         key: "return",
         desc: t("dialog.confirm_selection"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           if (store.active === "confirm") props.onConfirm?.()
           if (store.active === "cancel") props.onCancel?.()
@@ -43,7 +43,7 @@ export function DialogConfirm(props: DialogConfirmProps) {
       {
         key: "left",
         desc: t("dialog.prev_option"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           setStore("active", store.active === "confirm" ? "cancel" : "confirm")
         },
@@ -51,7 +51,7 @@ export function DialogConfirm(props: DialogConfirmProps) {
       {
         key: "right",
         desc: t("dialog.next_option"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           setStore("active", store.active === "confirm" ? "cancel" : "confirm")
         },
@@ -65,7 +65,7 @@ export function DialogConfirm(props: DialogConfirmProps) {
           {props.title}
         </text>
         <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
-          esc
+          {t("dialog.esc")}
         </text>
       </box>
       <box paddingBottom={1}>
@@ -86,7 +86,9 @@ export function DialogConfirm(props: DialogConfirmProps) {
             >
               <text fg={key === store.active ? theme.selectedListItemText : theme.textMuted}>
                 {Locale.titlecase(
-                  key === "cancel" ? (props.cancelLabel ?? props.label ?? key) : (props.confirmLabel ?? key),
+                  key === "cancel"
+                    ? (props.cancelLabel ?? props.label ?? t("dialog.cancel"))
+                    : (props.confirmLabel ?? t("dialog.confirm")),
                 )}
               </text>
             </box>
