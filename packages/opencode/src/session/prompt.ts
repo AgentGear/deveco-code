@@ -332,15 +332,18 @@ export const layer = Layer.effect(
               .pipe(Effect.orDie),
         })
         .pipe(
-          Effect.catchCause((cause) => {
-            const defect = Cause.squash(cause)
-            error = defect instanceof Error ? defect : new Error(String(defect))
-            return Effect.logError("subtask execution failed", {
-              error,
-              agent: task.agent,
-              description: task.description,
-            })
-          }),
+          Effect.catchCauseIf(
+            (cause) => !Cause.hasInterruptsOnly(cause),
+            (cause) => {
+              const defect = Cause.squash(cause)
+              error = defect instanceof Error ? defect : new Error(String(defect))
+              return Effect.logError("subtask execution failed", {
+                error,
+                agent: task.agent,
+                description: task.description,
+              })
+            },
+          ),
           Effect.onInterrupt(() =>
             Effect.gen(function* () {
               taskAbort.abort()
@@ -370,11 +373,13 @@ export const layer = Layer.effect(
         messageID: assistantMessage.id,
       }))
 
-      yield* plugin.trigger(
-        "tool.execute.after",
-        { tool: TaskTool.id, sessionID, callID: part.id, args: taskArgs },
-        result,
-      )
+      if (result) {
+        yield* plugin.trigger(
+          "tool.execute.after",
+          { tool: TaskTool.id, sessionID, callID: part.id, args: taskArgs },
+          result,
+        )
+      }
 
       assistantMessage.finish = "tool-calls"
       assistantMessage.time.completed = Date.now()
