@@ -59,7 +59,7 @@ import { DialogConfirm } from "./ui/dialog-confirm"
 import { ToastProvider, useToast } from "./ui/toast"
 import { isDefaultTitle } from "./util/session"
 import { KVProvider, useKV } from "./context/kv"
-import { I18nProvider, useI18n, changeLanguage as changeI18nLanguage } from "./i18n"
+import { I18nProvider, useI18n } from "./i18n"
 import * as Model from "./util/model"
 import { ArgsProvider, useArgs, type Args } from "./context/args"
 import open from "open"
@@ -788,7 +788,6 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
       {
         name: "language.switch",
         title: t("command.switch_language"),
-        slashName: "language",
         run: () => {
           dialog.replace(() => <DialogLanguage />)
         },
