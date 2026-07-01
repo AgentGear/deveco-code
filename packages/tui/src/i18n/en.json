@@ -700,12 +700,5 @@
     "runtime_load_failed": "Installed plugin, but runtime load failed. See console/logs; restart TUI to retry.",
     "loaded_in_session": "Loaded {{mod}} in current session.",
     "update_failed": "Failed to update plugin {{id}}"
-  },
-  "prompt": {
-    "placeholder_ask": "Ask anything...",
-    "placeholder_run": "Run a command...",
-    "placeholder_example_fix_todo": "Fix a TODO in the codebase",
-    "placeholder_example_tech_stack": "What is the tech stack of this project?",
-    "placeholder_example_fix_tests": "Fix broken tests"
   }
 }
