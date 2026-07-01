@@ -1,6 +1,6 @@
 # ArkUI UI Quality Checklist
 
-Use this checklist before finalizing ArkUI UI changes.
+Use this checklist before finalizing ArkUI UI changes (after the build passes — this is about whether the UI meets the requirement, not whether it compiles).
 
 ## Requirement visibility
 
