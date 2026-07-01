@@ -21,6 +21,7 @@ type PromptPopoverProps = {
   popover: "at" | "slash" | null
   setSlashPopoverRef: (el: HTMLDivElement) => void
   atFlat: AtOption[]
+  atFilter?: string
   atActive?: string
   atKey: (item: AtOption) => string
   setAtActive: (id: string) => void
@@ -31,6 +32,14 @@ type PromptPopoverProps = {
   onSlashSelect: (item: SlashCommand) => void
   commandKeybind: (id: string) => string | undefined
   t: (key: string) => string
+}
+
+/**
+ * Whether the "type to filter" hint should be visible in the @ popover.
+ * Shown only when the @ popover is active and the user has not typed anything yet.
+ */
+export function showTypeToFilterHint(popover: "at" | "slash" | null, atFilter?: string): boolean {
+  return popover === "at" && !atFilter
 }
 
 export const PromptPopover: Component<PromptPopoverProps> = (props) => {
@@ -91,6 +100,11 @@ export const PromptPopover: Component<PromptPopoverProps> = (props) => {
                   )
                 }}
               </For>
+            </Show>
+            <Show when={showTypeToFilterHint(props.popover, props.atFilter)}>
+              <div class="text-text-weak px-2 py-1 text-12-regular">
+                {props.t("prompt.popover.typeToFilter")}
+              </div>
             </Show>
           </Match>
           <Match when={props.popover === "slash"}>

@@ -567,6 +567,12 @@
     "plugin_internal": "Internal",
     "plugin_external": "External"
   },
+  "prompt": {
+    "popover": {
+      "typeToFilter": "Type to filter agents, files & resources",
+      "noMatchingItems": "No matching items"
+    }
+  },
   "tip": {
     "label": "● Tip",
     "press": "Press ",

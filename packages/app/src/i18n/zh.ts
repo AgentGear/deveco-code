@@ -284,6 +284,7 @@ export const dict = {
   "prompt.example.25": "这里的环境变量是怎么工作的？",
   "prompt.popover.emptyResults": "没有匹配的结果",
   "prompt.popover.emptyCommands": "没有匹配的命令",
+  "prompt.popover.typeToFilter": "输入以筛选智能体、文件和资源",
   "prompt.dropzone.label": "将图片、PDF 或文本文件拖放到此处",
   "prompt.dropzone.file.label": "拖放以 @提及文件",
   "prompt.slash.badge.custom": "自定义",

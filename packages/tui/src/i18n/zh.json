@@ -567,6 +567,12 @@
     "plugin_internal": "内部",
     "plugin_external": "外部"
   },
+  "prompt": {
+    "popover": {
+      "typeToFilter": "输入以筛选智能体、文件和资源",
+      "noMatchingItems": "没有匹配项"
+    }
+  },
   "tip": {
     "label": "● 提示",
     "press": "按 ",

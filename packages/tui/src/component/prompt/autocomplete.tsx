@@ -160,6 +160,9 @@ export function Autocomplete(props: {
     setSearch(next ? next : "")
   })
 
+  const HINT_ROW_HEIGHT = 1
+  const showTypeToFilter = createMemo(() => store.visible === "@" && !search())
+
   // When the filter changes due to how TUI works, the mousemove might still be triggered
   // via a synthetic event as the layout moves underneath the cursor. This is a workaround to make sure the input mode remains keyboard so
   // that the mouseover event doesn't trigger when filtering.
@@ -720,7 +723,7 @@ export function Autocomplete(props: {
     <box
       visible={store.visible !== false}
       position="absolute"
-      top={position().y - height()}
+      top={position().y - height() - (showTypeToFilter() ? HINT_ROW_HEIGHT : 0)}
       left={position().x}
       width={position().width}
       zIndex={100}
@@ -738,7 +741,7 @@ export function Autocomplete(props: {
           each={options()}
           fallback={
             <box paddingLeft={1} paddingRight={1}>
-              <text fg={theme.textMuted}>No matching items</text>
+              <text fg={theme.textMuted}>{t("prompt.popover.noMatchingItems")}</text>
             </box>
           }
         >
@@ -773,6 +776,11 @@ export function Autocomplete(props: {
           )}
         </Index>
       </scrollbox>
+      <Show when={showTypeToFilter()}>
+        <box paddingLeft={1} paddingRight={1} backgroundColor={theme.backgroundMenu}>
+          <text fg={theme.textMuted}>{t("prompt.popover.typeToFilter")}</text>
+        </box>
+      </Show>
     </box>
   )
 }
