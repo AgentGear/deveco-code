@@ -700,12 +700,5 @@
     "runtime_load_failed": "插件已安装，但运行时加载失败。请查看控制台/日志，重启 TUI 后重试。",
     "loaded_in_session": "已在当前会话中加载 {{mod}}。",
     "update_failed": "更新插件 {{id}} 失败"
-  },
-  "prompt": {
-    "placeholder_ask": "提个问题吧…",
-    "placeholder_run": "运行命令…",
-    "placeholder_example_fix_todo": "修复代码库里的 TODO",
-    "placeholder_example_tech_stack": "这个项目用了什么技术栈？",
-    "placeholder_example_fix_tests": "修复失败的测试"
   }
 }
