@@ -108,7 +108,7 @@ function init() {
       {
         key: "escape",
         desc: t("dialog.close_dialog"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           if (renderer.getSelection()) {
             renderer.clearSelection()
@@ -122,7 +122,7 @@ function init() {
       {
         key: "ctrl+c",
         desc: t("dialog.close_dialog"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           if (renderer.getSelection()) {
             renderer.clearSelection()

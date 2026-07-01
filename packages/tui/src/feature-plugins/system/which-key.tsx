@@ -121,7 +121,7 @@ function activeKeyLabel(active: ActiveKey<Renderable, KeyEvent>) {
 }
 
 function activeKeyGroup(active: ActiveKey<Renderable, KeyEvent>) {
-  if (active.continues) return "System"
+  if (active.continues) return i18next.t("category.system")
   return text(active.commandAttrs?.category) ?? text(active.bindingAttrs?.group) ?? UNKNOWN
 }
 
@@ -294,7 +294,7 @@ function WhichKeyPanel(props: {
         name: command.groupPrevious,
         title: t("command.keybind_previous_group"),
         desc: "Show the previous which-key group",
-        category: "System",
+        category: t("category.system"),
         run() {
           moveGroup(-1)
         },
@@ -303,7 +303,7 @@ function WhichKeyPanel(props: {
         name: command.groupNext,
         title: t("command.keybind_next_group"),
         desc: "Show the next which-key group",
-        category: "System",
+        category: t("category.system"),
         run() {
           moveGroup(1)
         },
@@ -312,7 +312,7 @@ function WhichKeyPanel(props: {
         name: command.scrollUp,
         title: t("command.keybind_scroll_up"),
         desc: "Scroll the which-key panel up",
-        category: "System",
+        category: t("category.system"),
         run() {
           scroll(-columns())
         },
@@ -321,7 +321,7 @@ function WhichKeyPanel(props: {
         name: command.scrollDown,
         title: t("command.keybind_scroll_down"),
         desc: "Scroll the which-key panel down",
-        category: "System",
+        category: t("category.system"),
         run() {
           scroll(columns())
         },
@@ -330,7 +330,7 @@ function WhichKeyPanel(props: {
         name: command.pageUp,
         title: t("command.keybind_page_up"),
         desc: "Page the which-key panel up",
-        category: "System",
+        category: t("category.system"),
         run() {
           scroll(-pageSize())
         },
@@ -339,7 +339,7 @@ function WhichKeyPanel(props: {
         name: command.pageDown,
         title: t("command.keybind_page_down"),
         desc: "Page the which-key panel down",
-        category: "System",
+        category: t("category.system"),
         run() {
           scroll(pageSize())
         },
@@ -348,7 +348,7 @@ function WhichKeyPanel(props: {
         name: command.home,
         title: t("command.keybind_first"),
         desc: "Jump to the first which-key binding",
-        category: "System",
+        category: t("category.system"),
         run() {
           setOffset(0)
         },
@@ -357,7 +357,7 @@ function WhichKeyPanel(props: {
         name: command.end,
         title: t("command.keybind_last"),
         desc: "Jump to the last which-key binding",
-        category: "System",
+        category: t("category.system"),
         run() {
           setOffset(maxOffset())
         },
@@ -545,7 +545,7 @@ const tui: TuiPlugin = async (api) => {
           name: command.toggle,
           title: i18next.t("command.keybind_show"),
           desc: "Toggle which-key overlay",
-          category: "System",
+          category: i18next.t("category.system"),
           run() {
             setPinned((value) => !value)
           },
@@ -554,7 +554,7 @@ const tui: TuiPlugin = async (api) => {
           name: command.toggleLayout,
           title: i18next.t("command.keybind_toggle_layout"),
           desc: "Switch which-key between dock and overlay mode",
-          category: "System",
+          category: i18next.t("category.system"),
           run() {
             setMode((value) => {
               const next = value === "dock" ? "overlay" : "dock"
@@ -567,7 +567,7 @@ const tui: TuiPlugin = async (api) => {
           name: command.togglePending,
           title: i18next.t("command.keybind_toggle_pending"),
           desc: "Automatically show which-key for pending key sequences in overlay mode",
-          category: "System",
+          category: i18next.t("category.system"),
           run() {
             setPendingPreview((value) => {
               api.kv.set(KV_PENDING_PREVIEW, !value)

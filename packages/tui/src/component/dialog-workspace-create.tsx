@@ -120,8 +120,8 @@ export async function warpWorkspaceSession(input: {
     if (result?.error && "name" in result.error && result.error.name === "VcsApplyError") {
       await DialogAlert.show(
         input.dialog,
-        "Unable to Warp Session",
-        "Unable to apply file changes to this workspace. It has existing changes that conflict or is based off a different branch. Session has not been warped.",
+        input.t("dialog.unable_to_warp_session"),
+        input.t("dialog.unable_to_warp_session_message"),
       )
       return false
     }
@@ -216,32 +216,32 @@ export function DialogWorkspaceSelect(props: {
         title: adapter.name,
         value: { type: "new" as const, workspaceType: adapter.type, workspaceName: adapter.name },
         description: adapter.description,
-        category: "New workspace",
+        category: t("category.new_workspace"),
       })),
       {
         title: t("command.none"),
         value: { type: "none" as const },
-        description: "Use the local project",
-        category: "Choose workspace",
+        description: t("dialog.use_local_project"),
+        category: t("category.choose_workspace"),
       },
       ...recent.map((workspace: Workspace) => ({
         title: workspace.name,
-        description: `(${workspace.type})`,
+        description: t("dialog.workspace_type_label", { type: workspace.type }),
         value: {
           type: "existing" as const,
           workspaceID: workspace.id,
           workspaceType: workspace.type,
           workspaceName: workspace.name,
         },
-        category: "Choose workspace",
+        category: t("category.choose_workspace"),
       })),
       ...(hasMore
         ? [
             {
               title: t("command.view_all_workspaces"),
               value: { type: "existing-list" as const },
-              description: "Choose from all workspaces",
-              category: "Choose workspace",
+              description: t("dialog.choose_from_all_workspaces"),
+              category: t("category.choose_workspace"),
             },
           ]
         : []),
@@ -251,7 +251,7 @@ export function DialogWorkspaceSelect(props: {
   if (!adapters()) return null
   return (
     <DialogSelect<WorkspaceSelectValue>
-      title="Warp"
+      title={t("dialog.title_warp")}
       skipFilter={true}
       renderFilter={false}
       options={options()}
@@ -282,6 +282,7 @@ function DialogExistingWorkspaceSelect(props: {
   omitWorkspaceID?: string
   onSelect: (selection: WorkspaceSelection) => Promise<void> | void
 }) {
+  const { t } = useI18n()
   const project = useProject()
 
   const options = createMemo<DialogSelectOption<ExistingWorkspaceSelectValue>[]>(() =>
@@ -291,14 +292,14 @@ function DialogExistingWorkspaceSelect(props: {
       .filter((workspace) => workspace.id !== props.omitWorkspaceID)
       .map((workspace: Workspace) => ({
         title: workspace.name,
-        description: `(${workspace.type})`,
+        description: t("dialog.workspace_type_label", { type: workspace.type }),
         value: { workspace },
       })),
   )
 
   return (
     <DialogSelect<ExistingWorkspaceSelectValue>
-      title="Existing Workspace"
+      title={t("dialog.title_existing_workspace")}
       options={options()}
       onSelect={(option) => {
         void props.onSelect({

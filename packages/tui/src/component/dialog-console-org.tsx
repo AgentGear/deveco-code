@@ -107,7 +107,7 @@ export function DialogConsoleOrg() {
 
           await sdk.client.instance.dispose()
           toast.show({
-            message: `Switched to ${item.orgName}`,
+            message: t("toast.switched_to_org", { orgName: item.orgName }),
             variant: "info",
           })
           dialog.clear()
@@ -117,7 +117,7 @@ export function DialogConsoleOrg() {
 
   return (
     <DialogSelect<string | OrgOption>
-      title="Switch org"
+      title={t("dialog.title_switch_org")}
       options={options()}
       current={current()}
       renderFilter={!showError()}
@@ -126,7 +126,7 @@ export function DialogConsoleOrg() {
         showError() ? (
           <box paddingLeft={4} paddingRight={4}>
             <text fg={theme.error} attributes={TextAttributes.BOLD}>
-              Could not load orgs
+              {t("dialog.could_not_load_orgs")}
             </text>
             <text fg={theme.textMuted}>{errorMessage(loadError())}</text>
           </box>

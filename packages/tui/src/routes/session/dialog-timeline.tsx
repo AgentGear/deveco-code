@@ -6,12 +6,14 @@ import { Locale } from "../../util/locale"
 import { DialogMessage } from "./dialog-message"
 import { useDialog } from "../../ui/dialog"
 import type { PromptInfo } from "../../component/prompt/history"
+import { useI18n } from "../../i18n"
 
 export function DialogTimeline(props: {
   sessionID: string
   onMove: (messageID: string) => void
   setPrompt?: (prompt: PromptInfo) => void
 }) {
+  const { t } = useI18n()
   const sync = useSync()
   const dialog = useDialog()
 
@@ -43,5 +45,5 @@ export function DialogTimeline(props: {
     return result
   })
 
-  return <DialogSelect onMove={(option) => props.onMove(option.value)} title="Timeline" options={options()} />
+  return <DialogSelect onMove={(option) => props.onMove(option.value)} title={t("dialog.title_timeline")} options={options()} />
 }

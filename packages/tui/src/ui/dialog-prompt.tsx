@@ -41,7 +41,7 @@ export function DialogPrompt(props: DialogPromptProps) {
       {
         name: "dialog.prompt.submit",
         title: t("dialog.submit_prompt"),
-        category: "Dialog",
+        category: t("category.dialog"),
         run: confirm,
       },
     ],
@@ -81,7 +81,7 @@ export function DialogPrompt(props: DialogPromptProps) {
           {props.title}
         </text>
         <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
-          esc
+          {t("dialog.esc")}
         </text>
       </box>
       <box gap={1}>
@@ -93,21 +93,21 @@ export function DialogPrompt(props: DialogPromptProps) {
             setTextareaTarget(val)
           }}
           initialValue={props.value}
-          placeholder={props.placeholder ?? "Enter text"}
+          placeholder={props.placeholder ?? t("dialog.placeholder_enter_text")}
           placeholderColor={theme.textMuted}
           textColor={props.busy ? theme.textMuted : theme.text}
           focusedTextColor={props.busy ? theme.textMuted : theme.text}
           cursorColor={props.busy ? theme.backgroundElement : theme.text}
         />
         <Show when={props.busy}>
-          <Spinner color={theme.textMuted}>{props.busyText ?? "Working..."}</Spinner>
+          <Spinner color={theme.textMuted}>{props.busyText ?? t("dialog.working")}</Spinner>
         </Show>
       </box>
       <box paddingBottom={1} gap={1} flexDirection="row">
-        <Show when={!props.busy} fallback={<text fg={theme.textMuted}>processing...</text>}>
+        <Show when={!props.busy} fallback={<text fg={theme.textMuted}>{t("dialog.processing")}</text>}>
           <Show when={submitShortcut()}>
             <text fg={theme.text}>
-              {submitShortcut()} <span style={{ fg: theme.textMuted }}>submit</span>
+              {submitShortcut()} <span style={{ fg: theme.textMuted }}>{t("dialog.action_submit")}</span>
             </text>
           </Show>
         </Show>

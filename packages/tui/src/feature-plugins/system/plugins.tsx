@@ -11,13 +11,14 @@ import i18next from "i18next"
 const id = "internal:plugin-manager"
 
 function state(api: TuiPluginApi, item: TuiPluginStatus) {
+  const { t } = useI18n()
   if (!item.enabled) {
-    return <span style={{ fg: api.theme.current.textMuted }}>disabled</span>
+    return <span style={{ fg: api.theme.current.textMuted }}>{t("plugin.disabled")}</span>
   }
 
   return (
     <span style={{ fg: item.active ? api.theme.current.success : api.theme.current.error }}>
-      {item.active ? "active" : "inactive"}
+      {item.active ? t("plugin.active") : t("plugin.inactive")}
     </span>
   )
 }
@@ -28,9 +29,10 @@ function source(spec: string) {
 }
 
 function meta(item: TuiPluginStatus, width: number) {
+  const { t } = useI18n()
   if (item.source === "internal") {
-    if (width >= 120) return "Built-in plugin"
-    return "Built-in"
+    if (width >= 120) return t("plugin.built_in")
+    return t("plugin.built_in_short")
   }
   const next = source(item.spec)
   if (next) return next
@@ -44,23 +46,23 @@ function Install(props: { api: TuiPluginApi }) {
 
   useBindings(() => ({
     enabled: !busy(),
-    bindings: [{ key: "tab", desc: "Toggle install scope", group: "Plugins", cmd: () => setGlobal((value) => !value) }],
+    bindings: [{ key: "tab", desc: t("plugin.keybind_toggle_install_scope"), group: t("category.plugins"), cmd: () => setGlobal((value) => !value) }],
   }))
 
   return (
     <props.api.ui.DialogPrompt
       title={t("command.plugin_install")}
-      placeholder="npm package name"
+      placeholder={t("plugin.placeholder_npm_package")}
       busy={busy()}
-      busyText="Installing plugin..."
+      busyText={t("plugin.installing")}
       description={() => (
         <box flexDirection="row" gap={1}>
-          <text fg={props.api.theme.current.textMuted}>scope:</text>
+          <text fg={props.api.theme.current.textMuted}>{t("plugin.scope_label")}</text>
           <text fg={busy() ? props.api.theme.current.textMuted : props.api.theme.current.text}>
-            {global() ? "global" : "local"}
+            {global() ? t("plugin.scope_global") : t("plugin.scope_local")}
           </text>
           <Show when={!busy()}>
-            <text fg={props.api.theme.current.textMuted}>(tab toggle)</text>
+            <text fg={props.api.theme.current.textMuted}>{t("plugin.tab_toggle_hint")}</text>
           </Show>
         </box>
       )}
@@ -70,7 +72,7 @@ function Install(props: { api: TuiPluginApi }) {
         if (!mod) {
           props.api.ui.toast({
             variant: "error",
-            message: "Plugin package name is required",
+            message: t("plugin.package_name_required"),
           })
           return
         }
@@ -87,7 +89,7 @@ function Install(props: { api: TuiPluginApi }) {
               if (out.missing) {
                 props.api.ui.toast({
                   variant: "info",
-                  message: "Check npm registry/auth settings and try again.",
+                  message: t("plugin.check_registry_auth"),
                 })
               }
               show(props.api)
@@ -96,12 +98,12 @@ function Install(props: { api: TuiPluginApi }) {
 
             props.api.ui.toast({
               variant: "success",
-              message: `Installed ${mod} (${global() ? "global" : "local"}: ${out.dir})`,
+              message: t("plugin.installed_at", { mod, scope: global() ? t("plugin.scope_global") : t("plugin.scope_local"), dir: out.dir }),
             })
             if (!out.tui) {
               props.api.ui.toast({
                 variant: "info",
-                message: "Package has no TUI target to load in this app.",
+                message: t("plugin.no_tui_target"),
               })
               show(props.api)
               return
@@ -111,7 +113,7 @@ function Install(props: { api: TuiPluginApi }) {
               if (!ok) {
                 props.api.ui.toast({
                   variant: "warning",
-                  message: "Installed plugin, but runtime load failed. See console/logs; restart TUI to retry.",
+                  message: t("plugin.runtime_load_failed"),
                 })
                 show(props.api)
                 return
@@ -119,7 +121,7 @@ function Install(props: { api: TuiPluginApi }) {
 
               props.api.ui.toast({
                 variant: "success",
-                message: `Loaded ${mod} in current session.`,
+                message: t("plugin.loaded_in_session", { mod }),
               })
               show(props.api)
             })
@@ -135,11 +137,11 @@ function Install(props: { api: TuiPluginApi }) {
   )
 }
 
-function row(api: TuiPluginApi, item: TuiPluginStatus, width: number): DialogSelectOption<string> {
+function row(t: (key: string) => string, api: TuiPluginApi, item: TuiPluginStatus, width: number): DialogSelectOption<string> {
   return {
     title: item.id,
     value: item.id,
-    category: item.source === "internal" ? "Internal" : "External",
+    category: item.source === "internal" ? t("category.plugin_internal") : t("category.plugin_external"),
     description: meta(item, width),
     footer: state(api, item),
     disabled: item.id === id,
@@ -178,7 +180,7 @@ function View(props: { api: TuiPluginApi }) {
         if (x !== y) return x - y
         return a.id.localeCompare(b.id)
       })
-      .map((item) => row(props.api, item, size().width)),
+      .map((item) => row(t, props.api, item, size().width)),
   )
 
   const flip = (x: string) => {
@@ -192,7 +194,7 @@ function View(props: { api: TuiPluginApi }) {
         if (!ok) {
           props.api.ui.toast({
             variant: "error",
-            message: `Failed to update plugin ${item.id}`,
+            message: t("plugin.update_failed", { id: item.id }),
           })
         }
         setList(props.api.plugins.list())
@@ -246,7 +248,7 @@ const tui: TuiPlugin = async (api) => {
         {
           name: "plugins.list",
           title: i18next.t("command.plugin_list"),
-          category: "System",
+          category: i18next.t("category.system"),
           namespace: "palette",
           run() {
             show(api)
@@ -255,7 +257,7 @@ const tui: TuiPlugin = async (api) => {
         {
           name: "plugins.install",
           title: i18next.t("command.plugin_install"),
-          category: "System",
+          category: i18next.t("category.system"),
           namespace: "palette",
           run() {
             showInstall(api)

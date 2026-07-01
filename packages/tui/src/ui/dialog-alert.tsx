@@ -20,7 +20,7 @@ export function DialogAlert(props: DialogAlertProps) {
       {
         key: "return",
         desc: t("dialog.confirm_alert"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           props.onConfirm?.()
           dialog.clear()
@@ -35,7 +35,7 @@ export function DialogAlert(props: DialogAlertProps) {
           {props.title}
         </text>
         <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
-          esc
+          {t("dialog.esc")}
         </text>
       </box>
       <box paddingBottom={1}>
@@ -51,7 +51,7 @@ export function DialogAlert(props: DialogAlertProps) {
             dialog.clear()
           }}
         >
-          <text fg={theme.selectedListItemText}>ok</text>
+          <text fg={theme.selectedListItemText}>{t("dialog.action_ok")}</text>
         </box>
       </box>
     </box>

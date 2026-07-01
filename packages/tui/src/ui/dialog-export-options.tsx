@@ -40,7 +40,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
       {
         key: "tab",
         desc: t("dialog.next_option"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           const order: Array<"filename" | "thinking" | "toolDetails" | "assistantMetadata" | "openWithoutSaving"> = [
             "filename",
@@ -63,7 +63,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
       {
         key: "space",
         desc: t("dialog.next_option"),
-        group: "Dialog",
+        group: t("category.dialog"),
         cmd: () => {
           if (store.active === "thinking") setStore("thinking", !store.thinking)
           if (store.active === "toolDetails") setStore("toolDetails", !store.toolDetails)
@@ -87,10 +87,10 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
     <box paddingLeft={2} paddingRight={2} gap={1}>
       <box flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={theme.text}>
-          Export Options
+          {t("dialog.title_export_options")}
         </text>
         <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
-          esc
+          {t("dialog.esc")}
         </text>
       </box>
       <box gap={1}>
@@ -113,7 +113,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
             val.traits = { status: "FILENAME" }
           }}
           initialValue={props.defaultFilename}
-          placeholder="Enter filename"
+          placeholder={t("dialog.placeholder_enter_filename")}
           placeholderColor={theme.textMuted}
           textColor={theme.text}
           focusedTextColor={theme.text}
@@ -172,14 +172,12 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
       </box>
       <Show when={store.active !== "filename"}>
         <text fg={theme.textMuted} paddingBottom={1}>
-          Press <span style={{ fg: theme.text }}>space</span> to toggle, <span style={{ fg: theme.text }}>return</span>{" "}
-          to confirm
+          {t("dialog.press_toggle_confirm_hint", { key1: "space", key2: "return" })}
         </text>
       </Show>
       <Show when={store.active === "filename"}>
         <text fg={theme.textMuted} paddingBottom={1}>
-          Press <span style={{ fg: theme.text }}>return</span> to confirm, <span style={{ fg: theme.text }}>tab</span>{" "}
-          for options
+          {t("dialog.press_confirm_options_hint", { key1: "return", key2: "tab" })}
         </text>
       </Show>
     </box>

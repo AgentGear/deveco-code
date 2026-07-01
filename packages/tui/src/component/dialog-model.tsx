@@ -43,7 +43,7 @@ export function DialogModel(props: { providerID?: string }) {
             description: provider.name,
             category,
             disabled: provider.id === "opencode" && model.id.includes("-nano"),
-            footer: model.cost?.input === 0 && (provider.id === "opencode" || provider.id === "deveco") ? "Free" : undefined,
+            footer: model.cost?.input === 0 && (provider.id === "opencode" || provider.id === "deveco") ? t("dialog.free") : undefined,
             onSelect: () => {
               onSelect(provider.id, model.id)
             },
@@ -52,12 +52,12 @@ export function DialogModel(props: { providerID?: string }) {
       })
     }
 
-    const favoriteOptions = toOptions(favorites, "Favorites")
+    const favoriteOptions = toOptions(favorites, t("category.favorites"))
     const recentOptions = toOptions(
       recents.filter(
         (item) => !favorites.some((fav) => fav.providerID === item.providerID && fav.modelID === item.modelID),
       ),
-      "Recent",
+      t("category.recent"),
     )
 
     const providerOptions = pipe(
@@ -78,11 +78,11 @@ export function DialogModel(props: { providerID?: string }) {
             title: info.name ?? model,
             releaseDate: info.release_date,
             description: favorites.some((item) => item.providerID === provider.id && item.modelID === model)
-              ? "(Favorite)"
+              ? t("dialog.favorite_marker")
               : undefined,
             category: connected() ? provider.name : undefined,
             disabled: provider.id === "opencode" && model.includes("-nano"),
-            footer: info.cost?.input === 0 && (provider.id === "opencode" || provider.id === "deveco") ? "Free" : undefined,
+            footer: info.cost?.input === 0 && (provider.id === "opencode" || provider.id === "deveco") ? t("dialog.free") : undefined,
             onSelect() {
               onSelect(provider.id, model)
             },
@@ -113,7 +113,7 @@ export function DialogModel(props: { providerID?: string }) {
           providers(),
           map((option) => ({
             ...option,
-            category: "Popular providers",
+            category: t("category.popular_providers"),
           })),
           take(6),
         )
@@ -135,7 +135,7 @@ export function DialogModel(props: { providerID?: string }) {
 
   const title = createMemo(() => {
     const value = provider()
-    if (!value) return "Select model"
+    if (!value) return t("dialog.select_model")
     return value.name
   })
 
