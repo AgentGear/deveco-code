@@ -41,7 +41,7 @@ agent: goal
 4. **Execute Plan Workflow**: Follow the loaded/initialized template structure to:
     - Fill `Technical Context` section
     - Execute Phase 0: Research unknowns and document decisions inline
-    - Execute Phase 1: Design data structures, interfaces, and setup guidelines inline
+    - Execute Phase 1: Select the architecture structure, then design data structures, interfaces, and setup guidelines inline
     - Finalize and validate the complete plan
 
 5. **Write Plan Artifact**: Use the `spec_write` tool with `filePath: "{IMPL_PLAN}"` to write the completed implementation plan. Do NOT use the generic `write` tool for plan artifacts.
@@ -64,6 +64,19 @@ agent: goal
 ### Phase 1: Architecture & Contracts Design
 **Prerequisites:** Phase 0 complete
 
+0. **Architecture structure selection**:
+    - If the feature is for an existing HarmonyOS/ArkTS project, inspect and follow the project's current architecture and directory conventions unless the feature request explicitly asks to optimize or migrate the project to MVVM.
+    - If the feature is for a new HarmonyOS/ArkTS project structure, or if MVVM optimization is explicitly requested, choose the lightest structure tier first, then decide whether the selected tier needs further file splitting:
+      - **Trivial**: Hello World, static single-page demos, or one-button interactions. Use only `entryability/`, `pages/`, and `entry/src/main/resources/` as needed. Target 1-2 ArkTS files.
+      - **Light**: single-page features with a few reusable UI blocks and simple local state. Use `pages/`, `components/`, and `common/` as needed. Target 3-6 ArkTS files.
+      - **MVVM**: features with multiple pages/views, persistence, business services or algorithms, cross-page state, complex form state, or testable domain logic. Use `pages/`, `views/`, `components/`, `viewmodel/`, `model/`, `service/`, `data/`, and `common/` as responsibility boundaries, but target 6-12 ArkTS files unless the `Structure Decision` explains why more files are needed.
+    - MVVM is a responsibility boundary, not a request to create many files. Prefer grouping related models, services, and views into feature-level files until splitting is necessary for maintainability.
+    - For new-tier non-MVVM HarmonyOS/ArkTS plans, the `Structure Decision` must explain why the feature is simple enough to avoid MVVM.
+    - For MVVM HarmonyOS/ArkTS plans, the source tree must include `viewmodel/` and must clearly separate page assembly (`pages/`), business views (`views/`), reusable UI (`components/`), models (`model/`), services/algorithms (`service/`), and persistence/storage (`data/`), but it must not create one file per domain concept by default.
+    - The `Structure Decision` must state whether the plan follows an existing architecture or selects a new tier. Existing-project plans should state that the existing architecture is followed and that no MVVM migration is introduced unless explicitly requested. New-tier plans must state the tier and why the planned file count is sufficient.
+    - Resources must be placed under `entry/src/main/resources/`, not under `entry/src/main/ets/`.
+    - The source tree must not contain duplicate sibling directories such as two `pages/` entries.
+
 1. **Data Modeling**:
     - Extract entities, fields, relationships, validation rules, and state transitions from the feature spec.
     - Document under a `## Data Model` section in `IMPL_PLAN`.
@@ -76,10 +89,14 @@ agent: goal
 3. **Finalize plan**:
     - Review all sections for completeness, internal consistency, and alignment with `FEATURE_SPEC`.
     - Ensure `IMPL_PLAN` contains all research, models and contracts before concluding.
+    - For HarmonyOS/ArkTS plans, verify that `Structure Decision` states whether the plan follows an existing architecture or selects a new tier. For new-tier plans, verify that the selected tier and file-count rationale are named, that the directory tree matches the selected tier, and that pages do not directly own algorithms, persistence, or complex business orchestration when MVVM is required.
 
 ## Key Rules
 - Consolidate all design artifacts—research decisions, data models, interface contracts directly into `IMPL_PLAN` using the designated sections.
 - Use absolute paths for all file and directory references.
+- For HarmonyOS/ArkTS plans, do not generate a vague `pages/components/service` structure for complex features. If MVVM triggers apply, include `viewmodel/`; if they do not apply, explicitly justify the lighter structure.
+- For HarmonyOS/ArkTS plans, do not expand many pages, views, services, models, or components merely because MVVM directories exist. Default to minimal viable file splitting within MVVM and split files only when the feature complexity makes the split necessary.
+- For existing HarmonyOS/ArkTS projects, do not introduce MVVM directories or restructure the project unless the user's request explicitly asks for MVVM optimization or migration.
 - Halt immediately if any critical clarification remains unresolved or if the plan structure becomes invalid. Output strictly in this format:
   ```text
   [ERROR] <clear reason for termination>

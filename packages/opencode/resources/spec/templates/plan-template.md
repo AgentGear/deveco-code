@@ -41,6 +41,33 @@ spec/[###-feature]/
   for this feature. Delete unused options and expand the chosen structure with
   real paths (e.g., apps/admin, packages/something). The delivered plan must
   not include Option labels.
+
+  HarmonyOS/ArkTS structure guidance:
+  Existing projects must follow their current architecture and directory
+  conventions unless the feature request explicitly asks to optimize or migrate
+  to MVVM. New HarmonyOS/ArkTS structures should choose the lightest tier:
+  Trivial, Light, or MVVM.
+
+  MVVM is a responsibility boundary, not a request to create many files. Use the
+  smallest file set that preserves page assembly, business UI, state/event
+  orchestration, models, services/algorithms, and persistence boundaries.
+
+  Standard HarmonyOS/ArkTS MVVM directory boundary:
+  entry/src/main/ets/
+  |-- entryability/
+  |-- pages/       # Page entry, navigation, and assembly
+  |-- views/       # Business UI views
+  |-- components/  # Reusable generic UI components
+  |-- viewmodel/   # UI state, events, and business orchestration
+  |-- model/       # Domain types and data models
+  |-- service/     # Domain services, algorithms, external wrappers
+  |-- data/        # Persistence, preferences, storage access
+  `-- common/      # Constants, utilities, shared definitions
+
+  For HarmonyOS/ArkTS plans, resources belong under entry/src/main/resources/,
+  not under entry/src/main/ets/. Structure Decision must state whether the plan
+  follows an existing project architecture or selects a new tier. New-tier plans
+  must name the tier and justify the planned file count.
 -->
 
 ```text
@@ -58,7 +85,9 @@ tests/
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+directories captured above. For HarmonyOS/ArkTS plans, state that the plan
+follows the existing project architecture, or name the selected new-project tier
+and justify why the planned file count is sufficient.]
 
 ## Complexity Tracking
 
