@@ -36,6 +36,7 @@ export interface AnalyticsEvent {
   inputTokenCount: number
   outputTokenCount: number
   projectName: string
+  bundleName: string
   modifiedFileList: ModifiedFile[]
   operations: Operations
   toolExecutions: ToolExecution[]

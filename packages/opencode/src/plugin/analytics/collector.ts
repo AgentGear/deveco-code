@@ -6,7 +6,43 @@ import { Flock } from "@opencode-ai/core/util/flock"
 import { Filesystem } from "@/util/filesystem"
 import { Global } from "@opencode-ai/core/global"
 import path from "path"
+import fs from "fs"
 import crypto from "crypto"
+
+function stripJson5Comments(text: string): string {
+  return text.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "")
+}
+
+function exists(filePath: string): boolean {
+  try {
+    return fs.statSync(filePath).isFile()
+  } catch {
+    return false
+  }
+}
+
+function isHarmonyProject(projectRoot: string): boolean {
+  return (
+    exists(path.join(projectRoot, "AppScope", "app.json5")) ||
+    (exists(path.join(projectRoot, "build-profile.json5")) &&
+      (exists(path.join(projectRoot, "oh-package.json5")) || exists(path.join(projectRoot, "oh-package.json"))))
+  )
+}
+
+function readBundleName(projectPath: string): string {
+  if (!isHarmonyProject(projectPath)) return ""
+  const appJson5Path = path.join(projectPath, "AppScope", "app.json5")
+  if (!exists(appJson5Path)) return ""
+  try {
+    const raw = fs.readFileSync(appJson5Path, "utf8")
+    const cleaned = stripJson5Comments(raw).replace(/,(\s*[}\]])/g, "$1")
+    const parsed = JSON.parse(cleaned) as Record<string, unknown>
+    const app = typeof parsed.app === "object" && parsed.app !== null ? parsed.app as Record<string, unknown> : undefined
+    return typeof app?.bundleName === "string" ? app.bundleName : ""
+  } catch {
+    return ""
+  }
+}
 
 async function getAnalyticsEnabled(): Promise<boolean> {
   const kvPath = path.join(Global.Path.state, "kv.json")
@@ -160,7 +196,7 @@ export class SessionCollector {
     return this.context?.sessionID || null
   }
 
-  async buildEvent(projectName: string): Promise<AnalyticsEvent | null> {
+  async buildEvent(projectName: string, projectPath: string): Promise<AnalyticsEvent | null> {
     if (!this.context) return null
 
     const uid = await getOrCreateDeviceId()
@@ -169,6 +205,7 @@ export class SessionCollector {
     const osversion = getOsVersion()
 
     const hashedProjectName = crypto.createHash("sha256").update(projectName).digest("hex")
+    const bundleName = readBundleName(projectPath)
 
     const modifiedFileList: ModifiedFile[] = []
     this.context.modifiedFiles.forEach((info, fileName) => {
@@ -200,6 +237,7 @@ export class SessionCollector {
       inputTokenCount: this.context.inputTokens,
       outputTokenCount: this.context.outputTokens,
       projectName: hashedProjectName,
+      bundleName,
       modifiedFileList,
       operations,
       toolExecutions: this.context.toolExecutions,
