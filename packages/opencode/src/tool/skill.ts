@@ -14,7 +14,6 @@ const DevEcoRequiredSkills = new Set([
   "arkts-error-fixes",
   "arkts-grammar-standards",
   "arkts-runtime-fix",
-  "arkui-knowledge",
   "deveco-create-project",
 ])
 
