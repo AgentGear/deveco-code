@@ -71,7 +71,7 @@ The checklist must list:
 - verification points for pages and navigation
 
 Keep this checklist concise and continue automatically unless required project parameters are missing or the requirement is contradictory.
-Do not expand this skill into ArkUI design guidance; load `arkui-knowledge` before implementing UI code.
+Do not expand this skill into ArkUI design guidance; load `arkts-grammar-standards` before implementing UI code.
 
 ## Execution Steps
 

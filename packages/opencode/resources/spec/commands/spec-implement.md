@@ -26,7 +26,7 @@ agent: goal
 
 ## Execution Outline
 1. **Context Initialization:**
-   - **REQUIRED:** Prioritize loading the tech-stack-specific skills (e.g., `arkui-knowledge` and `arkts-grammar-standards`) as mandated by project config or `plan.md`.
+   - **REQUIRED:** Prioritize loading the tech-stack-specific skills (e.g., `arkts-grammar-standards`) as mandated by project config or `plan.md`.
    - **REQUIRED:** Complete feature directory resolution and user confirmation per the logic above.
    - **REQUIRED:** Read `spec.md` from `Confirmed_Feature_Dir` for feature requirements, user stories, and acceptance criteria. This is the authoritative source of truth for what the feature must accomplish — always refer back to it when making implementation decisions to avoid drifting from the original requirements.
    - **REQUIRED:** Read `plan.md` from `Confirmed_Feature_Dir` for tech stack, architecture, and file structure references.
