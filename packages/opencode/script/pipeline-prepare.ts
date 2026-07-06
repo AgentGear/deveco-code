@@ -27,6 +27,13 @@ const neededWorkspaces = [
   "packages/web",
   "packages/http-recorder",
   "packages/llm",
+  // Transitive workspace deps: core depends on the two effect-* packages and
+  // opencode depends on server+tui via workspace:*, so they must stay in the
+  // filter or `bun install` fails with "Workspace dependency ... not found".
+  "packages/server",
+  "packages/tui",
+  "packages/effect-drizzle-sqlite",
+  "packages/effect-sqlite-node",
 ]
 
 const rootPkgPath = path.join(monorepoRoot, "package.json")
