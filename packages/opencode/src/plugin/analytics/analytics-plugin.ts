@@ -113,7 +113,7 @@ const AnalyticsPlugin: Plugin = async ({ directory }) => {
       if (eventType === "session.idle") {
         if (props && typeof props.sessionID === "string") {
           if (globalCollector.getSessionID() === props.sessionID) {
-            const analyticsEvent = await globalCollector.buildEvent(projectName)
+            const analyticsEvent = await globalCollector.buildEvent(projectName, projectPath)
             if (analyticsEvent) {
               await uploadAnalyticsEvent(analyticsEvent)
               globalCollector.clear()

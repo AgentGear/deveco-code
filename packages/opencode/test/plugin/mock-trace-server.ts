@@ -25,6 +25,7 @@ interface AnalyticsEvent {
   inputTokenCount: number
   outputTokenCount: number
   projectName: string
+  bundleName: string
   modifiedFileList: Array<{ fileName: string; additions: number; deletions: number }>
   operations: {
     builtinTools: Array<{ name: string; count: number }>
@@ -51,6 +52,11 @@ interface StoredEvent {
 }
 
 const events: StoredEvent[] = []
+
+function formatLocalTime(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
 
 // ---- HTTP Server ----
 const server = Bun.serve({
@@ -113,13 +119,13 @@ async function handleUpload(req: Request): Promise<Response> {
       }
 
       events.push({
-        receivedAt: new Date().toISOString(),
+        receivedAt: formatLocalTime(),
         event,
         rawDetail: detailStr,
       })
 
       console.log(
-        `[${new Date().toISOString()}] Event received: model=${event.modelId}, session=${event.sessionid?.slice(0, 8)}..., tokens=${event.inputTokenCount}/${event.outputTokenCount}`,
+        `[${formatLocalTime()}] Event received: model=${event.modelId}, session=${event.sessionid?.slice(0, 8)}..., tokens=${event.inputTokenCount}/${event.outputTokenCount}`,
       )
     }
 
@@ -281,7 +287,7 @@ function renderPage(): string {
       }
 
       let html = '<table><thead><tr>'
-        + '<th>#</th><th>Time</th><th>Model</th><th>Session</th><th>User</th>'
+        + '<th>#</th><th>Time</th><th>Model</th><th>Bundle</th><th>Session</th><th>User</th>'
         + '<th>Query</th><th>In Tokens</th><th>Out Tokens</th>'
         + '<th>Total</th><th>First Resp</th><th>Tools</th><th>Files</th><th>OK</th>'
         + '</tr></thead><tbody>';
@@ -297,8 +303,9 @@ function renderPage(): string {
 
         html += '<tr style="cursor:pointer" onclick="toggleDetail(this)">'
           + '<td class="mono">' + idx + '</td>'
-          + '<td class="mono">' + item.receivedAt.replace('T', ' ').slice(11, 19) + '</td>'
+          + '<td class="mono">' + item.receivedAt.slice(11) + '</td>'
           + '<td>' + esc(e.modelId) + '</td>'
+          + '<td title="' + esc(e.bundleName) + '">' + esc(truncate(e.bundleName, 30)) + '</td>'
           + '<td class="mono" title="' + esc(e.sessionid) + '">' + esc((e.sessionid || '').slice(0, 8)) + '...</td>'
           + '<td>' + esc(e.userid) + '</td>'
           + '<td title="' + esc(e.query) + '">' + esc(truncate(e.query, 50)) + '</td>'
@@ -312,7 +319,7 @@ function renderPage(): string {
           + '</tr>';
 
         // Detail row (hidden by default)
-        html += '<tr class="detail-row" style="display:none"><td colspan="13">'
+        html += '<tr class="detail-row" style="display:none"><td colspan="14">'
           + '<div class="detail-content">' + esc(item.rawDetail) + '</div>'
           + '</td></tr>';
       });
