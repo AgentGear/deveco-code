@@ -29,9 +29,13 @@ target
 .sisyphus/
 
 # Local dev files
+.harness/
+.specs/
+.trae/
 opencode-dev
 UPCOMING_CHANGELOG.md
 logs/
+reports/
 *.bun-build
 tsconfig.tsbuildinfo
 .build-cache/
