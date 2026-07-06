@@ -84,6 +84,19 @@ export class DevEcoAuth {
     const userInfo = this.getUserInfo()
     const jwtToken = userInfo?.jwtToken ?? (await tokenStorage.loadToken())
     if (!jwtToken) return null
+
+    // If the JWT token itself has expired, refreshing will always fail — skip the
+    // HTTP request and return null so the caller can prompt re-login.
+    try {
+      const parsed = loginService.parseJwt(jwtToken)
+      if (parsed.exp && Date.now() >= parsed.exp * 1000) {
+        await log(Effect.logWarning('refreshToken skipped: JWT token has expired, user needs to re-login', { service: 'deveco' }))
+        return null
+      }
+    } catch {
+      // JWT parse failure — let the server decide if it's still valid
+    }
+
     const newTokens = await loginService.refreshToken(jwtToken)
     if (newTokens && userInfo) {
       userInfo.accessToken = newTokens.accessToken

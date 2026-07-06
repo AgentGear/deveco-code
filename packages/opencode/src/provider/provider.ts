@@ -1534,6 +1534,9 @@ export const layer = Layer.effect(
           const stored = yield* auth.get(providerID).pipe(Effect.orDie)
           if (!stored) continue
           if (!plugin.auth.loader) continue
+          // Provider may not be in the database if token refresh failed during
+          // initialization (e.g. JWT expired) — skip the loader in that case.
+          if (!database[plugin.auth.provider]) continue
 
           const options = yield* Effect.promise(() =>
             plugin.auth!.loader!(

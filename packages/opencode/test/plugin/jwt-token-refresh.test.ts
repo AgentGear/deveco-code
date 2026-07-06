@@ -20,6 +20,12 @@ const originalUserInfo = (loginService as any).userInfo
 type RefreshResult = { accessToken: string; refreshToken: string } | null
 type AuthState = { type: string; access: string; refresh: string; expires: number }
 
+function makeJwt(payload: Record<string, unknown>): string {
+  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url")
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url")
+  return `${header}.${body}.fake-signature`
+}
+
 function authPath() {
   return `${Global.Path.data}/auth.json`
 }
@@ -157,6 +163,42 @@ describe("DevEcoAuth.refreshToken — 使用 jwtToken 刷新 accessToken", () =>
     const result = await devecoAuth.refreshToken()
 
     expect(result).toBeNull()
+  })
+
+  test("JWT 已过期时跳过 refresh 请求，直接返回 null", async () => {
+    const expiredJwt = makeJwt({ userId: "u1", userName: "test", exp: Math.floor(Date.now() / 1000) - 86400 })
+    mockLoadToken(async () => expiredJwt)
+    const spy = mockLoginRefresh(async () => ({ accessToken: "should-not-reach", refreshToken: "x" }))
+    ;(loginService as any).userInfo = null
+
+    const result = await devecoAuth.refreshToken()
+
+    expect(result).toBeNull()
+    expect(spy.mock.calls).toHaveLength(0)
+  })
+
+  test("JWT 未过期时正常发起 refresh 请求", async () => {
+    const validJwt = makeJwt({ userId: "u1", userName: "test", exp: Math.floor(Date.now() / 1000) + 3600 })
+    mockLoadToken(async () => validJwt)
+    const spy = mockLoginRefresh(async () => ({ accessToken: "new-access", refreshToken: "new-refresh" }))
+    ;(loginService as any).userInfo = null
+
+    const result = await devecoAuth.refreshToken()
+
+    expect(result).toEqual({ accessToken: "new-access", refreshToken: "new-refresh" })
+    expect(spy.mock.calls).toHaveLength(1)
+  })
+
+  test("JWT 无 exp 字段时不拦截，正常发起 refresh 请求", async () => {
+    const noExpJwt = makeJwt({ userId: "u1", userName: "test" })
+    mockLoadToken(async () => noExpJwt)
+    const spy = mockLoginRefresh(async () => ({ accessToken: "new-access", refreshToken: "new-refresh" }))
+    ;(loginService as any).userInfo = null
+
+    const result = await devecoAuth.refreshToken()
+
+    expect(result).toEqual({ accessToken: "new-access", refreshToken: "new-refresh" })
+    expect(spy.mock.calls).toHaveLength(1)
   })
 })
 

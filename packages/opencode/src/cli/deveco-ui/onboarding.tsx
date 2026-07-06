@@ -255,7 +255,7 @@ async function runProviderOAuth(
   }
 }
 
-export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight?: number; initialStep?: OnboardingStep }) {
+export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight?: number; initialStep?: OnboardingStep; sessionExpired?: boolean }) {
   const { theme } = useTheme();
   const sync = useSync();
   const exit = useExit();
@@ -277,7 +277,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   const [checkingStatus, setCheckingStatus] = createSignal(step() === 'privacy');
   const [agreementCheckResult, setAgreementCheckResult] = createSignal<AgreementCheckResult | null>(null);
   const [networkErrorNoCache, setNetworkErrorNoCache] = createSignal(false);
-  const [sessionExpired, setSessionExpired] = createSignal(false);
+  const [sessionExpired, setSessionExpired] = createSignal(props.sessionExpired ?? false);
   const [entryIndex, setEntryIndex] = createSignal(0);
   const [authMessage, setAuthMessage] = createSignal<string | null>(null);
   const [authBusy, setAuthBusy] = createSignal(false);
@@ -361,6 +361,13 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
 
   // Kick off agreement check on mount when initial step is privacy
   onMount(() => {
+    if (props.sessionExpired) {
+      // Caller already determined the session is expired — show the re-login prompt
+      // without making another API call that would fail with the same expired token.
+      setCheckingStatus(false)
+      setStep('privacy')
+      return
+    }
     if (step() === 'privacy') {
       void checkAgreementStatus()
     }

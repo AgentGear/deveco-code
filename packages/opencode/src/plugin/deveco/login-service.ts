@@ -218,8 +218,11 @@ export class LoginService {
       throw new Error(`Failed to check jwtToken: ${response.statusCode}`)
     }
 
-    const result = httpClient.parseJson(response)
-    return result
+    try {
+      return httpClient.parseJson(response)
+    } catch (err) {
+      throw new Error(`Invalid response from auth server during token check: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   public parseJwt(token: string): JwtPayload {

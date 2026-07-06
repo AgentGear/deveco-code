@@ -69,7 +69,16 @@ export class HttpClient {
   }
 
   public parseJson(response: HttpResponse): TokenCheckResponse {
-    return JSON.parse(response.data) as TokenCheckResponse
+    const contentType = (response.headers['content-type'] ?? '').toString().toLowerCase()
+    const body = response.data.trim()
+    if (contentType.includes('html') || /^\s*<!doctype|^\s*<html/i.test(body)) {
+      throw new Error(`Server returned HTML instead of JSON (content-type: ${contentType || 'unknown'}). The auth server may be behind a gateway or proxy error page.`)
+    }
+    try {
+      return JSON.parse(body) as TokenCheckResponse
+    } catch (err) {
+      throw new Error(`Failed to parse server response as JSON: ${err instanceof Error ? err.message : String(err)}. Response preview: ${body.slice(0, 200)}`)
+    }
   }
 }
 
