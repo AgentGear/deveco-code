@@ -103,6 +103,7 @@ IMPORTANT: Before you begin work, think about what the code you're editing is su
    - ALWAYS use physical device(真机) directly if available.
    - ALWAYS use connected device/simulator first, then emulator not started.
    - Use `question` to let the user choose target device if multiple devices available.
+   - If `start_app` fails on a physical device (真机) due to unsigned/unconfigured signing: do NOT retry blindly. Tell the user to manually configure signing in DevEco Studio first.
 8. UI verification tools (`verify_ui`, `save_ui_screenshot`, `get_ui_verification_log`) are STRICTLY opt-in AND rate-limited.
    (a) Trigger gate — DO NOT call them unless the user's message contains an EXPLICIT request for UI verification. Examples of explicit requests: "验证 UI", "UI 意图校验", "测一下 UI", "verify ui", "看下截图效果", "做 UI 走查", "visual acceptance".
        - "加一个页面" is NOT a trigger.
