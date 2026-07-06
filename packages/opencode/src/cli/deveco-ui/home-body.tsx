@@ -42,7 +42,7 @@ import { HomeSessionDestinationProvider } from "@opencode-ai/tui/routes/home/ses
 import { Toast } from "@opencode-ai/tui/ui/toast"
 import type { SyncObject } from "@opencode-ai/tui/deveco-extensions"
 import { agreementService, AgreementStatus } from "@/cli/deveco-agreement"
-import { devecoAuth, hasDevecoOAuthEntry } from "@/plugin/deveco"
+import { devecoAuth, hasDevecoOAuthEntry, ensureValidToken } from "@/plugin/deveco"
 import type { AgreementConfig } from "@/cli/deveco-legal"
 import { DevEcoOnboarding } from "./onboarding"
 
@@ -64,6 +64,7 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
 
   const [devecoReady, setDevecoReady] = createSignal<boolean | null>(null)
   const [devecoInitialStep, setDevecoInitialStep] = createSignal<"entry" | "privacy">("entry")
+  const [devecoSessionExpired, setDevecoSessionExpired] = createSignal(false)
   const [authCanEnter, setAuthCanEnter] = createSignal(false)
   const [authCheckDone, setAuthCheckDone] = createSignal(false)
   let devecoChecked = false
@@ -73,6 +74,8 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
   const runDevecoCheck = async () => {
     if (devecoChecked) return
     devecoChecked = true
+
+    try {
 
     if (!hasDevecoOAuthEntry()) {
       setDevecoInitialStep("entry")
@@ -91,16 +94,17 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
     }
 
     let accessToken = session.accessToken
-    if (!accessToken) {
-      const newTokens = await devecoAuth.refreshToken()
-      if (newTokens?.accessToken) {
-        accessToken = newTokens.accessToken
-      } else {
-        setDevecoInitialStep("entry")
-        setDevecoReady(false)
-        setAuthCheckDone(true)
-        return
-      }
+    // ensureValidToken reads auth.json, checks expiry, and refreshes if needed.
+    // If the stored token is still valid, it returns it; if expired, it attempts
+    // a refresh.  Falls back to session.accessToken when no stored entry exists.
+    const validToken = await ensureValidToken()
+    if (validToken) {
+      accessToken = validToken
+    } else if (!accessToken) {
+      setDevecoInitialStep("entry")
+      setDevecoReady(false)
+      setAuthCheckDone(true)
+      return
     }
 
     const userId = session.userId || (await devecoAuth.getUserId()) || ""
@@ -143,10 +147,21 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
       }
     } else if (checkResult.overallStatus === AgreementStatus.SESSION_EXPIRED) {
       setDevecoInitialStep("entry")
+      setDevecoSessionExpired(true)
       setDevecoReady(false)
       setAuthCheckDone(true)
     } else {
       setDevecoInitialStep("privacy")
+      setDevecoReady(false)
+      setAuthCheckDone(true)
+    }
+
+    } catch (err) {
+      // Any unhandled error (e.g. logging failure, AppRuntime not ready) must not
+      // leave the UI stuck on "Checking login status…".  Fall back to the entry
+      // screen so the user can at least re-login or exit.
+      console.error("runDevecoCheck failed:", err)
+      setDevecoInitialStep("entry")
       setDevecoReady(false)
       setAuthCheckDone(true)
     }
@@ -296,6 +311,7 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
                   onComplete={() => setDevecoReady(true)}
                   bodySlotHeight={bodySlotHeight()}
                   initialStep={devecoInitialStep()}
+                  sessionExpired={devecoSessionExpired()}
                 />
               </Show>
             </box>
