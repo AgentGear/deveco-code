@@ -226,6 +226,71 @@ function validateModelVersion(projectPath) {
   return [];
 }
 
+// --- ArkUI binding-syntax false-positive whitelist ---
+//
+// The standalone type checker (etsStandaloneChecker) does not expand ArkUI
+// syntax sugar, so it treats binding-syntax tokens as ordinary identifiers and
+// wrongly reports `Cannot find name '$...'`. Two legal forms trigger this:
+//   A) `$$this.x` two-way binding (e.g. bindSheet($$this.foo), Refresh({ refreshing: $$this.bar }))
+//   B) `$varName` @Link / @Builder argument passing (e.g. Child({ items: $items }))
+// build_project (the real compiler) accepts both. We silently drop these
+// false positives here. Rule B only fires when `varName` is actually declared
+// as a state-decorated field in the same source file, so genuinely-undefined
+// `$foo` references are still reported.
+
+const STATE_DECORATORS = [
+  'State', 'Link', 'Prop', 'ObjectLink', 'Local', 'Param', 'Provide', 'Consume',
+  'StorageLink', 'StorageProp', 'LocalStorageLink', 'LocalStorageProp',
+];
+
+// Cache: absolute source path -> Set of state-decorated field names declared in it.
+const stateFieldCache = new Map();
+
+function getStateFields(absPath) {
+  if (stateFieldCache.has(absPath)) return stateFieldCache.get(absPath);
+  const fields = new Set();
+  try {
+    const content = fs.readFileSync(absPath, 'utf-8');
+    const decoRe = new RegExp(
+      '@(?:' + STATE_DECORATORS.join('|') + ')(?:\\([^)]*\\))?\\s+([A-Za-z_$][\\w$]*)',
+      'g',
+    );
+    let m;
+    while ((m = decoRe.exec(content)) !== null) {
+      fields.add(m[1]);
+    }
+  } catch {
+    // unreadable file -> empty set (conservative: rule B won't match)
+  }
+  stateFieldCache.set(absPath, fields);
+  return fields;
+}
+
+// Returns true if the diagnostic is a binding-syntax false positive that should
+// be dropped. Any parse/IO issue returns false (keep the diagnostic).
+function isBindingSyntaxFalsePositive(diag, projectPath) {
+  try {
+    const m = /^Cannot find name '(\$[^']+)'/.exec(diag.message || '');
+    if (!m) return false;
+    const name = m[1];
+
+    // Rule A: `$$...` is always ArkUI two-way binding sugar, never a plain identifier.
+    if (name.startsWith('$$')) return true;
+
+    // Rule B: `$word` -> confirm `word` is a state-decorated field in the same file.
+    const bare = /^\$([A-Za-z_][\w$]*)$/.exec(name);
+    if (!bare) return false;
+    const fieldName = bare[1];
+
+    const absPath = path.isAbsolute(diag.file)
+      ? diag.file
+      : path.resolve(projectPath, diag.file);
+    return getStateFields(absPath).has(fieldName);
+  } catch {
+    return false;
+  }
+}
+
 // --- Main ---
 
 function main() {
@@ -381,9 +446,11 @@ function main() {
   diagnostics.push(...extraDiags);
 
   const isStageProject = aceModuleJsonPath !== '';
-  const filtered = isStageProject
-    ? diagnostics.filter(d => !d.message.includes('the current Mode is FA'))
-    : diagnostics;
+  const filtered = diagnostics.filter(d => {
+    if (isStageProject && d.message.includes('the current Mode is FA')) return false;
+    if (isBindingSyntaxFalsePositive(d, args.project)) return false;
+    return true;
+  });
 
   const errorCount = filtered.filter(d => d.severity === 'error').length;
   const warnCount = filtered.filter(d => d.severity === 'warning').length;
@@ -398,4 +465,10 @@ function main() {
   process.exit(errorCount > 0 ? 1 : 0);
 }
 
-main();
+// Exported for unit testing the whitelist logic without a DevEco SDK.
+module.exports = { isBindingSyntaxFalsePositive, getStateFields, stateFieldCache };
+
+// Run as a CLI only when invoked directly (node arkts-check.cjs ...), not when required by tests.
+if (require.main === module) {
+  main();
+}
