@@ -1129,6 +1129,9 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         evt.preventDefault()
         evt.stopPropagation()
       }}
+      onMouseUp={
+        !Flag.DEVECO_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? () => Selection.copy(renderer, toast, clipboard) : undefined
+      }
     >
       <Show when={Flag.DEVECO_SHOW_TTFD}>
         <TimeToFirstDraw />
