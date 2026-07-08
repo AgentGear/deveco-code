@@ -7,6 +7,7 @@ This document is the case map for live end-to-end tests. These tests may use the
 | `LLM_BASIC_TEXT` | 真实登录态下普通消息返回文本 | `llm` | `P0` | `huawei-auth`, `real-llm`, `deveco-provider` | `cases/llm-basic-text.case.ts` |
 | `PLAN_MODE_ENTER` | 切换到plan模式 | `slash` | `P0` | `huawei-auth`, `real-llm` | `cases/plan-mode-enter.case.ts` |
 | `PROJECT_CREATE_DEFAULT_API` | 参数完整，无自定义apiLevel | `skill` | `P0` | `huawei-auth`, `real-llm`, `deveco-provider` | `cases/project-create-default-api.case.ts` |
+| `CONFIG_THIRD_PARTY_MODELS` | 在deveco.jsonc中配置三方模型 | `cli` | `P1` | `huawei-auth` | `cases/config-third-party-models.case.ts` |
 
 ## LLM_BASIC_TEXT
 
@@ -31,6 +32,30 @@ Expected result:
 Cleanup:
 
 The temporary workspace is deleted after execution. The user's real DevEco auth and config files are read-only and are not cleaned or modified by this case.
+
+## CONFIG_THIRD_PARTY_MODELS
+
+Purpose:
+
+Verify that third-party models configured in deveco.jsonc at different hierarchy levels (global `~/.deveco`, project root, project `.deveco`) are correctly visible via `deveco models`: all levels are visible inside the project that defines them, while only the global level is visible in a different project.
+
+Steps:
+
+1. Create a temporary user home directory and write `.deveco/deveco.jsonc` with third-party model A.
+2. Create a temporary project A workspace and write `deveco.jsonc` at the project root with third-party model B.
+3. Write `.deveco/deveco.jsonc` inside project A with third-party model C.
+4. Create a temporary project B workspace with no project-level config.
+5. Run `deveco models` in project A root directory.
+6. Run `deveco models` in project B root directory.
+
+Expected result:
+
+1. Step 5 output contains models A, B, and C (in `provider/model` format).
+2. Step 6 output contains only model A; it does NOT contain model B or model C.
+
+Cleanup:
+
+All temporary directories (temp home, temp config home, project A, project B) are deleted after execution. The user's real auth and config files are not modified.
 
 ## PLAN_MODE_ENTER
 
