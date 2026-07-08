@@ -43,6 +43,7 @@ import { Toast } from "@opencode-ai/tui/ui/toast"
 import type { SyncObject } from "@opencode-ai/tui/deveco-extensions"
 import { agreementService, AgreementStatus } from "@/cli/deveco-agreement"
 import { devecoAuth, hasDevecoOAuthEntry, ensureValidToken } from "@/plugin/deveco"
+import { hasConfiguredDevEcoHome } from "@/tool/lib/env"
 import type { AgreementConfig } from "@/cli/deveco-legal"
 import { DevEcoOnboarding } from "./onboarding"
 
@@ -63,7 +64,7 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
   const dimensions = useTerminalDimensions()
 
   const [devecoReady, setDevecoReady] = createSignal<boolean | null>(null)
-  const [devecoInitialStep, setDevecoInitialStep] = createSignal<"entry" | "privacy">("entry")
+  const [devecoInitialStep, setDevecoInitialStep] = createSignal<"entry" | "privacy" | "deveco-home">("entry")
   const [devecoSessionExpired, setDevecoSessionExpired] = createSignal(false)
   const [authCanEnter, setAuthCanEnter] = createSignal(false)
   const [authCheckDone, setAuthCheckDone] = createSignal(false)
@@ -108,6 +109,14 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
     }
 
     const userId = session.userId || (await devecoAuth.getUserId()) || ""
+
+    // Check if DEVECO_HOME is configured — if not, prompt for it before agreement
+    if (!(await hasConfiguredDevEcoHome())) {
+      setDevecoInitialStep("deveco-home")
+      setDevecoReady(false)
+      setAuthCheckDone(true)
+      return
+    }
 
     if (
       (typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) ||

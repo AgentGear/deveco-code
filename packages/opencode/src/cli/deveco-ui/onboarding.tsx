@@ -20,12 +20,13 @@ async function log(effect: Effect.Effect<void>) {
 }
 import { agreementService, AgreementStatus } from '@/cli/deveco-agreement';
 import type { AgreementCheckResult } from '@/cli/deveco-agreement';
+import { resolveDevEcoHome, saveDevEcoHome, findDevEcoHomes, hasConfiguredDevEcoHome } from '@/tool/lib/env';
 import { BANNER_HOME_CONTENT_INSET, HOME_CONTENT_MAX_WIDTH, homeContentPadX } from '@opencode-ai/tui/component/banner';
 
 declare const DEVECO_SKIP_AGREEMENT: boolean | undefined
 import type { ProviderAuthAuthorization, ProviderAuthMethod } from '@opencode-ai/sdk/v2';
 
-type OnboardingStep = 'privacy' | 'entry' | 'auth' | 'providers' | 'key';
+type OnboardingStep = 'privacy' | 'entry' | 'auth' | 'deveco-home' | 'providers' | 'key';
 
 const LIST_HELP = 'Use Enter to Select';
 
@@ -35,6 +36,7 @@ function OnboardingContent(props: ParentProps) {
   return (
     <box
       flexDirection='column'
+      alignItems='center'
       width='100%'
       maxWidth={HOME_CONTENT_MAX_WIDTH}
       paddingLeft={padX()}
@@ -290,6 +292,55 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
   let providerScroll: ScrollBoxRenderable | undefined;
   let privacyScroll: ScrollBoxRenderable | undefined;
 
+  // DEVECO_HOME configuration step signals
+  const [devecoHomeIndex, setDevecoHomeIndex] = createSignal(0);
+  const [devecoHomeCandidates, setDevecoHomeCandidates] = createSignal<string[]>([]);
+  const [devecoHomeBusy, setDevecoHomeBusy] = createSignal(false);
+  const [devecoHomeInputMode, setDevecoHomeInputMode] = createSignal(false);
+  const [devecoHomeInputValue, setDevecoHomeInputValue] = createSignal('');
+  const [devecoHomeError, setDevecoHomeError] = createSignal<string | null>(null);
+  let devecoHomeInput: TextareaRenderable | undefined;
+
+  // Scan for installed DevEco Studio instances
+  const runDevEcoHomeDetection = async () => {
+    setDevecoHomeBusy(true);
+    setDevecoHomeError(null);
+    const candidates = await findDevEcoHomes();
+    setDevecoHomeCandidates(candidates);
+    setDevecoHomeIndex(0);
+    setDevecoHomeBusy(false);
+  };
+
+  // Apply selected DevEco Studio path and transition to privacy step
+  const applyDevEcoHomeAndContinue = async (home: string | undefined) => {
+    if (home) {
+      const resolved = await saveDevEcoHome(home);
+      if (resolved) {
+        process.env.DEVECO_HOME = resolved;
+      }
+    }
+    // Skip AGReement check if built with --skip-agreement or runtime env var
+    if ((typeof DEVECO_SKIP_AGREEMENT !== "undefined" && DEVECO_SKIP_AGREEMENT) || process.env.DEVECO_SKIP_AGREEMENT === "1") {
+      props.onComplete();
+      return;
+    }
+    setStep('privacy');
+    void checkAgreementStatus();
+  };
+
+  // Submit custom DevEco Studio path
+  const submitCustomDevEcoHome = async () => {
+    const value = (devecoHomeInput?.plainText ?? devecoHomeInputValue()).trim();
+    if (!value) return;
+    setDevecoHomeError(null);
+    const resolved = await resolveDevEcoHome(value);
+    if (!resolved) {
+      setDevecoHomeError('Invalid path. Please enter a directory containing DevEco Studio (v6.1 or later).');
+      return;
+    }
+    await applyDevEcoHomeAndContinue(resolved);
+  };
+
   // Async agreement status check — runs when entering privacy step
   const checkAgreementStatus = async () => {
     setCheckingStatus(true)
@@ -359,7 +410,7 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     setPrivacyIndex(0) // Default select Agree in normal agreement form
   }
 
-  // Kick off agreement check on mount when initial step is privacy
+  // Kick off detection on mount when initial step requires it
   onMount(() => {
     if (props.sessionExpired) {
       // Caller already determined the session is expired — show the re-login prompt
@@ -370,6 +421,9 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
     }
     if (step() === 'privacy') {
       void checkAgreementStatus()
+    }
+    if (step() === 'deveco-home') {
+      void runDevEcoHomeDetection()
     }
   })
 
@@ -602,6 +656,12 @@ export function DevEcoOnboarding(props: { onComplete: () => void; bodySlotHeight
         props.onComplete();
         return;
       }
+      // If DEVECO_HOME is not configured, prompt for it before agreement
+      if (!(await hasConfiguredDevEcoHome())) {
+        setStep('deveco-home');
+        void runDevEcoHomeDetection();
+        return;
+      }
       // Otherwise → jump to privacy step for agreement check
       setStep('privacy');
       void checkAgreementStatus();
@@ -807,6 +867,60 @@ if (st === 'entry') {
       return;
     }
 
+    if (st === 'deveco-home') {
+      if (evt.ctrl && evt.name === 'c') {
+        evt.preventDefault();
+        void exit();
+        return;
+      }
+      // Custom path input mode
+      if (devecoHomeInputMode()) {
+        if (evt.name === 'escape') {
+          evt.preventDefault();
+          setDevecoHomeInputMode(false);
+          setDevecoHomeError(null);
+          return;
+        }
+        if (evt.name === 'return') {
+          evt.preventDefault();
+          void submitCustomDevEcoHome();
+        }
+        return;
+      }
+      // Candidate list navigation
+      if (devecoHomeBusy()) return;
+      const candidates = devecoHomeCandidates();
+      // Total options: candidates + "Enter custom path" + "Skip"
+      const totalOptions = candidates.length + 2;
+      if (evt.name === 'up') {
+        evt.preventDefault();
+        setDevecoHomeIndex(Math.max(0, devecoHomeIndex() - 1));
+        return;
+      }
+      if (evt.name === 'down') {
+        evt.preventDefault();
+        setDevecoHomeIndex(Math.min(totalOptions - 1, devecoHomeIndex() + 1));
+        return;
+      }
+      if (evt.name === 'return') {
+        evt.preventDefault();
+        const idx = devecoHomeIndex();
+        if (idx < candidates.length) {
+          // Selected an auto-detected candidate
+          void applyDevEcoHomeAndContinue(candidates[idx]);
+        } else if (idx === candidates.length) {
+          // "Enter a custom path"
+          setDevecoHomeInputMode(true);
+          setDevecoHomeError(null);
+          setDevecoHomeInputValue('');
+        } else {
+          // "Skip"
+          void applyDevEcoHomeAndContinue(undefined);
+        }
+      }
+      return;
+    }
+
     if (st === 'providers') {
       if (evt.ctrl && evt.name === 'c') {
         evt.preventDefault();
@@ -1003,14 +1117,16 @@ if (st === 'entry') {
             <text fg={theme.text} attributes={1} selectable={false} marginBottom={1}>
               Get started with DevEco Code
             </text>
-            <text fg={entryIndex() === 0 ? theme.success : theme.text} selectable={false}>
-              {selectionLead(entryIndex() === 0)}
-              Sign in with HUAWEI account
-            </text>
-            <text fg={entryIndex() === 1 ? theme.success : theme.text} selectable={false}>
-              {selectionLead(entryIndex() === 1)}
-              Exit
-            </text>
+            <box flexDirection='column'>
+              <text fg={entryIndex() === 0 ? theme.success : theme.text} selectable={false}>
+                {selectionLead(entryIndex() === 0)}
+                1. Sign in with HUAWEI account
+              </text>
+              <text fg={entryIndex() === 1 ? theme.success : theme.text} selectable={false}>
+                {selectionLead(entryIndex() === 1)}
+                2. Exit
+              </text>
+            </box>
             <text fg={theme.textMuted} selectable={false} marginTop={1}>
               Use Enter to Select, Up/Down to navigate
             </text>
@@ -1021,7 +1137,7 @@ if (st === 'entry') {
             <text fg={theme.text} selectable={false}>
               Sign in with HUAWEI account
             </text>
-            <text fg={theme.textMuted} selectable={false}>
+            <text fg={theme.textMuted} selectable={false} marginTop={1}>
               {authBusy() ? 'Waiting for browser…' : 'Press Enter to open the login page'}
             </text>
             <Show when={authMessage() !== null}>
@@ -1034,6 +1150,90 @@ if (st === 'entry') {
                 Press Esc to go back
               </text>
             </Show>
+        </OnboardingContent>
+      </Show>
+      <Show when={step() === 'deveco-home'}>
+        <OnboardingContent>
+          <Show when={devecoHomeBusy()}>
+            <box flexDirection='column' alignItems='center'>
+              <text fg={theme.textMuted} selectable={false}>
+                Detecting DevEco Studio installations...
+              </text>
+            </box>
+          </Show>
+          <Show when={!devecoHomeBusy() && !devecoHomeInputMode()}>
+            <text fg={theme.text} attributes={1} selectable={false} marginBottom={1}>
+              Configure DevEco Studio Path (Requires version 6.1 or later)
+            </text>
+            <box flexDirection='column'>
+              <For each={devecoHomeCandidates()}>
+                {(candidate, idx) => (
+                  <text fg={devecoHomeIndex() === idx() ? theme.success : theme.text} selectable={false}>
+                    {selectionLead(devecoHomeIndex() === idx())}
+                    {idx() + 1}. {candidate}
+                  </text>
+                )}
+              </For>
+              <text
+                fg={devecoHomeIndex() === devecoHomeCandidates().length ? theme.success : theme.text}
+                selectable={false}
+              >
+                {selectionLead(devecoHomeIndex() === devecoHomeCandidates().length)}
+                {devecoHomeCandidates().length + 1}. Enter a custom path
+              </text>
+              <text
+                fg={devecoHomeIndex() === devecoHomeCandidates().length + 1 ? theme.success : theme.text}
+                selectable={false}
+              >
+                {selectionLead(devecoHomeIndex() === devecoHomeCandidates().length + 1)}
+                {devecoHomeCandidates().length + 2}. Skip (DevEco Studio Tools will be unavailable)
+              </text>
+            </box>
+            <text fg={theme.textMuted} selectable={false} marginTop={1}>
+              Use Enter to Select, Up/Down to navigate
+            </text>
+          </Show>
+          <Show when={!devecoHomeBusy() && devecoHomeInputMode()}>
+            <text fg={theme.text} attributes={1} selectable={false}>
+              Enter DevEco Studio path (v6.1 or later)
+            </text>
+            <box flexDirection='column' width={providerSearchBoxWidth()}>
+              <text fg={theme.textMuted} selectable={false} wrapMode='none'>
+                {`╭${'─'.repeat(Math.max(0, providerSearchBoxWidth() - 2))}╮`}
+              </text>
+              <box flexDirection='row' width={providerSearchBoxWidth()}>
+                <text fg={theme.textMuted} selectable={false} wrapMode='none'>
+                  │
+                </text>
+                <textarea
+                  focused={true}
+                  ref={(r: TextareaRenderable) => (devecoHomeInput = r)}
+                  height={1}
+                  width={Math.max(0, providerSearchBoxWidth() - 2)}
+                  placeholder=' e.g. D:\DevEco Studio'
+                  textColor={theme.text}
+                  focusedTextColor={theme.text}
+                  cursorColor={theme.text}
+                  onContentChange={() => setDevecoHomeInputValue(devecoHomeInput?.plainText ?? '')}
+                  onSubmit={() => submitCustomDevEcoHome()}
+                />
+                <text fg={theme.textMuted} selectable={false} wrapMode='none'>
+                  │
+                </text>
+              </box>
+              <text fg={theme.textMuted} selectable={false} wrapMode='none'>
+                {`╰${'─'.repeat(Math.max(0, providerSearchBoxWidth() - 2))}╯`}
+              </text>
+            </box>
+            <Show when={devecoHomeError() !== null}>
+              <text fg={theme.error} selectable={false} wrapMode='word'>
+                {devecoHomeError()}
+              </text>
+            </Show>
+            <text fg={theme.textMuted} selectable={false} marginTop={1}>
+              Use Enter to submit, Esc to go back
+            </text>
+          </Show>
         </OnboardingContent>
       </Show>
       <Show when={step() === 'providers'}>

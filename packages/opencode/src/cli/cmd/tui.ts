@@ -1,5 +1,4 @@
 import { cmd } from "@/cli/cmd/cmd"
-import { requireLogin } from "@/plugin/deveco"
 import { Rpc } from "@/util/rpc"
 import { type rpc } from "../tui/worker"
 import path from "path"
@@ -19,8 +18,7 @@ import {
   sanitizedProcessEnv,
 } from "@opencode-ai/core/util/opencode-process"
 import { validateSession } from "../tui/validate-session"
-import * as prompts from "@clack/prompts"
-import { findDevEcoHomes, isDevEcoHome, loadSavedDevEcoHome, resolveDevEcoHome, saveDevEcoHome } from "@/tool/lib/env"
+import { loadSavedDevEcoHome } from "@/tool/lib/env"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 
 declare global {
@@ -28,9 +26,6 @@ declare global {
 }
 
 type RpcClient = ReturnType<typeof Rpc.client<typeof rpc>>
-
-const customDevEcoHomeOption = "__custom_deveco_home__"
-const skipDevEcoHomeOption = "__skip_deveco_home__"
 
 function createWorkerFetch(client: RpcClient): typeof fetch {
   const fn = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -80,77 +75,15 @@ export function resolveThreadDirectory(project?: string, envPWD = process.env.PW
   return Filesystem.resolve(cwd)
 }
 
-async function inputDevEcoHome(): Promise<string> {
-  const home = await prompts.text({
-    message: "Enter DEVECO_HOME path",
-  })
-  if (prompts.isCancel(home)) process.exit(1)
-  const resolved = await resolveDevEcoHome(home)
-  if (resolved) return resolved
-  UI.println(
-    UI.Style.TEXT_DANGER_BOLD +
-      "Invalid DevEco Studio path. Please enter a directory that contains DevEco Studio(v6.1 or later) tools." +
-      UI.Style.TEXT_NORMAL,
-  )
-  return inputDevEcoHome()
-}
-
-async function selectDevEcoHome(candidates: string[]): Promise<string | undefined> {
-  const selected = await prompts.select({
-    message: candidates.length
-      ? "Please select DevEco Studio path (Requires version 6.1 or later.)"
-      : "Please configure your DevEco Studio path (Requires version 6.1 or later.)",
-    options: [
-      ...candidates.map((candidate) => ({
-        label: candidate,
-        value: candidate,
-      })),
-      {
-        label: "Enter a custom path",
-        value: customDevEcoHomeOption,
-      },
-      {
-        label: "Skip (DevEco Studio Tools will be unavailable.)",
-        value: skipDevEcoHomeOption,
-      },
-    ],
-    initialValue: candidates[0] ?? customDevEcoHomeOption,
-  })
-  if (prompts.isCancel(selected)) process.exit(1)
-  if (selected === customDevEcoHomeOption) return inputDevEcoHome()
-  if (selected === skipDevEcoHomeOption) return undefined
-  return selected
-}
-
-async function applyDevEcoHome(home: string) {
-  const resolved = await saveDevEcoHome(home)
-  if (resolved) process.env.DEVECO_HOME = resolved
-}
-
 async function ensureDevEcoHomeForTuiStartup() {
   const configured = process.env.DEVECO_HOME?.trim()
-  if (configured) {
-    if (await isDevEcoHome(configured)) return
-  }
+  if (configured) return
 
   const saved = await loadSavedDevEcoHome()
   if (saved) {
     process.env.DEVECO_HOME = saved
     return
   }
-
-  const candidates = await findDevEcoHomes()
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    if (candidates[0]) await applyDevEcoHome(candidates[0])
-    return
-  }
-  // Skip the stderr warning (was: "DEVECO_HOME environment variable is not
-  // configured, features may be unusable"). Auto-detection below resolves a
-  // DevEco Studio path silently; the warning was alarming and preceded the
-  // TUI render, briefly leaking text onto the terminal before the UI took
-  // over the screen.
-  const selected = await selectDevEcoHome(candidates)
-  if (selected) await applyDevEcoHome(selected)
 }
 
 export const TuiThreadCommand = cmd({
@@ -190,11 +123,6 @@ export const TuiThreadCommand = cmd({
         describe: "agent to use",
       }),
   handler: async (args) => {
-    const loggedIn = await requireLogin()
-    if (!loggedIn) {
-      process.exit(1)
-    }
-
     await ensureDevEcoHomeForTuiStartup()
 
     const unguard = win32InstallCtrlCGuard()

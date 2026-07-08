@@ -5,7 +5,6 @@
 export { DevEcoAuthPlugin } from "./auth-plugin"
 export { devecoAuth, DevEcoAuth } from "./auth"
 export { hasDevecoOAuthEntry, saveAuthToDisk } from "./storage"
-export { requireLogin } from "./ui"
 export { ensureValidToken, __resetTokenRefreshState } from "./token-refresh"
 export { sessionChatIdMap } from "./session"
 export { ACCESS_TOKEN_EXPIRES_MS, PROVIDER_ID } from "./types"

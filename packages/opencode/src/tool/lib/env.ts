@@ -191,6 +191,13 @@ export async function findDevEcoHome(): Promise<string | undefined> {
   return (await findDevEcoHomes())[0];
 }
 
+export async function hasConfiguredDevEcoHome(): Promise<boolean> {
+  if (envPath()) {
+    return true;
+  }
+  return Boolean(await loadSavedDevEcoHome());
+}
+
 export function buildEnv(home: string, sdk: string) {
   const sep = process.platform === "win32" ? ";" : ":";
   const raw = process.env.PATH || process.env.Path || process.env.path || "";
