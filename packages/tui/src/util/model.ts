@@ -26,3 +26,7 @@ export function name(
 ) {
   return get(list, providerID, modelID)?.name ?? modelID
 }
+
+export function isDevecoProvider(providerID: string | undefined): boolean {
+  return providerID === "deveco"
+}

@@ -571,7 +571,9 @@
     "popover": {
       "typeToFilter": "Type to filter agents, files & resources",
       "noMatchingItems": "No matching items"
-    }
+    },
+    "slow_response_tip_before": "The model response is slow. Use ",
+    "slow_response_tip_after": " to switch providers for better experience."
   },
   "tip": {
     "label": "● Tip",

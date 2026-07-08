@@ -55,6 +55,7 @@ import { DialogForkFromTimeline } from "./dialog-fork-from-timeline"
 import { DialogSessionRename } from "../../component/dialog-session-rename"
 import { Sidebar } from "./sidebar"
 import { SubagentFooter } from "./subagent-footer.tsx"
+import { SlowResponseTip } from "./slow-response-tip"
 import { filetype } from "../../util/filetype"
 import parsers from "../../parsers-config"
 import { errorMessage } from "../../util/error"
@@ -1279,6 +1280,7 @@ export function Session() {
                   )}
                 </For>
               </scrollbox>
+              <SlowResponseTip sessionID={route.sessionID} />
               <box flexShrink={0}>
                 <Show when={permissions().length > 0}>
                   <PermissionPrompt

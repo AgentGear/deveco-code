@@ -1333,6 +1333,7 @@ export function Prompt(props: PromptProps) {
 
   const agentMetaAlpha = createFadeIn(() => !!local.agent.current(), animationsEnabled)
   const modelMetaAlpha = createFadeIn(() => !!local.agent.current() && store.mode === "normal", animationsEnabled)
+
   const variantMetaAlpha = createFadeIn(
     () => !!local.agent.current() && store.mode === "normal" && showVariant(),
     animationsEnabled,
