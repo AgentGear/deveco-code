@@ -77,6 +77,23 @@ export class DevEcoAuth {
   }
 
   /**
+   * 检查存储的 JWT token 是否已过期。
+   * 用于启动时快速判断用户凭证是否失效，无需发起网络请求。
+   * @returns true 表示 JWT 已过期，false 表示仍有效，null 表示未找到 token 或解析失败
+   */
+  async isJwtExpired(): Promise<boolean | null> {
+    const jwtToken = await tokenStorage.loadToken()
+    if (!jwtToken) return null
+    try {
+      const parsed = loginService.parseJwt(jwtToken)
+      if (parsed.exp) return Date.now() >= parsed.exp * 1000
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  /**
    * 刷新 accessToken
    * @returns 刷新成功返回新的 token 信息，失败返回 null
    */

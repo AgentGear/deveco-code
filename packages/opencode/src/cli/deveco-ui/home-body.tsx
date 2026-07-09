@@ -72,6 +72,17 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
 
   const bodySlotHeight = createMemo(() => homeBodySlotRows(dimensions().height))
 
+  /**
+   * Finish the auth check: show entry screen (with optional session-expired flag)
+   * or the privacy agreement screen.
+   */
+  const finishCheck = (sessionExpired: boolean, step: "entry" | "privacy" = "entry") => {
+    if (sessionExpired) setDevecoSessionExpired(true)
+    setDevecoInitialStep(step)
+    setDevecoReady(false)
+    setAuthCheckDone(true)
+  }
+
   const runDevecoCheck = async () => {
     if (devecoChecked) return
     devecoChecked = true
@@ -79,19 +90,13 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
     try {
 
     if (!hasDevecoOAuthEntry()) {
-      setDevecoInitialStep("entry")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
-      return
+      return finishCheck(false)
     }
 
     const session = await devecoAuth.getSession()
 
     if (!session) {
-      setDevecoInitialStep("entry")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
-      return
+      return finishCheck(false)
     }
 
     let accessToken = session.accessToken
@@ -102,10 +107,16 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
     if (validToken) {
       accessToken = validToken
     } else if (!accessToken) {
-      setDevecoInitialStep("entry")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
-      return
+      // No valid token and no stored accessToken — check if the JWT itself is
+      // expired so we can show the "credentials expired" message instead of the
+      // generic first-time login prompt.
+      return finishCheck(await devecoAuth.isJwtExpired() === true)
+    } else if (await devecoAuth.isJwtExpired() === true) {
+      // ensureValidToken() returned null (refresh failed) but an old accessToken
+      // is still available from the session.  If the JWT has already expired, the
+      // agreement check below will certainly fail with SESSION_EXPIRED — skip it
+      // and show the credential-expired prompt immediately.
+      return finishCheck(true)
     }
 
     const userId = session.userId || (await devecoAuth.getUserId()) || ""
@@ -155,14 +166,9 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
         setDevecoReady(true)
       }
     } else if (checkResult.overallStatus === AgreementStatus.SESSION_EXPIRED) {
-      setDevecoInitialStep("entry")
-      setDevecoSessionExpired(true)
-      setDevecoReady(false)
-      setAuthCheckDone(true)
+      finishCheck(true)
     } else {
-      setDevecoInitialStep("privacy")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
+      finishCheck(false, "privacy")
     }
 
     } catch (err) {
@@ -170,9 +176,9 @@ export function DevEcoHomeBody(props: { sync: SyncObject; bodySlotHeight: number
       // leave the UI stuck on "Checking login status…".  Fall back to the entry
       // screen so the user can at least re-login or exit.
       console.error("runDevecoCheck failed:", err)
-      setDevecoInitialStep("entry")
-      setDevecoReady(false)
-      setAuthCheckDone(true)
+      // Even if an error occurred, check if JWT is expired so we can show the
+      // appropriate "session expired" message instead of the generic login prompt.
+      finishCheck(await devecoAuth.isJwtExpired() === true)
     }
   }
 

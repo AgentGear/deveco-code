@@ -1033,19 +1033,24 @@ if (st === 'entry') {
           </box>
         </Show>
         <Show when={!checkingStatus() && sessionExpired()}>
-          <box flexDirection='column' alignItems='center'>
-            <text fg={theme.error} selectable={false}>
+          <OnboardingContent>
+            <text fg={theme.error} selectable={false} marginBottom={1}>
               Your login session has expired. Please sign in again.
             </text>
-            <text fg={privacyIndex() === 0 ? theme.success : theme.text} selectable={false} marginTop={1}>
-              {selectionLead(privacyIndex() === 0)}
-              1. Sign in again
+            <box flexDirection='column'>
+              <text fg={privacyIndex() === 0 ? theme.success : theme.text} selectable={false}>
+                {selectionLead(privacyIndex() === 0)}
+                1. Sign in again
+              </text>
+              <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false}>
+                {selectionLead(privacyIndex() === 1)}
+                2. Exit
+              </text>
+            </box>
+            <text fg={theme.textMuted} selectable={false} marginTop={1}>
+              Use Enter to Select, Up/Down to navigate
             </text>
-            <text fg={privacyIndex() === 1 ? theme.success : theme.text} selectable={false}>
-              {selectionLead(privacyIndex() === 1)}
-              2. Cancel
-            </text>
-          </box>
+          </OnboardingContent>
         </Show>
         <Show when={!checkingStatus() && !networkErrorNoCache() && !sessionExpired()}>
           <OnboardingContent>
