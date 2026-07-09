@@ -24,7 +24,7 @@ export type CaseContext = {
   artifactDir: string
   createTempWorkspace: (prefix?: string) => Promise<string>
   writeArtifact: (caseID: string, filename: string, content: string) => Promise<string>
-  runDeveco: (args: string[], options?: { timeoutMs?: number; cwd?: string }) => Promise<RunCommandResult>
+  runDeveco: (args: string[], options?: { timeoutMs?: number; cwd?: string; stdin?: string }) => Promise<RunCommandResult>
   runDevecoPrompt: (
     message: string,
     options?: { timeoutMs?: number; model?: string; workspace?: string },

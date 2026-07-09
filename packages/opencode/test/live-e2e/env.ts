@@ -41,16 +41,22 @@ export async function createTempWorkspace(prefix = "deveco-live-e2e-") {
 
 export async function runDeveco(
   args: string[],
-  options: { timeoutMs?: number; cwd?: string } = {},
+  options: { timeoutMs?: number; cwd?: string; stdin?: string } = {},
 ): Promise<RunCommandResult> {
   const start = Date.now()
   const proc = Bun.spawn(["bun", "run", "--conditions=browser", cliEntry, ...args], {
     cwd: options.cwd ?? opencodeRoot,
     env: realUserEnv(),
-    stdin: "ignore",
+    stdin: options.stdin ? "pipe" : "ignore",
     stdout: "pipe",
     stderr: "pipe",
   })
+
+  const stdin = proc.stdin
+  if (options.stdin && stdin) {
+    stdin.write(options.stdin)
+    stdin.end()
+  }
 
   const timeout = setTimeout(() => proc.kill(), options.timeoutMs ?? 120_000)
   const [exitCode, stdout, stderr] = await Promise.all([
@@ -72,8 +78,7 @@ export async function runDevecoPrompt(
     const args = ["run", "--format", "json", "--dir", workspace]
     const model = options.model ?? process.env.DEVECO_LIVE_MODEL?.trim()
     if (model) args.push("--model", model)
-    args.push(message)
-    return await runDeveco(args, { timeoutMs: options.timeoutMs })
+    return await runDeveco(args, { timeoutMs: options.timeoutMs, stdin: message })
   } finally {
     if (ownsWorkspace) await fs.rm(workspace, { recursive: true, force: true })
   }
